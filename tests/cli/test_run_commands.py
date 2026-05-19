@@ -42,9 +42,20 @@ def test_runs_show_metrics_and_replay_commands_read_artifacts(tmp_path: Path) ->
     assert run_result.exit_code == 0
     run_path = tmp_path / "runs" / "cli-run"
 
-    show_result = runner.invoke(app, ["runs", "show", str(run_path)])
+    show_result = runner.invoke(
+        app, ["runs", "show", "cli-run", "--artifacts-dir", str(tmp_path / "runs")]
+    )
     metrics_result = runner.invoke(
-        app, ["runs", "metrics", str(run_path), "--metric", "infected_count"]
+        app,
+        [
+            "runs",
+            "metrics",
+            "cli-run",
+            "--metric",
+            "infected_count",
+            "--artifacts-dir",
+            str(tmp_path / "runs"),
+        ],
     )
     replay_result = runner.invoke(app, ["replay", str(run_path)])
 

@@ -58,7 +58,7 @@ The API should be local-first and unauthenticated by default:
 - [ ] `GET /runs/{run_id}/metrics` returns metrics as JSON.
 - [ ] `GET /runs/{run_id}/events` returns events as JSON.
 - [ ] `GET /runs/{run_id}/stream` streams live metric events during active runs.
-- [ ] Web UI can create or load the SIR example config.
+- [x] Web UI can create or load the SIR example config.
 - [ ] Web UI can run the simulation and show live metric charts.
 - [ ] Web UI can replay a completed run.
 - [ ] Web UI can compare at least two runs on the same chart.
@@ -74,103 +74,103 @@ The API should be local-first and unauthenticated by default:
 
 ### Checkpoint 0 — v1 stabilization before v2
 
-- [ ] Commit or intentionally squash all completed v1 work.
-- [ ] Confirm `git status` is clean before v2 work begins.
-- [ ] Run `uv sync`.
-- [ ] Run `uv run pytest --cov`.
-- [ ] Run `uv run ruff check .`.
-- [ ] Run `uv run ruff format --check .`.
-- [ ] Run `uv run mypy src sdk/src plugins/persephone-plugin-sir-epidemic/src`.
-- [ ] Run `uv run persephone run configs/examples/sir_epidemic.yaml --run-id v2-baseline`.
-- [ ] Save one known-good baseline output summary in `docs/examples/v1-baseline.md`.
+- [x] Commit or intentionally squash all completed v1 work.
+- [x] Confirm `git status` is clean before v2 work begins.
+- [x] Run `uv sync`.
+- [x] Run `uv run pytest --cov`.
+- [x] Run `uv run ruff check .`.
+- [x] Run `uv run ruff format --check .`.
+- [x] Run `uv run mypy src sdk/src plugins/persephone-plugin-sir-epidemic/src`.
+- [x] Run `uv run persephone run configs/examples/sir_epidemic.yaml --run-id v2-baseline`.
+- [x] Save one known-good baseline output summary in `docs/examples/v1-baseline.md`.
 - [ ] Commit: `chore: stabilize v1 baseline`.
 
 ### Checkpoint 1 — Run catalog and artifact discovery
 
-- [ ] Create `src/persephone/storage/catalog.py`.
-- [ ] Implement `RunCatalog.scan(root)` to discover run directories containing `manifest.json`.
-- [ ] Implement `RunCatalog.list_runs()` sorted by start time descending.
-- [ ] Implement `RunCatalog.get(run_id_or_path)`.
-- [ ] Implement status filtering: `completed`, `failed`, `running`.
-- [ ] Add manifest summary model: run id, name, status, started time, final time, plugin names, config hash.
-- [ ] Update `persephone runs show` to accept run id from the catalog, not only a path.
-- [ ] Update `persephone runs metrics` to accept run id from the catalog.
-- [ ] Add tests for catalog scanning.
-- [ ] Add tests for duplicate run ids across roots.
+- [x] Create `src/persephone/storage/catalog.py`.
+- [x] Implement `RunCatalog.scan(root)` to discover run directories containing `manifest.json`.
+- [x] Implement `RunCatalog.list_runs()` sorted by start time descending.
+- [x] Implement `RunCatalog.get(run_id_or_path)`.
+- [x] Implement status filtering: `completed`, `failed`, `running`.
+- [x] Add manifest summary model: run id, name, status, started time, final time, plugin names, config hash.
+- [x] Update `persephone runs show` to accept run id from the catalog, not only a path.
+- [x] Update `persephone runs metrics` to accept run id from the catalog.
+- [x] Add tests for catalog scanning.
+- [x] Add tests for duplicate run ids across roots.
 - [ ] Commit: `feat: add local run catalog`.
 
 ### Checkpoint 2 — Local API service
 
-- [ ] Add FastAPI and Uvicorn dependencies.
-- [ ] Create `src/persephone/api/app.py`.
-- [ ] Create `src/persephone/api/routes/health.py`.
-- [ ] Create `src/persephone/api/routes/plugins.py`.
-- [ ] Create `src/persephone/api/routes/runs.py`.
-- [ ] Implement `GET /health`.
-- [ ] Implement `GET /plugins`.
-- [ ] Implement `POST /runs` accepting an experiment config payload.
-- [ ] Implement `GET /runs`.
-- [ ] Implement `GET /runs/{run_id}`.
-- [ ] Implement `GET /runs/{run_id}/metrics`.
-- [ ] Implement `GET /runs/{run_id}/events`.
-- [ ] Add `persephone api --host 127.0.0.1 --port 8787`.
-- [ ] Add API tests using FastAPI test client.
-- [ ] Document local-only security posture.
+- [x] Add FastAPI and Uvicorn dependencies.
+- [x] Create `src/persephone/api/app.py`.
+- [x] Create `src/persephone/api/routes/health.py`.
+- [x] Create `src/persephone/api/routes/plugins.py`.
+- [x] Create `src/persephone/api/routes/runs.py`.
+- [x] Implement `GET /health`.
+- [x] Implement `GET /plugins`.
+- [x] Implement `POST /runs` accepting an experiment config payload.
+- [x] Implement `GET /runs`.
+- [x] Implement `GET /runs/{run_id}`.
+- [x] Implement `GET /runs/{run_id}/metrics`.
+- [x] Implement `GET /runs/{run_id}/events`.
+- [x] Add `persephone api --host 127.0.0.1 --port 8787`.
+- [x] Add API tests using FastAPI test client.
+- [x] Document local-only security posture.
 - [ ] Commit: `feat: add local api service`.
 
 ### Checkpoint 3 — Live run execution and metric streaming
 
-- [ ] Add a `RunManager` that tracks active local runs.
-- [ ] Run simulations in a background thread or task.
-- [ ] Add run cancellation state to `RunManager`.
-- [ ] Add active run status endpoint.
-- [ ] Add `GET /runs/{run_id}/stream` using Server-Sent Events.
-- [ ] Emit metric events from the scheduler as they are written.
-- [ ] Add scheduler callback hook for metrics/events.
-- [ ] Add tests for active run status transitions.
-- [ ] Add tests that stream emits metric events.
-- [ ] Add tests for failed runs preserving error messages.
+- [x] Add a `RunManager` that tracks active local runs.
+- [x] Run simulations in a background thread or task.
+- [x] Add run cancellation state to `RunManager`.
+- [x] Add active run status endpoint.
+- [x] Add `GET /runs/{run_id}/stream` using Server-Sent Events.
+- [x] Emit metric events from the scheduler as they are written.
+- [x] Add scheduler callback hook for metrics/events.
+- [x] Add tests for active run status transitions.
+- [x] Add tests that stream emits metric events.
+- [x] Add tests for failed runs preserving error messages.
 - [ ] Commit: `feat: stream live run metrics`.
 
 ### Checkpoint 4 — UI workspace setup
 
-- [ ] Create `ui/` with SvelteKit and TypeScript.
-- [ ] Configure Vite.
-- [ ] Configure Svelte 5.
-- [ ] Install and configure shadcn-svelte from `https://www.shadcn-svelte.com/`.
-- [ ] Configure Tailwind CSS as required by shadcn-svelte.
-- [ ] Add initial shadcn-svelte components needed for v2: button, card, table, tabs, dialog, select, input, textarea, badge, alert, separator, sheet, skeleton, and tooltip.
-- [ ] Define a small Persephone UI theme using shadcn-svelte tokens.
-- [ ] Add UI package scripts: `dev`, `build`, `check`, `test`.
-- [ ] Add API base URL environment variable.
-- [ ] Add typed API client in `ui/src/lib/api.ts`.
-- [ ] Add basic app shell with navigation for Runs, Experiments, Plugins, and Settings.
-- [ ] Add Playwright or Vitest for UI checks.
+- [x] Create `ui/` with SvelteKit and TypeScript.
+- [x] Configure Vite.
+- [x] Configure Svelte 5.
+- [x] Install and configure shadcn-svelte from `https://www.shadcn-svelte.com/`.
+- [x] Configure Tailwind CSS as required by shadcn-svelte.
+- [x] Add initial shadcn-svelte components needed for v2: button, card, table, tabs, dialog, select, input, textarea, badge, alert, separator, sheet, skeleton, and tooltip.
+- [x] Define a small Persephone UI theme using shadcn-svelte tokens.
+- [x] Add UI package scripts: `dev`, `build`, `check`, `test`.
+- [x] Add API base URL environment variable.
+- [x] Add typed API client in `ui/src/lib/api.ts`.
+- [x] Add basic app shell with navigation for Runs, Experiments, Plugins, and Settings.
+- [x] Add Playwright or Vitest for UI checks.
 - [ ] Commit: `feat: initialize ui workspace`.
 
 ### Checkpoint 5 — Run dashboard UI
 
-- [ ] Build a run list page.
-- [ ] Show run status, experiment name, plugin, start time, final time, and artifact location.
-- [ ] Build run detail page.
-- [ ] Render manifest metadata.
-- [ ] Render metric chart for `susceptible_count`, `infected_count`, and `recovered_count`.
-- [ ] Render event table for infection and recovery events.
-- [ ] Add empty state when no runs exist.
-- [ ] Add loading and error states for API failures.
-- [ ] Add UI tests for run list and detail rendering.
+- [x] Build a run list page.
+- [x] Show run status, experiment name, plugin, start time, final time, and artifact location.
+- [x] Build run detail page.
+- [x] Render manifest metadata.
+- [x] Render metric chart for `susceptible_count`, `infected_count`, and `recovered_count`.
+- [x] Render event table for infection and recovery events.
+- [x] Add empty state when no runs exist.
+- [x] Add loading and error states for API failures.
+- [x] Add UI tests for run list and detail rendering.
 - [ ] Commit: `feat: add run dashboard`.
 
 ### Checkpoint 6 — Experiment editor UI
 
-- [ ] Build experiment editor page.
-- [ ] Load `configs/examples/sir_epidemic.yaml` through the API or a bundled example endpoint.
-- [ ] Show editable fields for seed, `t_end`, `p_infect`, `p_recover`, and initially infected nodes.
-- [ ] Validate config client-side using exported JSON Schema.
-- [ ] Show validation errors inline.
-- [ ] Add a Run button that calls `POST /runs`.
-- [ ] Show the created run id and link to run detail page.
-- [ ] Add UI tests for editing and submitting a config.
+- [x] Build experiment editor page.
+- [x] Load `configs/examples/sir_epidemic.yaml` through the API or a bundled example endpoint.
+- [x] Show editable fields for seed, `t_end`, `p_infect`, `p_recover`, and initially infected nodes.
+- [x] Validate config client-side using exported JSON Schema.
+- [x] Show validation errors inline.
+- [x] Add a Run button that calls `POST /runs`.
+- [x] Show the created run id and link to run detail page.
+- [x] Add UI tests for editing and submitting a config.
 - [ ] Commit: `feat: add experiment editor`.
 
 ### Checkpoint 7 — Live metrics UI

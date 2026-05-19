@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from persephone_sdk.plugin import PluginManifest
@@ -56,31 +58,57 @@ class PersephoneEngine:
 
         return manifests
 
-    def run(self, config: ExperimentConfig, run_id: str | None = None) -> RunResult:
+    def run(
+        self,
+        config: ExperimentConfig,
+        run_id: str | None = None,
+        record_callback: Callable[[str, dict[str, Any]], None] | None = None,
+        should_cancel: Callable[[], bool] | None = None,
+    ) -> RunResult:
         manifests = self.validate(config)
         run_context = RunContext.create(config, manifests, run_id=run_id)
         artifact_store = ArtifactStore(self.artifact_root)
         artifact_path = artifact_store.initialize_run(run_context)
-        runtimes, schemas = self._build_runtimes(config, manifests, run_context)
-        bus = InMemoryDataBus(
-            run_id=run_context.run_id,
-            schemas=schemas,
-            coupling_rules=config.coupling.rules,
-        )
-        scheduler = Scheduler(
-            run_context=run_context,
-            runtimes=runtimes,
-            bus=bus,
-            artifact_store=artifact_store,
-        )
+        try:
+            runtimes, schemas = self._build_runtimes(config, manifests, run_context)
+            bus = InMemoryDataBus(
+                run_id=run_context.run_id,
+                schemas=schemas,
+                coupling_rules=config.coupling.rules,
+            )
+            scheduler = Scheduler(
+                run_context=run_context,
+                runtimes=runtimes,
+                bus=bus,
+                artifact_store=artifact_store,
+                record_callback=record_callback,
+                should_cancel=should_cancel,
+            )
 
-        scheduler_result = scheduler.run()
+            scheduler_result = scheduler.run()
+            metric_summary = self._metric_summary(runtimes)
+        except Exception as exc:  # noqa: BLE001 - engine records failed run boundary.
+            artifact_store.update_status(
+                run_context.run_id,
+                "failed",
+                t_current=run_context.t_current,
+                error_message=str(exc),
+            )
+            return RunResult(
+                run_id=run_context.run_id,
+                status="failed",
+                artifact_path=artifact_path,
+                final_time=run_context.t_current,
+                metric_summary={},
+                error_message=str(exc),
+            )
+
         return RunResult(
             run_id=run_context.run_id,
             status=scheduler_result.status,
             artifact_path=artifact_path,
             final_time=scheduler_result.t_current,
-            metric_summary=self._metric_summary(runtimes),
+            metric_summary=metric_summary,
             error_message=scheduler_result.error_message,
         )
 

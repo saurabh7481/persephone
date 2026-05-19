@@ -13,6 +13,7 @@ from rich.table import Table
 from persephone.config.load import load_experiment_config
 from persephone.core.engine import PersephoneEngine
 from persephone.registry.registry import PluginRegistry
+from persephone.storage.catalog import RunCatalog, RunCatalogError
 
 app = typer.Typer(help="Persephone simulation platform CLI.")
 plugins_app = typer.Typer(help="Inspect installed simulation plugins.")
@@ -87,9 +88,12 @@ def list_plugins() -> None:
 
 
 @runs_app.command("show")
-def show_run(run: Annotated[Path, typer.Argument()]) -> None:
+def show_run(
+    run: Annotated[str, typer.Argument()],
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
     """Show run manifest metadata."""
-    run_dir = _resolve_run_dir(run)
+    run_dir = _resolve_run_dir(run, artifacts_dir)
     manifest = _read_json(run_dir / "manifest.json")
     table = Table(title=f"Run {manifest['run_id']}")
     table.add_column("Field")
@@ -101,11 +105,12 @@ def show_run(run: Annotated[Path, typer.Argument()]) -> None:
 
 @runs_app.command("metrics")
 def show_metrics(
-    run: Annotated[Path, typer.Argument()],
+    run: Annotated[str, typer.Argument()],
     metric: Annotated[str | None, typer.Option("--metric")] = None,
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
 ) -> None:
     """Print run metric records."""
-    run_dir = _resolve_run_dir(run)
+    run_dir = _resolve_run_dir(run, artifacts_dir)
     records = _read_jsonl(run_dir / "metrics.jsonl")
     if metric is not None:
         records = [record for record in records if record.get("metric") == metric]
@@ -136,6 +141,28 @@ def replay_run(run: Annotated[Path, typer.Argument()]) -> None:
     console.print(table)
 
 
+@app.command("api")
+def api(
+    host: Annotated[str, typer.Option("--host")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", min=1, max=65535)] = 8787,
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """Run the local Persephone API server."""
+    import uvicorn
+
+    from persephone.api.app import create_app
+
+    if host not in {"127.0.0.1", "localhost"}:
+        console.print("[yellow]Warning:[/yellow] the API is intended for trusted local use only.")
+
+    uvicorn.run(
+        create_app(artifact_root=artifacts_dir),
+        host=host,
+        port=port,
+        log_level="info",
+    )
+
+
 @examples_app.command("generate-sir-network")
 def generate_sir_network(
     output: Annotated[Path, typer.Option("--output")],
@@ -152,13 +179,11 @@ def generate_sir_network(
     console.print(f"[green]Generated[/green] {output}")
 
 
-def _resolve_run_dir(run: Path) -> Path:
-    if run.exists():
-        return run
-    candidate = Path("runs") / str(run)
-    if candidate.exists():
-        return candidate
-    raise typer.BadParameter(f"Run path does not exist: {run}")
+def _resolve_run_dir(run: str | Path, artifacts_dir: Path = Path("runs")) -> Path:
+    try:
+        return RunCatalog.scan(artifacts_dir).get(run).path
+    except RunCatalogError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def _read_json(path: Path) -> dict[str, object]:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -38,11 +38,15 @@ class Scheduler:
         runtimes: list[SolverRuntime],
         bus: InMemoryDataBus,
         artifact_store: ArtifactStore,
+        record_callback: Callable[[str, dict[str, Any]], None] | None = None,
+        should_cancel: Callable[[], bool] | None = None,
     ) -> None:
         self.run_context = run_context
         self.runtimes = runtimes
         self.bus = bus
         self.artifact_store = artifact_store
+        self.record_callback = record_callback
+        self.should_cancel = should_cancel
 
     def run(self) -> SchedulerResult:
         t = 0.0
@@ -51,6 +55,13 @@ class Scheduler:
 
         try:
             while t < self._t_end():
+                if self.should_cancel is not None and self.should_cancel():
+                    self.artifact_store.update_status(
+                        self.run_context.run_id,
+                        "cancelled",
+                        t_current=t,
+                    )
+                    return SchedulerResult(status="cancelled", tick_count=tick, t_current=t)
                 tick += 1
                 dt = self._next_dt(t)
                 for runtime in self.runtimes:
@@ -100,11 +111,20 @@ class Scheduler:
             for metric in metrics:
                 metric.setdefault("solver_id", runtime.solver_id)
             self.artifact_store.write_metrics(self.run_context.run_id, metrics)
+            self._emit_records("metric", metrics)
 
-            events = getattr(runtime.solver, "last_events", [])
+            events = cast(list[dict[str, Any]], getattr(runtime.solver, "last_events", []))
             for event in events:
                 event.setdefault("solver_id", runtime.solver_id)
-            self.artifact_store.write_events(self.run_context.run_id, list(events))
+            event_records = list(events)
+            self.artifact_store.write_events(self.run_context.run_id, event_records)
+            self._emit_records("event", event_records)
+
+    def _emit_records(self, kind: str, records: list[dict[str, Any]]) -> None:
+        if self.record_callback is None:
+            return
+        for record in records:
+            self.record_callback(kind, record)
 
     def _final_state(self) -> dict[str, np.ndarray[Any, Any]]:
         state: dict[str, np.ndarray[Any, Any]] = {}
