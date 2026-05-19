@@ -176,46 +176,46 @@ This task list is intentionally detailed enough to take the project from an empt
 
 ### Checkpoint 4 — Plugin registry
 
-- [ ] Create `src/persephone/registry/registry.py`.
-- [ ] Discover plugins through `importlib.metadata.entry_points(group="persephone.plugins")`.
-- [ ] Load plugin manifests without instantiating worlds or solvers.
-- [ ] Catch and report broken plugin imports without crashing discovery.
-- [ ] Validate `sdk_min_version` and requested experiment plugin version constraints.
-- [ ] Add `PluginRegistry.list_all()`, `get(name)`, and `require(name, version_constraint)`.
-- [ ] Add tests using fake entry points.
-- [ ] Add tests for incompatible SDK versions.
-- [ ] Add tests for missing plugin error messages.
-- [ ] Add `persephone plugins list`.
+- [x] Create `src/persephone/registry/registry.py`.
+- [x] Discover plugins through `importlib.metadata.entry_points(group="persephone.plugins")`.
+- [x] Load plugin manifests without instantiating worlds or solvers.
+- [x] Catch and report broken plugin imports without crashing discovery.
+- [x] Validate `sdk_min_version` and requested experiment plugin version constraints.
+- [x] Add `PluginRegistry.list_all()`, `get(name)`, and `require(name, version_constraint)`.
+- [x] Add tests using fake entry points.
+- [x] Add tests for incompatible SDK versions.
+- [x] Add tests for missing plugin error messages.
+- [x] Add `persephone plugins list`.
 - [ ] Commit: `feat: discover installed plugins`.
 
 ### Checkpoint 5 — Double-buffered in-memory data bus
 
-- [ ] Create `src/persephone/core/bus.py`.
-- [ ] Implement `BusChannelSchema`.
-- [ ] Implement `InMemoryDataBus.read(channel)` against committed state.
-- [ ] Implement `InMemoryDataBus.write(channel, value, solver_id, tick)` against pending state.
-- [ ] Implement `commit(tick)` to validate pending writes and promote them atomically.
-- [ ] Implement conflict detection for duplicate writes without a declared coupling rule.
-- [ ] Implement coupling rules: `sum`, `mean`, `max`, `min`, and `last`.
-- [ ] Add shape and dtype validation for writes.
-- [ ] Add tests proving current-tick writes are invisible until commit.
-- [ ] Add tests for each coupling rule.
-- [ ] Add tests for schema violations.
+- [x] Create `src/persephone/core/bus.py`.
+- [x] Implement `BusChannelSchema`.
+- [x] Implement `InMemoryDataBus.read(channel)` against committed state.
+- [x] Implement `InMemoryDataBus.write(channel, value, solver_id, tick)` against pending state.
+- [x] Implement `commit(tick)` to validate pending writes and promote them atomically.
+- [x] Implement conflict detection for duplicate writes without a declared coupling rule.
+- [x] Implement coupling rules: `sum`, `mean`, `max`, `min`, and `last`.
+- [x] Add shape and dtype validation for writes.
+- [x] Add tests proving current-tick writes are invisible until commit.
+- [x] Add tests for each coupling rule.
+- [x] Add tests for schema violations.
 - [ ] Commit: `feat: add deterministic data bus`.
 
 ### Checkpoint 6 — Run context, seed plan, and artefact store
 
-- [ ] Create `src/persephone/core/run.py`.
-- [ ] Define `RunContext` with `run_id`, config snapshot, config hash, engine version, SDK version, plugin versions, start time, status, and seed plan.
-- [ ] Create deterministic per-solver RNG substreams using `numpy.random.SeedSequence`.
-- [ ] Create `src/persephone/storage/artifacts.py`.
-- [ ] Implement local run directory creation under `runs/<run_id>/`.
-- [ ] Write immutable `manifest.json` at run start and update status on completion or failure.
-- [ ] Write `metrics.jsonl`.
-- [ ] Write `events.jsonl`.
-- [ ] Write final state as `.npz` where possible and JSON metadata alongside it.
-- [ ] Add tests for manifest contents.
-- [ ] Add tests proving the same seed plan is regenerated from the same config.
+- [x] Create `src/persephone/core/run.py`.
+- [x] Define `RunContext` with `run_id`, config snapshot, config hash, engine version, SDK version, plugin versions, start time, status, and seed plan.
+- [x] Create deterministic per-solver RNG substreams using `numpy.random.SeedSequence`.
+- [x] Create `src/persephone/storage/artifacts.py`.
+- [x] Implement local run directory creation under `runs/<run_id>/`.
+- [x] Write immutable `manifest.json` at run start and update status on completion or failure.
+- [x] Write `metrics.jsonl`.
+- [x] Write `events.jsonl`.
+- [x] Write final state as `.npz` where possible and JSON metadata alongside it.
+- [x] Add tests for manifest contents.
+- [x] Add tests proving the same seed plan is regenerated from the same config.
 - [ ] Commit: `feat: add run provenance and artifacts`.
 
 ### Checkpoint 7 — Graph solver kernel
