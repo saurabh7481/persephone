@@ -1,0 +1,33 @@
+name: sir_epidemic_baseline
+description: "Synthetic 20-node SIR contact-network simulation"
+seed: 42
+
+scheduler:
+  t_end: 24
+  sync_interval: auto
+
+solvers:
+  - type: graph
+    plugin: sir_epidemic
+    version: ">=0.1.0"
+    params:
+      contact_graph: data/sir_contact_edges.csv
+      n_nodes: 20
+      initially_infected: [0, 10]
+      p_infect: 0.6
+      p_recover: 0.08
+
+observer:
+  metrics:
+    - susceptible_count
+    - infected_count
+    - recovered_count
+    - new_infections
+    - new_recoveries
+    - r_effective_estimate
+  emit_every: 1.0
+
+storage:
+  artifacts_dir: runs
+  metrics: true
+  events: true

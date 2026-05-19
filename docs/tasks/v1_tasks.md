@@ -262,43 +262,43 @@ This task list is intentionally detailed enough to take the project from an empt
 
 ### Checkpoint 10 — First plugin package
 
-- [ ] Create `plugins/persephone-plugin-sir-epidemic/pyproject.toml`.
-- [ ] Declare the entry point group `persephone.plugins`.
-- [ ] Create `plugins/persephone-plugin-sir-epidemic/src/persephone_sir_epidemic/__init__.py`.
-- [ ] Implement `SIRWorld` that loads `source,target,weight` CSV data.
-- [ ] Implement `SIRSolver` using the graph kernel.
-- [ ] Implement `SIRObserver` returning counts and transition events.
-- [ ] Implement `SIRRenderer.viz_schema()` for graph and count chart hints.
-- [ ] Implement `SIREpidemicPlugin.manifest()`.
-- [ ] Add default params and parameter schema.
-- [ ] Add plugin tests using `PluginTestHarness`.
-- [ ] Add scientific sanity tests for conservation: `S + I + R = n_nodes` for every tick.
-- [ ] Install the plugin editable in dev docs: `uv pip install -e plugins/persephone-plugin-sir-epidemic`.
-- [ ] Confirm `persephone plugins list` discovers it.
+- [x] Create `plugins/persephone-plugin-sir-epidemic/pyproject.toml`.
+- [x] Declare the entry point group `persephone.plugins`.
+- [x] Create `plugins/persephone-plugin-sir-epidemic/src/persephone_sir_epidemic/__init__.py`.
+- [x] Implement `SIRWorld` that loads `source,target,weight` CSV data.
+- [x] Implement `SIRSolver` using the graph kernel.
+- [x] Implement `SIRObserver` returning counts and transition events.
+- [x] Implement `SIRRenderer.viz_schema()` for graph and count chart hints.
+- [x] Implement `SIREpidemicPlugin.manifest()`.
+- [x] Add default params and parameter schema.
+- [x] Add plugin tests using `PluginTestHarness`.
+- [x] Add scientific sanity tests for conservation: `S + I + R = n_nodes` for every tick.
+- [x] Install the plugin editable in dev docs: `uv pip install -e plugins/persephone-plugin-sir-epidemic`.
+- [x] Confirm `persephone plugins list` discovers it.
 - [ ] Commit: `feat: add sir epidemic plugin`.
 
 ### Checkpoint 11 — Ready data source and example config
 
-- [ ] Create `configs/examples/data/sir_contact_edges.csv`.
-- [ ] Keep the example network small enough for fast tests and large enough for non-trivial spread.
-- [ ] Create `configs/examples/sir_epidemic.yaml`.
-- [ ] Set seed, `t_end`, graph path, infection probability, recovery probability, and initial infected count.
-- [ ] Add `configs/examples/README.md` explaining the data source and expected output.
-- [ ] Add optional generator command `persephone examples generate-sir-network`.
-- [ ] Add tests that the example config validates.
-- [ ] Add an integration test that runs the example to completion in under a few seconds.
+- [x] Create `configs/examples/data/sir_contact_edges.csv`.
+- [x] Keep the example network small enough for fast tests and large enough for non-trivial spread.
+- [x] Create `configs/examples/sir_epidemic.yaml`.
+- [x] Set seed, `t_end`, graph path, infection probability, recovery probability, and initial infected count.
+- [x] Add `configs/examples/README.md` explaining the data source and expected output.
+- [x] Add optional generator command `persephone examples generate-sir-network`.
+- [x] Add tests that the example config validates.
+- [x] Add an integration test that runs the example to completion in under a few seconds.
 - [ ] Commit: `feat: add runnable sir example`.
 
 ### Checkpoint 12 — CLI run, inspect, and replay
 
-- [ ] Create `src/persephone/cli/main.py`.
-- [ ] Implement `persephone validate <config>`.
-- [ ] Implement `persephone run <config>`.
-- [ ] Implement `persephone runs show <run_id_or_path>`.
-- [ ] Implement `persephone runs metrics <run_id_or_path> --metric infected_count`.
-- [ ] Implement `persephone replay <run_id_or_path>` that reads artefacts and prints a compact time-series summary.
-- [ ] Add rich terminal tables for plugin lists and run summaries.
-- [ ] Add CLI tests with Typer's test runner.
+- [x] Create `src/persephone/cli/main.py`.
+- [x] Implement `persephone validate <config>`.
+- [x] Implement `persephone run <config>`.
+- [x] Implement `persephone runs show <run_id_or_path>`.
+- [x] Implement `persephone runs metrics <run_id_or_path> --metric infected_count`.
+- [x] Implement `persephone replay <run_id_or_path>` that reads artefacts and prints a compact time-series summary.
+- [x] Add rich terminal tables for plugin lists and run summaries.
+- [x] Add CLI tests with Typer's test runner.
 - [ ] Commit: `feat: add simulation cli`.
 
 ### Checkpoint 13 — Local API, optional but useful for v1
@@ -316,31 +316,31 @@ This task list is intentionally detailed enough to take the project from an empt
 
 ### Checkpoint 14 — Documentation
 
-- [ ] Update `README.md` with a real quickstart.
-- [ ] Document the package boundaries: engine, SDK, plugin.
-- [ ] Document the plugin trust model for Version 1.
-- [ ] Document the SIR plugin API and CSV schema.
-- [ ] Document run artefact layout.
-- [ ] Document reproducibility guarantees and limits.
-- [ ] Add troubleshooting for missing plugin entry points.
-- [ ] Add `docs/plugin-authoring.md`.
-- [ ] Add `docs/config-reference.md`.
+- [x] Update `README.md` with a real quickstart.
+- [x] Document the package boundaries: engine, SDK, plugin.
+- [x] Document the plugin trust model for Version 1.
+- [x] Document the SIR plugin API and CSV schema.
+- [x] Document run artefact layout.
+- [x] Document reproducibility guarantees and limits.
+- [x] Add troubleshooting for missing plugin entry points.
+- [x] Add `docs/plugin-authoring.md`.
+- [x] Add `docs/config-reference.md`.
 - [ ] Commit: `docs: add v1 user and plugin docs`.
 
 ### Checkpoint 15 — Quality gate
 
-- [ ] Run `uv run ruff check .`.
-- [ ] Run `uv run ruff format --check .`.
-- [ ] Run `uv run mypy src sdk/src plugins/persephone-plugin-sir-epidemic/src`.
-- [ ] Run `uv run pytest --cov`.
-- [ ] Run `persephone validate configs/examples/sir_epidemic.yaml`.
-- [ ] Run `persephone plugins list`.
-- [ ] Run `persephone run configs/examples/sir_epidemic.yaml`.
-- [ ] Run the same config twice with the same seed and compare metrics.
-- [ ] Run the same config with a different seed and confirm stochastic outcomes differ.
-- [ ] Inspect `runs/<run_id>/manifest.json`.
-- [ ] Inspect `runs/<run_id>/metrics.jsonl`.
-- [ ] Create a release checklist in `docs/release-v0.1.md`.
+- [x] Run `uv run ruff check .`.
+- [x] Run `uv run ruff format --check .`.
+- [x] Run `uv run mypy src sdk/src plugins/persephone-plugin-sir-epidemic/src`.
+- [x] Run `uv run pytest --cov`.
+- [x] Run `persephone validate configs/examples/sir_epidemic.yaml`.
+- [x] Run `persephone plugins list`.
+- [x] Run `persephone run configs/examples/sir_epidemic.yaml`.
+- [x] Run the same config twice with the same seed and compare metrics.
+- [x] Run the same config with a different seed and confirm stochastic outcomes differ.
+- [x] Inspect `runs/<run_id>/manifest.json`.
+- [x] Inspect `runs/<run_id>/metrics.jsonl`.
+- [x] Create a release checklist in `docs/release-v0.1.md`.
 - [ ] Commit: `test: complete v1 quality gate`.
 
 ### Checkpoint 16 — Version 1 release
