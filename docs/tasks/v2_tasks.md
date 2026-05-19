@@ -67,6 +67,7 @@ The API should be local-first and unauthenticated by default:
 - [ ] Results can be exported to CSV and Parquet.
 - [ ] Same-seed reproducibility remains covered by tests.
 - [ ] Full test, lint, format, type, and UI build checks pass.
+- [x] Docker Compose runs the local API and UI together.
 
 ---
 
@@ -183,6 +184,16 @@ The API should be local-first and unauthenticated by default:
 - [ ] Add a compact metric summary: peak infected, final recovered, duration.
 - [ ] Add UI tests for streamed metric updates.
 - [ ] Commit: `feat: add live metrics UI`.
+
+### Checkpoint 7A — Dockerized local stack
+
+- [x] Add API Dockerfile.
+- [x] Add UI Dockerfile using Bun.
+- [x] Add Docker Compose stack for API and UI.
+- [x] Persist local run artifacts through a host-mounted `runs/` volume.
+- [x] Add Docker smoke tests or config tests.
+- [x] Document Docker quickstart.
+- [ ] Commit: `feat: dockerize local workbench`.
 
 ### Checkpoint 8 — Parameter sweeps
 

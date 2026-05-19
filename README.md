@@ -11,6 +11,8 @@ Requirements:
 - Python 3.11+
 - `uv`
 
+For Docker-only local usage, skip to [Docker Quickstart](#docker-quickstart).
+
 Install the workspace packages, including the editable SIR plugin:
 
 ```bash
@@ -42,6 +44,46 @@ uv run persephone runs show runs/sir-demo
 uv run persephone runs metrics runs/sir-demo --metric infected_count
 uv run persephone replay runs/sir-demo
 ```
+
+## Docker Quickstart
+
+Run the API and UI together:
+
+```bash
+docker compose up --build
+```
+
+Open the UI at:
+
+```text
+http://127.0.0.1:5173/runs
+```
+
+The API is available at:
+
+```text
+http://127.0.0.1:8787/health
+```
+
+Run the stack in the background:
+
+```bash
+docker compose up --build -d
+```
+
+Stop it:
+
+```bash
+docker compose down
+```
+
+The API container includes the CLI:
+
+```bash
+docker compose exec api persephone run configs/examples/sir_epidemic.yaml --run-id docker-demo
+```
+
+More detail is in [docs/docker.md](docs/docker.md).
 
 ## Package Boundaries
 
@@ -125,4 +167,3 @@ sir_epidemic = "persephone_sir_epidemic:SIREpidemicPlugin"
 ```
 
 If validation says a data file is missing, paths in config files are resolved relative to the config file location.
-
