@@ -220,44 +220,44 @@ This task list is intentionally detailed enough to take the project from an empt
 
 ### Checkpoint 7 — Graph solver kernel
 
-- [ ] Create `src/persephone/solvers/graph.py`.
-- [ ] Implement a lightweight `ContactGraph` loader from CSV edge list.
-- [ ] Support weighted undirected edges for Version 1.
-- [ ] Implement SIR propagation with deterministic RNG input.
-- [ ] Ensure all state transitions are computed from the previous state, not partially updated state.
-- [ ] Emit infection and recovery events.
-- [ ] Add tests for graph loading.
-- [ ] Add tests for no infection when `p_infect = 0`.
-- [ ] Add tests for guaranteed infection when `p_infect = 1` on a simple graph.
-- [ ] Add tests for deterministic output with the same seed.
+- [x] Create `src/persephone/solvers/graph.py`.
+- [x] Implement a lightweight `ContactGraph` loader from CSV edge list.
+- [x] Support weighted undirected edges for Version 1.
+- [x] Implement SIR propagation with deterministic RNG input.
+- [x] Ensure all state transitions are computed from the previous state, not partially updated state.
+- [x] Emit infection and recovery events.
+- [x] Add tests for graph loading.
+- [x] Add tests for no infection when `p_infect = 0`.
+- [x] Add tests for guaranteed infection when `p_infect = 1` on a simple graph.
+- [x] Add tests for deterministic output with the same seed.
 - [ ] Commit: `feat: add graph sir kernel`.
 
 ### Checkpoint 8 — Scheduler
 
-- [ ] Create `src/persephone/core/scheduler.py`.
-- [ ] Implement a single-process scheduler for Version 1.
-- [ ] Advance logical time from `0` to `t_end` using fixed graph ticks.
-- [ ] Call each active solver with `state`, `dt`, `bus`, and solver RNG.
-- [ ] Commit bus writes after every tick.
-- [ ] Call observers after every committed tick.
-- [ ] Stop cleanly on completion, cancellation, or solver error.
-- [ ] Record failed run status and error message in `manifest.json`.
-- [ ] Add tests for exact tick count.
-- [ ] Add tests for observer emission cadence.
-- [ ] Add tests for solver exceptions producing failed manifests.
+- [x] Create `src/persephone/core/scheduler.py`.
+- [x] Implement a single-process scheduler for Version 1.
+- [x] Advance logical time from `0` to `t_end` using fixed graph ticks.
+- [x] Call each active solver with `state`, `dt`, `bus`, and solver RNG.
+- [x] Commit bus writes after every tick.
+- [x] Call observers after every committed tick.
+- [x] Stop cleanly on completion, cancellation, or solver error.
+- [x] Record failed run status and error message in `manifest.json`.
+- [x] Add tests for exact tick count.
+- [x] Add tests for observer emission cadence.
+- [x] Add tests for solver exceptions producing failed manifests.
 - [ ] Commit: `feat: add local scheduler`.
 
 ### Checkpoint 9 — Engine facade
 
-- [ ] Create `src/persephone/core/engine.py`.
-- [ ] Implement `PersephoneEngine.validate(config)`.
-- [ ] Implement `PersephoneEngine.run(config)`.
-- [ ] Resolve plugin manifests from the registry.
-- [ ] Instantiate plugin world, solver, observer, and renderer classes.
-- [ ] Validate bus reads/writes before run start.
-- [ ] Build `RunContext`, scheduler, bus, and artefact store.
-- [ ] Return a `RunResult` with run id, status, artefact path, final time, and metric summary.
-- [ ] Add integration tests with a fake plugin.
+- [x] Create `src/persephone/core/engine.py`.
+- [x] Implement `PersephoneEngine.validate(config)`.
+- [x] Implement `PersephoneEngine.run(config)`.
+- [x] Resolve plugin manifests from the registry.
+- [x] Instantiate plugin world, solver, observer, and renderer classes.
+- [x] Validate bus reads/writes before run start.
+- [x] Build `RunContext`, scheduler, bus, and artefact store.
+- [x] Return a `RunResult` with run id, status, artefact path, final time, and metric summary.
+- [x] Add integration tests with a fake plugin.
 - [ ] Commit: `feat: wire engine facade`.
 
 ### Checkpoint 10 — First plugin package
