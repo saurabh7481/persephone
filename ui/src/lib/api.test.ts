@@ -3,9 +3,11 @@ import { describe, expect, test, vi } from 'vitest';
 import {
 	PersephoneApi,
 	buildSirExampleConfig,
+	compareMetricSummary,
 	metricSeries,
 	parseInitialInfected,
 	sirExampleJsonSchema,
+	sweepValuesFromText,
 	validateExperimentConfigAgainstSchema
 } from './api';
 
@@ -68,5 +70,50 @@ describe('PersephoneApi', () => {
 
 		expect(series.infected_count?.map((point) => point.value)).toEqual([3, 5]);
 		expect(series.recovered_count?.[0]?.t).toBe(1);
+	});
+
+	test('posts sweep requests and builds stream URLs', async () => {
+		const fetcher = vi.fn(async () => {
+			return new Response(
+				JSON.stringify({
+					sweep_id: 'ui-sweep',
+					name: 'UI sweep',
+					parameter: 'solvers[0].params.p_infect',
+					values: [0.2, 0.4],
+					child_runs: []
+				}),
+				{ status: 201 }
+			);
+		});
+		const api = new PersephoneApi('http://api.local/', fetcher);
+
+		const sweep = await api.startSweep({
+			sweep_id: 'ui-sweep',
+			name: 'UI sweep',
+			base_config: buildSirExampleConfig({
+				seed: 1,
+				tEnd: 2,
+				pInfect: 0.2,
+				pRecover: 0.1,
+				initiallyInfected: [0]
+			}),
+			parameter: 'solvers[0].params.p_infect',
+			values: [0.2, 0.4]
+		});
+
+		expect(fetcher).toHaveBeenCalledWith('http://api.local/sweeps', expect.any(Object));
+		expect(api.streamUrl('run-a')).toBe('http://api.local/runs/run-a/stream');
+		expect(sweep.sweep_id).toBe('ui-sweep');
+	});
+
+	test('parses sweep values and computes compact metric summaries', () => {
+		expect(sweepValuesFromText('0.2, 0.4, label')).toEqual([0.2, 0.4, 'label']);
+		expect(
+			compareMetricSummary([
+				{ t: 1, metric: 'infected_count', value: 3 },
+				{ t: 2, metric: 'infected_count', value: 5 },
+				{ t: 2, metric: 'recovered_count', value: 10 }
+			])
+		).toEqual({ peakInfected: 5, finalRecovered: 10, duration: 2 });
 	});
 });

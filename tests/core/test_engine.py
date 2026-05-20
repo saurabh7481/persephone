@@ -133,8 +133,14 @@ def test_engine_run_wires_runtime_and_writes_artifacts(tmp_path: Path) -> None:
     assert result.metric_summary["fake_value"] == 2.0
     assert result.artifact_path == tmp_path / "runs" / "run-engine"
     manifest = json.loads((result.artifact_path / "manifest.json").read_text(encoding="utf-8"))
-    metrics = (result.artifact_path / "metrics.jsonl").read_text(encoding="utf-8").splitlines()
+    metrics = [
+        json.loads(line)
+        for line in (result.artifact_path / "metrics.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    domain_metrics = [record for record in metrics if record["metric"] == "fake_value"]
     state = np.load(result.artifact_path / "final_state.npz")
     assert manifest["status"] == "completed"
-    assert len(metrics) == 2
+    assert len(domain_metrics) == 2
     np.testing.assert_array_equal(state["fake#0.value"], np.array([2.0]))

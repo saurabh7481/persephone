@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 from persephone_sdk.plugin import Observer
-from persephone_sdk.types import StateDict
+from persephone_sdk.types import MetricRecord, StateDict
 
 from persephone.solvers.graph import INFECTED, RECOVERED, SUSCEPTIBLE
 
 
 class SIRObserver(Observer):
-    def observe(self, state: StateDict, t: float, run_id: str) -> list[dict[str, Any]]:
+    def observe(self, state: StateDict, t: float, run_id: str) -> list[MetricRecord]:
         states = state["states"]
         infected = int(np.count_nonzero(states == INFECTED))
         new_infections = int(state.get("last_new_infections", np.array([0]))[0])
@@ -26,7 +24,7 @@ class SIRObserver(Observer):
         ]
 
 
-def _metric(run_id: str, name: str, value: float, t: float) -> dict[str, Any]:
+def _metric(run_id: str, name: str, value: float, t: float) -> MetricRecord:
     return {"run_id": run_id, "metric": name, "value": float(value), "t": t, "tags": {}}
 
 

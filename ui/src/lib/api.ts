@@ -17,6 +17,7 @@ export type PluginSummary = {
 	name: string;
 	version: string;
 	paradigm: string;
+	trust_level?: string;
 };
 
 export type MetricRecord = {
@@ -31,6 +32,52 @@ export type EventRecord = {
 	event_type?: string;
 	type?: string;
 	[key: string]: unknown;
+};
+
+export type SweepValue = boolean | number | string;
+
+export type SweepRequest = {
+	sweep_id?: string | null;
+	name: string;
+	base_config: ExperimentConfig;
+	parameter: string;
+	values: SweepValue[];
+};
+
+export type SweepChildRun = {
+	run_id: string;
+	value: SweepValue;
+	status: RunStatus;
+	artifact_path: string;
+};
+
+export type SweepManifest = {
+	sweep_id: string;
+	name: string;
+	parameter: string;
+	values: SweepValue[];
+	created_at?: string;
+	child_runs: SweepChildRun[];
+};
+
+export type CompareAlignedRow = {
+	t: number;
+	run_a: number | null;
+	run_b: number | null;
+};
+
+export type CompareMetricSummary = {
+	peak: number;
+	final: number;
+	auc: number;
+};
+
+export type CompareResult = {
+	run_a: string;
+	run_b: string;
+	metric: string;
+	aligned: CompareAlignedRow[];
+	summaries: Record<string, CompareMetricSummary>;
 };
 
 export type ExperimentConfig = {
@@ -143,6 +190,30 @@ export class PersephoneApi {
 		return parseJsonResponse<RunSummary>(response);
 	}
 
+	async startSweep(request: SweepRequest): Promise<SweepManifest> {
+		const response = await this.fetcher(this.url('/sweeps'), {
+			method: 'POST',
+			headers: {
+				accept: 'application/json',
+				'content-type': 'application/json'
+			},
+			body: JSON.stringify(request)
+		});
+		return parseJsonResponse<SweepManifest>(response);
+	}
+
+	async compareRuns(runA: string, runB: string, metric: string): Promise<CompareResult> {
+		const params = new URLSearchParams();
+		params.append('run', runA);
+		params.append('run', runB);
+		params.set('metric', metric);
+		return this.getJson(`/compare?${params.toString()}`);
+	}
+
+	streamUrl(runId: string): string {
+		return this.url(`/runs/${encodeURIComponent(runId)}/stream`);
+	}
+
 	private async getJson<T>(path: string): Promise<T> {
 		const response = await this.fetcher(this.url(path), {
 			headers: { accept: 'application/json' }
@@ -249,4 +320,31 @@ export function metricSeries(records: MetricRecord[]): Record<string, MetricReco
 		series[record.metric].push(record);
 		return series;
 	}, {});
+}
+
+export function compareMetricSummary(records: MetricRecord[]): {
+	peakInfected: number;
+	finalRecovered: number;
+	duration: number;
+} {
+	const infected = records.filter((record) => record.metric === 'infected_count');
+	const recovered = records.filter((record) => record.metric === 'recovered_count');
+	return {
+		peakInfected: Math.max(0, ...infected.map((record) => record.value)),
+		finalRecovered: recovered.at(-1)?.value ?? 0,
+		duration: Math.max(0, ...records.map((record) => record.t))
+	};
+}
+
+export function sweepValuesFromText(value: string): SweepValue[] {
+	return value
+		.split(',')
+		.map((item) => item.trim())
+		.filter(Boolean)
+		.map((item) => {
+			if (item === 'true') return true;
+			if (item === 'false') return false;
+			const numeric = Number(item);
+			return Number.isFinite(numeric) ? numeric : item;
+		});
 }

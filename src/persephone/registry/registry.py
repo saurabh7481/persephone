@@ -84,7 +84,12 @@ class PluginRegistry:
 
     def list_all(self) -> list[dict[str, str]]:
         return [
-            {"name": name, "version": manifest.version, "paradigm": manifest.paradigm}
+            {
+                "name": name,
+                "version": manifest.version,
+                "paradigm": manifest.paradigm,
+                "trust_level": "trusted_python",
+            }
             for name, manifest in sorted(self._plugins.items())
         ]
 

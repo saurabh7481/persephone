@@ -3,6 +3,7 @@
 Persephone is a local-first, plugin-driven simulation platform. Version 1 proves the full loop with a graph-based SIR epidemic simulation: validate a YAML config, discover a plugin, run the simulation, write run artifacts, inspect metrics, and replay results from the CLI.
 
 See [Persephone.md](Persephone.md) for the architecture and [docs/tasks/v1_tasks.md](docs/tasks/v1_tasks.md) for the implementation checklist.
+Core scheduler, checkpoint, telemetry, and state-contract notes live in [docs/core-architecture.md](docs/core-architecture.md).
 
 ## Quickstart
 
@@ -129,7 +130,8 @@ runs/<run_id>/
 ├── metrics.jsonl
 ├── events.jsonl
 ├── final_state.npz
-└── final_state.json
+├── final_state.json
+└── checkpoints/
 ```
 
 - `manifest.json`: run id, status, config hash, plugin versions, seed plan, engine/SDK versions, and environment metadata.
@@ -137,6 +139,7 @@ runs/<run_id>/
 - `events.jsonl`: discrete events such as infection and recovery.
 - `final_state.npz`: NumPy arrays for final solver state.
 - `final_state.json`: metadata for final-state arrays.
+- `checkpoints/`: optional checkpoint snapshots when `scheduler.checkpoint_every` is configured.
 
 ## Reproducibility
 

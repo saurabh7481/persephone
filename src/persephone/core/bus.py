@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, cast
 
 import numpy as np
 from numpy.typing import NDArray
 
-CouplingRule = Literal["sum", "mean", "max", "min", "last"]
+from persephone.core.coupling import coupling_registry
+
+CouplingRule = str
 
 
 class BusError(RuntimeError):
@@ -28,6 +30,8 @@ class BusChannelSchema:
     shape: tuple[int, ...]
     units: str | None = None
     schema_id: str | None = None
+    value_kind: str = "ndarray"
+    schema_version: int = 1
 
     @property
     def numpy_dtype(self) -> np.dtype:
@@ -45,6 +49,12 @@ class BusRecord:
     units: str | None = None
 
 
+@dataclass(frozen=True)
+class BusCommitSummary:
+    conflicts: dict[str, int]
+    coupling_rules: dict[str, str]
+
+
 class InMemoryDataBus:
     def __init__(
         self,
@@ -55,8 +65,17 @@ class InMemoryDataBus:
         self.run_id = run_id
         self._schemas = schemas
         self._coupling_rules = coupling_rules or {}
+        invalid_rules = {
+            channel: rule
+            for channel, rule in self._coupling_rules.items()
+            if not coupling_registry.has(rule)
+        }
+        if invalid_rules:
+            channel, rule = next(iter(invalid_rules.items()))
+            raise BusSchemaError(f"Invalid coupling rule '{rule}' for channel '{channel}'")
         self._committed: dict[str, BusRecord] = {}
         self._pending: dict[str, list[BusRecord]] = {}
+        self.last_commit_summary = BusCommitSummary(conflicts={}, coupling_rules={})
 
     def read(self, channel: str) -> NDArray[np.generic] | None:
         record = self._committed.get(channel)
@@ -87,7 +106,9 @@ class InMemoryDataBus:
         )
         self._pending.setdefault(channel, []).append(record)
 
-    def commit(self, tick: int) -> None:
+    def commit(self, tick: int, logical_time: float | None = None) -> BusCommitSummary:
+        conflicts: dict[str, int] = {}
+        coupling_rules: dict[str, str] = {}
         for channel, records in self._pending.items():
             if len(records) == 1:
                 self._committed[channel] = records[0]
@@ -98,9 +119,81 @@ class InMemoryDataBus:
                 raise BusConflictError(
                     f"Channel '{channel}' received {len(records)} writes without a coupling rule"
                 )
-            self._committed[channel] = self._couple(channel, records, rule, tick)
+            conflicts[channel] = len(records)
+            coupling_rules[channel] = rule
+            self._committed[channel] = self._couple(channel, records, rule, tick, logical_time)
 
         self._pending.clear()
+        self.last_commit_summary = BusCommitSummary(
+            conflicts=conflicts,
+            coupling_rules=coupling_rules,
+        )
+        return self.last_commit_summary
+
+    def channel_sizes(self) -> dict[str, int]:
+        return {channel: int(record.value.nbytes) for channel, record in self._committed.items()}
+
+    def snapshot(self) -> dict[str, Any]:
+        return {
+            "run_id": self.run_id,
+            "schemas": {
+                channel: {
+                    "name": schema.name,
+                    "dtype": schema.dtype,
+                    "shape": list(schema.shape),
+                    "units": schema.units,
+                    "schema_id": schema.schema_id,
+                    "value_kind": schema.value_kind,
+                    "schema_version": schema.schema_version,
+                }
+                for channel, schema in self._schemas.items()
+            },
+            "coupling_rules": dict(self._coupling_rules),
+            "committed": {
+                channel: {
+                    "run_id": record.run_id,
+                    "tick": record.tick,
+                    "solver_id": record.solver_id,
+                    "schema_id": record.schema_id,
+                    "logical_time": record.logical_time,
+                    "value": record.value.tolist(),
+                    "units": record.units,
+                }
+                for channel, record in self._committed.items()
+            },
+        }
+
+    @classmethod
+    def from_snapshot(cls, snapshot: dict[str, Any]) -> InMemoryDataBus:
+        schemas = {
+            channel: BusChannelSchema(
+                name=str(data["name"]),
+                dtype=str(data["dtype"]),
+                shape=tuple(cast(list[int], data["shape"])),
+                units=cast(str | None, data.get("units")),
+                schema_id=cast(str | None, data.get("schema_id")),
+                value_kind=str(data.get("value_kind", "ndarray")),
+                schema_version=int(data.get("schema_version", 1)),
+            )
+            for channel, data in cast(dict[str, dict[str, Any]], snapshot["schemas"]).items()
+        }
+        bus = cls(
+            run_id=str(snapshot["run_id"]),
+            schemas=schemas,
+            coupling_rules=cast(dict[str, CouplingRule], snapshot.get("coupling_rules", {})),
+        )
+        for channel, data in cast(dict[str, dict[str, Any]], snapshot.get("committed", {})).items():
+            schema = schemas[channel]
+            bus._committed[channel] = BusRecord(
+                run_id=str(data["run_id"]),
+                tick=int(data["tick"]),
+                solver_id=str(data["solver_id"]),
+                schema_id=str(data["schema_id"]),
+                logical_time=float(data["logical_time"]),
+                value=np.asarray(data["value"], dtype=schema.numpy_dtype),
+                units=cast(str | None, data.get("units")),
+            )
+        return bus
 
     def _schema_for(self, channel: str) -> BusChannelSchema:
         try:
@@ -121,20 +214,15 @@ class InMemoryDataBus:
             )
 
     def _couple(
-        self, channel: str, records: list[BusRecord], rule: CouplingRule, tick: int
+        self,
+        channel: str,
+        records: list[BusRecord],
+        rule: CouplingRule,
+        tick: int,
+        logical_time: float | None,
     ) -> BusRecord:
         values = np.stack([record.value for record in records])
-        match rule:
-            case "sum":
-                value = values.sum(axis=0)
-            case "mean":
-                value = values.mean(axis=0)
-            case "max":
-                value = values.max(axis=0)
-            case "min":
-                value = values.min(axis=0)
-            case "last":
-                value = records[-1].value
+        value = coupling_registry.resolve(rule)(values)
 
         schema = self._schema_for(channel)
         return BusRecord(
@@ -142,7 +230,7 @@ class InMemoryDataBus:
             tick=tick,
             solver_id="coupled",
             schema_id=schema.schema_id or channel,
-            logical_time=float(tick),
+            logical_time=float(tick if logical_time is None else logical_time),
             value=np.asarray(value, dtype=schema.numpy_dtype).copy(),
             units=schema.units,
         )

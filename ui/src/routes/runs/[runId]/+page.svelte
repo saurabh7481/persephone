@@ -2,7 +2,13 @@
 	import { onMount } from 'svelte';
 	import { AlertCircle } from '@lucide/svelte';
 
-	import { PersephoneApi, type EventRecord, type MetricRecord, type RunSummary } from '$lib/api';
+	import {
+		PersephoneApi,
+		compareMetricSummary,
+		type EventRecord,
+		type MetricRecord,
+		type RunSummary
+	} from '$lib/api';
 	import MetricChart from '$lib/components/MetricChart.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import * as Alert from '$lib/components/ui/alert';
@@ -17,21 +23,65 @@
 	let metrics = $state<MetricRecord[]>([]);
 	let events = $state<EventRecord[]>([]);
 	let error = $state('');
+	let streamState = $state<'idle' | 'connected' | 'closed'>('idle');
 
-	onMount(async () => {
-		try {
-			const [runResult, metricResult, eventResult] = await Promise.all([
-				api.getRun(data.runId),
-				api.getMetrics(data.runId),
-				api.getEvents(data.runId)
-			]);
-			run = runResult;
-			metrics = metricResult;
-			events = eventResult;
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Unable to load run.';
-		}
+	const summary = $derived(compareMetricSummary(metrics));
+
+	onMount(() => {
+		let stream: EventSource | null = null;
+		let refreshTimer: ReturnType<typeof setInterval> | null = null;
+		void (async () => {
+			try {
+				const [runResult, metricResult, eventResult] = await Promise.all([
+					api.getRun(data.runId),
+					api.getMetrics(data.runId),
+					api.getEvents(data.runId)
+				]);
+				run = runResult;
+				metrics = metricResult;
+				events = eventResult;
+				stream = openMetricStream();
+				refreshTimer = setInterval(() => void refreshRun(), 1500);
+			} catch (err) {
+				error = err instanceof Error ? err.message : 'Unable to load run.';
+			}
+		})();
+
+		return () => {
+			stream?.close();
+			if (refreshTimer) clearInterval(refreshTimer);
+		};
 	});
+
+	function openMetricStream(): EventSource {
+		const stream = new EventSource(api.streamUrl(data.runId));
+		streamState = 'connected';
+		stream.addEventListener('metric', (event) => {
+			const record = JSON.parse((event as MessageEvent).data) as MetricRecord;
+			const key = metricKey(record);
+			if (!metrics.some((existing) => metricKey(existing) === key)) {
+				metrics = [...metrics, record].sort((left, right) => left.t - right.t);
+			}
+		});
+		stream.onerror = () => {
+			streamState = 'closed';
+			stream.close();
+			void refreshRun();
+		};
+		return stream;
+	}
+
+	async function refreshRun() {
+		try {
+			run = await api.getRun(data.runId);
+		} catch {
+			// Existing metrics remain useful if a transient refresh fails.
+		}
+	}
+
+	function metricKey(record: MetricRecord): string {
+		return `${record.t}:${record.metric}:${record.value}`;
+	}
 </script>
 
 <div class="space-y-5">
@@ -41,7 +91,10 @@
 			<p class="text-sm text-muted-foreground">Run detail, metrics, and emitted events.</p>
 		</div>
 		{#if run}
-			<StatusBadge status={run.status} />
+			<div class="flex flex-wrap items-center gap-2">
+				<StatusBadge status={run.status} />
+				<span class="text-xs text-muted-foreground">stream {streamState}</span>
+			</div>
 		{/if}
 	</div>
 
@@ -61,6 +114,26 @@
 		</Tabs.TabsList>
 
 		<Tabs.TabsContent value="metrics">
+			<div class="mb-4 grid gap-3 sm:grid-cols-3">
+				<Card.Card>
+					<Card.CardHeader class="pb-2">
+						<Card.CardDescription>Peak infected</Card.CardDescription>
+						<Card.CardTitle>{summary.peakInfected}</Card.CardTitle>
+					</Card.CardHeader>
+				</Card.Card>
+				<Card.Card>
+					<Card.CardHeader class="pb-2">
+						<Card.CardDescription>Final recovered</Card.CardDescription>
+						<Card.CardTitle>{summary.finalRecovered}</Card.CardTitle>
+					</Card.CardHeader>
+				</Card.Card>
+				<Card.Card>
+					<Card.CardHeader class="pb-2">
+						<Card.CardDescription>Elapsed time</Card.CardDescription>
+						<Card.CardTitle>{summary.duration}</Card.CardTitle>
+					</Card.CardHeader>
+				</Card.Card>
+			</div>
 			<Card.Card>
 				<Card.CardHeader>
 					<Card.CardTitle>Metric chart</Card.CardTitle>

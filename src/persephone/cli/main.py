@@ -6,22 +6,28 @@ from pathlib import Path
 from typing import Annotated, cast
 
 import typer
+import yaml
 from pydantic import ValidationError
 from rich.console import Console
 from rich.table import Table
 
+from persephone.compare import compare_metric_records
 from persephone.config.load import load_experiment_config
+from persephone.core.checkpoints import load_checkpoint
 from persephone.core.engine import PersephoneEngine
 from persephone.registry.registry import PluginRegistry
 from persephone.storage.catalog import RunCatalog, RunCatalogError
+from persephone.sweeps import SweepConfig, execute_sweep
 
 app = typer.Typer(help="Persephone simulation platform CLI.")
 plugins_app = typer.Typer(help="Inspect installed simulation plugins.")
 runs_app = typer.Typer(help="Inspect completed simulation runs.")
 examples_app = typer.Typer(help="Generate example inputs.")
+checkpoints_app = typer.Typer(help="Inspect simulation checkpoints.")
 app.add_typer(plugins_app, name="plugins")
 app.add_typer(runs_app, name="runs")
 app.add_typer(examples_app, name="examples")
+app.add_typer(checkpoints_app, name="checkpoints")
 console = Console()
 
 
@@ -83,6 +89,10 @@ def list_plugins() -> None:
         table.add_row(plugin["name"], plugin["version"], plugin["paradigm"])
 
     console.print(table)
+    console.print(
+        "[yellow]Plugin trust:[/yellow] v2 plugins are trusted Python code; "
+        "install only packages you trust."
+    )
     if registry.load_errors:
         console.print(f"[yellow]{len(registry.load_errors)} plugin(s) failed to load[/yellow]")
 
@@ -141,6 +151,61 @@ def replay_run(run: Annotated[Path, typer.Argument()]) -> None:
     console.print(table)
 
 
+@app.command("sweep")
+def sweep_config(
+    sweep: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """Run a scalar parameter sweep from a YAML config."""
+    try:
+        raw = yaml.safe_load(sweep.read_text(encoding="utf-8"))
+        sweep_config = SweepConfig.model_validate(raw)
+        manifest = execute_sweep(sweep_config, artifact_root=artifacts_dir)
+    except (OSError, ValueError, ValidationError) as exc:
+        console.print(f"[red]Sweep failed:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    table = Table(title=f"Sweep {manifest.sweep_id}")
+    table.add_column("Run")
+    table.add_column("Value")
+    table.add_column("Status")
+    for child in manifest.child_runs:
+        table.add_row(child.run_id, str(child.value), child.status)
+    console.print(table)
+
+
+@app.command("compare")
+def compare_runs(
+    run_a: Annotated[str, typer.Argument()],
+    run_b: Annotated[str, typer.Argument()],
+    metric: Annotated[str, typer.Option("--metric")] = "infected_count",
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """Compare two runs for one metric."""
+    try:
+        records_a = _read_jsonl(_resolve_run_dir(run_a, artifacts_dir) / "metrics.jsonl")
+        records_b = _read_jsonl(_resolve_run_dir(run_b, artifacts_dir) / "metrics.jsonl")
+        result = compare_metric_records(
+            run_a=run_a,
+            run_b=run_b,
+            metric=metric,
+            records_a=records_a,
+            records_b=records_b,
+        )
+    except (OSError, ValueError, RunCatalogError) as exc:
+        console.print(f"[red]Compare failed:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    table = Table(title=f"Compare {metric}")
+    table.add_column("Run")
+    table.add_column("peak")
+    table.add_column("final")
+    table.add_column("AUC")
+    for run_id, summary in result.summaries.items():
+        table.add_row(run_id, f"{summary.peak:g}", f"{summary.final:g}", f"{summary.auc:g}")
+    console.print(table)
+
+
 @app.command("api")
 def api(
     host: Annotated[str, typer.Option("--host")] = "127.0.0.1",
@@ -161,6 +226,29 @@ def api(
         port=port,
         log_level="info",
     )
+
+
+@checkpoints_app.command("show")
+def show_checkpoint(
+    run: Annotated[str, typer.Argument()],
+    tick: Annotated[int, typer.Option("--tick", min=0)],
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """Show checkpoint metadata for a run."""
+    try:
+        checkpoint = load_checkpoint(artifacts_dir, run, tick)
+    except (OSError, ValueError) as exc:
+        console.print(f"[red]Checkpoint unavailable:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    table = Table(title=f"Checkpoint {checkpoint.run_id}@{checkpoint.tick}")
+    table.add_column("Field")
+    table.add_column("Value")
+    for key in ["run_id", "tick", "logical_time", "schema_version", "config_hash"]:
+        table.add_row(key, str(checkpoint.metadata.get(key)))
+    table.add_row("state_arrays", str(len(checkpoint.state)))
+    table.add_row("rng_streams", str(len(checkpoint.rng_states)))
+    console.print(table)
 
 
 @examples_app.command("generate-sir-network")

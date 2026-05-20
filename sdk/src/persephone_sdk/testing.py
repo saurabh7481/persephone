@@ -10,6 +10,7 @@ from persephone_sdk.plugin import PluginManifest, is_finite_state
 class SpyDataBus:
     def __init__(self) -> None:
         self.written_channels: list[str] = []
+        self.read_channels: list[str] = []
         self.records: list[dict[str, Any]] = []
 
     def write(self, channel: str, value: Any, solver_id: str, tick: int) -> None:
@@ -19,6 +20,7 @@ class SpyDataBus:
         )
 
     def read(self, channel: str) -> None:
+        self.read_channels.append(channel)
         return None
 
 
@@ -37,6 +39,7 @@ class PluginTestHarness:
         self.test_solver_step_is_finite()
         self.test_reset_returns_identical_state()
         self.test_bus_writes_match_declared_channels()
+        self.test_bus_reads_match_declared_channels()
         self.test_observer_and_renderer_contracts()
         self.test_manifest_sdk_version_present()
 
@@ -73,6 +76,17 @@ class PluginTestHarness:
         for channel in bus.written_channels:
             assert channel in self.manifest.bus_writes, (
                 f"Plugin wrote to undeclared bus channel '{channel}'"
+            )
+
+    def test_bus_reads_match_declared_channels(self) -> None:
+        world = self.manifest.world()
+        state = world.init(self.manifest.default_params, seed=42)
+        bus = SpyDataBus()
+        solver = self.manifest.solver()
+        solver.step(state, dt=solver.preferred_dt, bus=bus)
+        for channel in bus.read_channels:
+            assert channel in self.manifest.bus_reads, (
+                f"Plugin read from undeclared bus channel '{channel}'"
             )
 
     def test_observer_and_renderer_contracts(self) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from persephone.core.run import RunContext
+from persephone.storage.errors import StorageError, UnsupportedStateValueError
+from persephone.storage.sinks import JsonlEventSink, JsonlMetricSink, write_state_npz
 
 
 class ArtifactStore:
@@ -39,29 +42,80 @@ class ArtifactStore:
         self._write_manifest(context)
 
     def write_metrics(self, run_id: str, metrics: list[dict[str, Any]]) -> None:
-        self._append_jsonl(self.run_dir(run_id) / "metrics.jsonl", metrics)
+        for metric in metrics:
+            metric.setdefault("run_id", run_id)
+            metric.setdefault("solver_id", "unknown")
+            metric.setdefault("tags", {})
+        JsonlMetricSink(self.run_dir(run_id) / "metrics.jsonl").write(metrics)
 
     def write_events(self, run_id: str, events: list[dict[str, Any]]) -> None:
-        self._append_jsonl(self.run_dir(run_id) / "events.jsonl", events)
+        for event in events:
+            event.setdefault("run_id", run_id)
+            event.setdefault("solver_id", "unknown")
+            event.setdefault("event", event.get("event_type", "event"))
+            event.setdefault("tags", {})
+        JsonlEventSink(self.run_dir(run_id) / "events.jsonl").write(events)
 
-    def write_final_state(self, run_id: str, state: dict[str, NDArray[np.generic]]) -> None:
+    def write_final_state(self, run_id: str, state: Mapping[str, object]) -> None:
         run_dir = self.run_dir(run_id)
-        arrays: dict[str, Any] = dict(state)
-        np.savez(run_dir / "final_state.npz", **arrays)
-        metadata = {
-            key: {"shape": list(value.shape), "dtype": str(value.dtype)}
-            for key, value in state.items()
-        }
-        self._write_json(run_dir / "final_state.json", metadata)
+        write_state_npz(run_dir / "final_state.npz", run_dir / "final_state.json", state)
+
+    def write_checkpoint(
+        self,
+        run_id: str,
+        *,
+        tick: int,
+        logical_time: float,
+        state: dict[str, NDArray[np.generic]],
+        bus_snapshot: dict[str, Any],
+        rng_states: dict[str, Any],
+    ) -> Path:
+        checkpoint_dir = self.run_dir(run_id) / "checkpoints" / f"{tick:06d}"
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        write_state_npz(checkpoint_dir / "state.npz", checkpoint_dir / "state.json", state)
+        self._write_json(checkpoint_dir / "bus.json", bus_snapshot)
+        self._write_json(checkpoint_dir / "rng.json", rng_states)
+        manifest = self._contexts[run_id]
+        self._write_json(
+            checkpoint_dir / "checkpoint.json",
+            {
+                "schema_version": 1,
+                "run_id": run_id,
+                "tick": tick,
+                "logical_time": logical_time,
+                "engine_version": manifest.engine_version,
+                "sdk_version": manifest.sdk_version,
+                "plugin_versions": manifest.plugin_versions,
+                "config_hash": manifest.config_hash,
+            },
+        )
+        return checkpoint_dir
 
     def _write_manifest(self, context: RunContext) -> None:
         self._write_json(self.run_dir(context.run_id) / "manifest.json", context.to_manifest())
 
-    def _append_jsonl(self, path: Path, records: list[dict[str, Any]]) -> None:
-        with path.open("a", encoding="utf-8") as handle:
-            for record in records:
-                handle.write(json.dumps(record, sort_keys=True))
-                handle.write("\n")
-
     def _write_json(self, path: Path, value: object) -> None:
-        path.write_text(json.dumps(value, indent=2, sort_keys=True), encoding="utf-8")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp_path = path.with_suffix(path.suffix + ".tmp")
+        temp_path.write_text(
+            json.dumps(_json_safe(value), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        temp_path.replace(path)
+
+
+def _json_safe(value: object) -> object:
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+__all__ = ["ArtifactStore", "StorageError", "UnsupportedStateValueError"]

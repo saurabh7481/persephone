@@ -4,24 +4,30 @@
 
 Version 1 proves the local simulation kernel: config validation, plugin discovery, SIR plugin execution, metrics/events, artifacts, and CLI inspection.
 
-Version 2 should turn Persephone into a **local research workbench**:
+Version 2 should turn Persephone into a **headless-first local research workbench**:
 
 > A researcher can start a local API, open a browser UI, choose or edit an experiment config, run simulations and parameter sweeps, watch live metrics, compare runs, export results, and use at least two simulation paradigms through real plugins.
 
 This is the right next target because v1 already answers "can the engine run?" Version 2 should answer "can a person use this repeatedly to explore ideas?"
+
+Before continuing with export, field visualization, or additional simulation paradigms, Version 2 must harden the core architecture. The current SIR vertical slice is useful, but the scheduler, state contract, bus schemas, telemetry, checkpointing, and solver-wrapper boundaries need to become robust enough to support long-running and multi-paradigm simulations without hidden assumptions.
+
+The current Svelte UI is an MVP smoke-test client, not the final product surface. From this point in v2, prioritize engine, plugin, CLI, API, artifact, export, and schema capabilities. Keep the MVP UI compiling and passing tests, but defer major UI feature work until the new UI is designed on top of a stable API.
 
 ## 2. Recommended Scope
 
 ### In scope for v2
 
 - Local API service for running, listing, inspecting, and streaming simulations.
-- Web UI for experiment editing, running, metrics visualization, run history, and replay, built with SvelteKit, TypeScript, and shadcn-svelte.
+- MVP web UI for experiment editing, running, metrics visualization, run history, and replay, built with SvelteKit, TypeScript, and shadcn-svelte.
 - Run catalog/index so artifacts can be discovered without manually passing paths.
 - Parameter sweeps for simple scalar parameters.
 - Run comparison tools.
-- Export to CSV and Parquet.
+- Core architecture hardening: typed records, scheduler telemetry, checkpoint/resume groundwork, state typing, stricter bus/coupling validation, and manifest-driven solver-wrapper contracts.
+- Export to CSV and Parquet through CLI/API first.
 - A second plugin using a different paradigm: heat diffusion PDE.
 - Plugin template/scaffolding command.
+- Stable API and schema contracts for a future full UI rewrite.
 - Stronger docs, examples, and release packaging.
 
 ### Out of scope for v2
@@ -34,6 +40,7 @@ This is the right next target because v1 already answers "can the engine run?" V
 - Remote plugin marketplace.
 - Untrusted plugin sandboxing.
 - TimescaleDB, ClickHouse, Redis, or S3 as required runtime dependencies.
+- Major redesign or expansion of the MVP UI.
 
 Those are valuable, but they are scale and ecosystem work. Version 2 should first make the local experience excellent.
 
@@ -57,12 +64,17 @@ The API should be local-first and unauthenticated by default:
 - [ ] `GET /runs/{run_id}` returns manifest and status.
 - [ ] `GET /runs/{run_id}/metrics` returns metrics as JSON.
 - [ ] `GET /runs/{run_id}/events` returns events as JSON.
-- [ ] `GET /runs/{run_id}/stream` streams live metric events during active runs.
+- [x] `GET /runs/{run_id}/stream` streams live metric events during active runs.
 - [x] Web UI can create or load the SIR example config.
-- [ ] Web UI can run the simulation and show live metric charts.
-- [ ] Web UI can replay a completed run.
-- [ ] Web UI can compare at least two runs on the same chart.
-- [ ] Parameter sweep can run at least one scalar parameter across multiple values.
+- [x] Web UI can run the simulation and show live metric charts.
+- [x] Web UI can replay a completed run.
+- [x] Web UI can compare at least two runs on the same chart.
+- [x] Parameter sweep can run at least one scalar parameter across multiple values.
+- [x] Core records are typed: metrics, events, scheduler telemetry, run manifests, state values, and bus records.
+- [x] Scheduler honors configured synchronization and observation cadence.
+- [x] Scheduler emits internal telemetry for performance and coupling debugging.
+- [x] Runs can write checkpoint snapshots with state, bus, RNG, and manifest metadata.
+- [x] Core solver wrappers are manifest-driven and contain no domain-specific bus channel names.
 - [ ] Heat diffusion PDE plugin runs from an example config and produces field metrics.
 - [ ] Results can be exported to CSV and Parquet.
 - [ ] Same-seed reproducibility remains covered by tests.
@@ -176,13 +188,13 @@ The API should be local-first and unauthenticated by default:
 
 ### Checkpoint 7 — Live metrics UI
 
-- [ ] Connect run detail page to `/runs/{run_id}/stream`.
-- [ ] Update chart as metric events arrive.
-- [ ] Show run status as pending, running, completed, or failed.
-- [ ] Show elapsed logical simulation time.
-- [ ] Handle stream reconnect or graceful completion.
-- [ ] Add a compact metric summary: peak infected, final recovered, duration.
-- [ ] Add UI tests for streamed metric updates.
+- [x] Connect run detail page to `/runs/{run_id}/stream`.
+- [x] Update chart as metric events arrive.
+- [x] Show run status as pending, running, completed, or failed.
+- [x] Show elapsed logical simulation time.
+- [x] Handle stream reconnect or graceful completion.
+- [x] Add a compact metric summary: peak infected, final recovered, duration.
+- [x] Add UI tests for streamed metric updates.
 - [ ] Commit: `feat: add live metrics UI`.
 
 ### Checkpoint 7A — Dockerized local stack
@@ -197,27 +209,124 @@ The API should be local-first and unauthenticated by default:
 
 ### Checkpoint 8 — Parameter sweeps
 
-- [ ] Define sweep config schema.
-- [ ] Support scalar parameter sweeps using dotted paths like `solvers[0].params.p_infect`.
-- [ ] Generate run configs for each sweep value.
-- [ ] Execute sweep runs sequentially first.
-- [ ] Store sweep manifest under `runs/<sweep_id>/sweep.json`.
-- [ ] Link child runs to sweep id in their manifests.
-- [ ] Add CLI command `persephone sweep <sweep.yaml>`.
-- [ ] Add API endpoint `POST /sweeps`.
-- [ ] Add UI sweep form for one scalar parameter.
-- [ ] Add tests for config generation and run linking.
+- [x] Define sweep config schema.
+- [x] Support scalar parameter sweeps using dotted paths like `solvers[0].params.p_infect`.
+- [x] Generate run configs for each sweep value.
+- [x] Execute sweep runs sequentially first.
+- [x] Store sweep manifest under `runs/<sweep_id>/sweep.json`.
+- [x] Link child runs to sweep id in their manifests.
+- [x] Add CLI command `persephone sweep <sweep.yaml>`.
+- [x] Add API endpoint `POST /sweeps`.
+- [x] Add UI sweep form for one scalar parameter.
+- [x] Add tests for config generation and run linking.
 - [ ] Commit: `feat: add parameter sweeps`.
 
 ### Checkpoint 9 — Run comparison
 
-- [ ] Add metric alignment utility for comparing runs by metric name and time.
-- [ ] Add CLI command `persephone compare <run_a> <run_b> --metric infected_count`.
-- [ ] Add API endpoint `GET /compare?run=a&run=b&metric=infected_count`.
-- [ ] Add UI comparison page with overlay line charts.
-- [ ] Show peak, final value, and area-under-curve summary for each run.
-- [ ] Add tests for metric alignment with missing time points.
+- [x] Add metric alignment utility for comparing runs by metric name and time.
+- [x] Add CLI command `persephone compare <run_a> <run_b> --metric infected_count`.
+- [x] Add API endpoint `GET /compare?run=a&run=b&metric=infected_count`.
+- [x] Add UI comparison page with overlay line charts.
+- [x] Show peak, final value, and area-under-curve summary for each run.
+- [x] Add tests for metric alignment with missing time points.
 - [ ] Commit: `feat: compare run metrics`.
+
+### Checkpoint 9A — Core architecture hardening
+
+This checkpoint is mandatory before Checkpoint 10 or any new simulation paradigm work. It turns the current local workbench core into a sturdier simulation kernel that can support exports, PDE fields, ODE/SDE wrappers, longer runs, and future distributed execution.
+
+#### 9A.1 Typed SDK and core records
+
+- [x] Replace loose `dict[str, Any]` metric/event aliases with typed models or dataclasses for `MetricRecord` and `EventRecord`.
+- [x] Add `SchedulerTelemetry` schema with tick, logical time, wall time, sync interval used, per-solver timing, bus conflict counts, and bus channel sizes.
+- [x] Add a typed `RunManifest` schema matching persisted `manifest.json`.
+- [x] Add `StateValue` and `WorldState` type aliases that explicitly describe supported state values.
+- [x] Add `BusRecord` and `BusChannelSchema` fields for value kind, schema version, units, shape, dtype, and semantic channel metadata.
+- [x] Export JSON Schema for API/UI consumers where useful.
+- [x] Add tests that invalid metric/event/manifest records fail validation before they reach storage.
+
+#### 9A.2 Scheduler semantics and operator splitting
+
+- [x] Make scheduler honor `scheduler.sync_interval` instead of always using the minimum solver `preferred_dt`.
+- [x] Make scheduler honor optional `scheduler.dt` where applicable.
+- [x] Make scheduler honor `observer.emit_every` so observers are not forced to emit every internal tick.
+- [x] Validate solver returned elapsed time against the requested step semantics.
+- [x] Update global logical time from the validated elapsed interval, not from an unchecked requested interval.
+- [x] Document first-order operator splitting behavior in scheduler docs.
+- [x] Add `splitting_order` to scheduler config with `first_order` implemented first and `strang` reserved for later.
+- [ ] Emit a validation warning or error when tight-coupling configs request unsafe sync intervals.
+- [x] Add scheduler tests for sync interval, observer cadence, elapsed-time validation, and splitting-order validation.
+
+#### 9A.3 Scheduler telemetry
+
+- [x] Time each solver step and each scheduler tick.
+- [x] Emit scheduler telemetry records through the same metric/event pipeline used by domain metrics.
+- [x] Track whether a solver constrained the step size, preparing for PDE CFL constraints.
+- [x] Track multi-writer bus conflicts and the coupling rule used to resolve each channel.
+- [x] Estimate committed bus channel sizes to detect unexpected state growth.
+- [x] Expose scheduler telemetry through existing CLI/API metric inspection paths.
+- [x] Add UI-safe metric naming for scheduler telemetry, such as `scheduler.wall_time_ms`.
+- [x] Add tests that telemetry is written for successful and failed runs.
+
+#### 9A.4 Checkpoint and resume groundwork
+
+- [x] Add `checkpoint_every` to scheduler config.
+- [x] Add checkpoint artifact layout under `runs/<run_id>/checkpoints/<tick>/`.
+- [x] Save full world state for every runtime at checkpoint time.
+- [x] Save committed bus snapshot at checkpoint time.
+- [x] Save RNG state for every solver runtime.
+- [x] Save checkpoint manifest metadata: run id, tick, logical time, engine version, plugin versions, config hash, and checkpoint schema version.
+- [x] Ensure failed and cancelled runs remain inspectable up to the last completed checkpoint.
+- [x] Add internal restore API for reconstructing scheduler state from a checkpoint.
+- [x] Add CLI planning stub or hidden/internal command for checkpoint inspection before exposing full resume UX.
+- [x] Add tests for checkpoint file creation, RNG state persistence, bus snapshot persistence, and manifest metadata.
+
+#### 9A.5 Storage sink boundary
+
+- [x] Introduce engine-owned `MetricSink`, `EventSink`, `TelemetrySink`, and `StateSink` interfaces.
+- [x] Move JSONL metric/event persistence behind sink implementations.
+- [x] Move NPZ/final-state persistence behind a state sink.
+- [x] Use atomic write patterns for JSON manifest and checkpoint metadata files.
+- [x] Keep plugin observers storage-agnostic: observers only return records.
+- [x] Add tests that sinks receive records in deterministic order.
+- [x] Add tests that partial write failures mark the run failed with a clear storage error.
+
+#### 9A.6 Bus and coupling hardening
+
+- [x] Preserve the existing double-buffered read/write/commit contract.
+- [x] Validate coupling rules at config load time rather than failing late at bus commit.
+- [x] Add a coupling registry for named merge functions, while keeping `sum`, `mean`, `max`, `min`, and `last`.
+- [ ] Reject numerically unsafe keyword coupling for structured state unless the channel schema permits it.
+- [x] Add explicit unsupported-feature errors for sparse matrices and masked arrays until full support lands.
+- [x] Add bus snapshot serialization and deserialization for checkpoints.
+- [x] Add tests for invalid coupling rules, structured-state rejection, commit conflict telemetry, and bus snapshot round-trips.
+
+#### 9A.7 State contract expansion
+
+- [x] Define the intended long-term state contract: `np.ndarray`, `scipy.sparse.spmatrix`, and `np.ma.MaskedArray`.
+- [x] Implement robust support for plain `np.ndarray` first.
+- [x] Add explicit validation errors for unsupported sparse/masked state in bus and storage paths.
+- [x] Keep final-state metadata extensible enough to represent sparse and masked state later.
+- [x] Add tests that unsupported state values fail with clear messages instead of obscure serialization errors.
+
+#### 9A.8 Domain-agnostic solver-wrapper contracts
+
+- [x] Add shared helper utilities for manifest-driven bus reads and writes.
+- [x] Ensure future ODE, PDE, ABM, Graph, and SDE wrappers read only channels declared in `manifest.bus_reads`.
+- [x] Ensure wrappers write only channels declared in `manifest.bus_writes`.
+- [x] Add tests that core wrapper helpers do not hardcode domain-specific channel names such as `temperature_field`, `aerosol_grid`, `viral_fitness`, or `infection_map`.
+- [x] Add plugin harness tests for undeclared bus reads/writes.
+- [x] Document that domain-specific channel names belong in plugin manifests and configs, never in core engine code.
+
+#### 9A.9 Reproducibility and trust hardening
+
+- [x] Add same-seed reproducibility tests through the public engine API.
+- [x] Add same-seed reproducibility tests across parameter sweep child runs where only the swept parameter changes.
+- [x] Record solver RNG state in checkpoints.
+- [x] Add docs and CLI/API warnings that v2 Python plugins are trusted code.
+- [x] Keep remote plugin installation and WASM sandboxing explicitly out of v2 runtime scope.
+
+- [ ] Commit: `feat: harden core simulation architecture`.
 
 ### Checkpoint 10 — Results export
 
@@ -227,7 +336,7 @@ The API should be local-first and unauthenticated by default:
 - [ ] Implement `persephone export <run> --format csv`.
 - [ ] Implement `persephone export <run> --format parquet`.
 - [ ] Add API endpoint for export download.
-- [ ] Add UI export button.
+- [ ] Defer UI export button to the future UI rewrite.
 - [ ] Add tests that exported CSV and Parquet preserve row counts and metric names.
 - [ ] Commit: `feat: export run results`.
 
@@ -244,18 +353,19 @@ The API should be local-first and unauthenticated by default:
 - [ ] Add example initial condition generator.
 - [ ] Add plugin harness tests.
 - [ ] Add conservation/stability tests.
-- [ ] Add API/UI support for field metrics.
+- [ ] Add API/CLI support for field metrics and artifacts.
 - [ ] Commit: `feat: add heat diffusion plugin`.
 
-### Checkpoint 12 — Field visualization UI
+### Checkpoint 12 — Field artifact API
 
 - [ ] Add field artifact support for selected snapshots.
-- [ ] Add heatmap canvas component.
-- [ ] Render final heat field from `final_state.npz`.
-- [ ] Add color scale legend.
-- [ ] Add min/max/mean overlays.
-- [ ] Add UI tests for heatmap rendering.
-- [ ] Commit: `feat: add field visualization`.
+- [ ] Add field metadata schema: dimensions, dtype, bounds, units, and visualization hints.
+- [ ] Store final and selected intermediate fields from `final_state.npz` or checkpoint snapshots.
+- [ ] Add CLI commands for listing and exporting field artifacts.
+- [ ] Add API endpoints to inspect and download field artifacts.
+- [ ] Defer heatmap canvas and polished UI rendering to the future UI rewrite.
+- [ ] Add tests for field metadata, snapshot discovery, and API download behavior.
+- [ ] Commit: `feat: add field artifact api`.
 
 ### Checkpoint 13 — Plugin template command
 
@@ -277,7 +387,7 @@ The API should be local-first and unauthenticated by default:
 - [ ] Add `docs/run-comparison.md`.
 - [ ] Add `docs/exporting-results.md`.
 - [ ] Add heat diffusion plugin docs.
-- [ ] Add screenshots or rendered UI previews if available.
+- [ ] Add schema/API examples for future UI work.
 - [ ] Commit: `docs: add v2 user docs`.
 
 ### Checkpoint 15 — Version 2 quality gate

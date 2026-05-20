@@ -76,3 +76,16 @@ For scientific plugins, add domain tests too. The SIR plugin tests population co
 
 Version 1 plugins are trusted Python packages. There is no sandbox. Do not install plugins from untrusted sources.
 
+## Bus Channel Ownership
+
+Domain-specific bus channel names belong in plugin manifests and experiment configs, not in Persephone core. Declare every channel a plugin reads or writes:
+
+```python
+PluginManifest(
+    # ...
+    bus_reads=["external_signal"],
+    bus_writes=["plugin_state"],
+)
+```
+
+Core solver wrappers must use `manifest.bus_reads` and `manifest.bus_writes` to move data through the bus. A plugin should not depend on another plugin object directly.

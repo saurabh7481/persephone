@@ -102,3 +102,33 @@ solvers:
 
     with pytest.raises(ValueError, match="p_infect"):
         load_experiment_config(config_path)
+
+
+def test_rejects_invalid_coupling_rule_at_config_load(tmp_path: Path) -> None:
+    data_path = tmp_path / "edges.csv"
+    data_path.write_text("source,target,weight\n0,1,1.0\n", encoding="utf-8")
+    config_path = write_config(
+        tmp_path,
+        """
+name: invalid_coupling
+seed: 42
+scheduler:
+  t_end: 10
+coupling:
+  rules:
+    states: not_registered
+solvers:
+  - type: graph
+    plugin: sir_epidemic
+    version: ">=0.1.0"
+    params:
+      contact_graph: edges.csv
+      p_infect: 0.1
+      p_recover: 0.05
+      n_nodes: 2
+      initially_infected: [0]
+""",
+    )
+
+    with pytest.raises(ValueError, match="not_registered"):
+        load_experiment_config(config_path)

@@ -120,3 +120,51 @@ def test_run_manager_tracks_active_status_transitions(tmp_path: Path) -> None:
     assert run["status"] == "completed"
     manifest = json.loads((tmp_path / "runs" / "active-run" / "manifest.json").read_text())
     assert manifest["status"] == "completed"
+
+
+def test_api_creates_parameter_sweep_and_links_children(tmp_path: Path) -> None:
+    client = TestClient(create_app(artifact_root=tmp_path / "runs"))
+
+    response = client.post(
+        "/sweeps",
+        json={
+            "sweep_id": "api-sweep",
+            "name": "API sweep",
+            "base_config": sir_config_payload(),
+            "parameter": "solvers[0].params.p_infect",
+            "values": [0.2, 0.4],
+        },
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["sweep_id"] == "api-sweep"
+    assert [child["run_id"] for child in payload["child_runs"]] == [
+        "api-sweep-001",
+        "api-sweep-002",
+    ]
+    child_manifest = json.loads(
+        (tmp_path / "runs" / "api-sweep-001" / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert child_manifest["sweep_id"] == "api-sweep"
+
+
+def test_api_compares_two_runs_by_metric(tmp_path: Path) -> None:
+    client = TestClient(create_app(artifact_root=tmp_path / "runs"))
+    for run_id in ["compare-a", "compare-b"]:
+        started = client.post("/runs", json={"config": sir_config_payload(), "run_id": run_id})
+        assert started.status_code == 202
+        wait_for_completed(client, run_id)
+
+    response = client.get(
+        "/compare",
+        params={"run": ["compare-a", "compare-b"], "metric": "infected_count"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric"] == "infected_count"
+    assert payload["run_a"] == "compare-a"
+    assert payload["run_b"] == "compare-b"
+    assert payload["aligned"][0]["t"] >= 0
+    assert payload["summaries"]["compare-a"]["peak"] >= 0

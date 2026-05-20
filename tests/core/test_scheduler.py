@@ -131,14 +131,16 @@ def test_scheduler_advances_exact_tick_count_and_emits_metrics(tmp_path: Path) -
     assert result.status == "completed"
     assert result.tick_count == 3
     assert result.t_current == 3.0
-    metric_lines = (
-        (tmp_path / "runs" / "run-scheduler" / "metrics.jsonl")
+    metric_lines = [
+        json.loads(line)
+        for line in (tmp_path / "runs" / "run-scheduler" / "metrics.jsonl")
         .read_text(encoding="utf-8")
         .strip()
         .splitlines()
-    )
-    assert len(metric_lines) == 3
-    assert json.loads(metric_lines[-1])["value"] == 3.0
+    ]
+    domain_metrics = [record for record in metric_lines if record["metric"] == "fake_value"]
+    assert len(domain_metrics) == 3
+    assert domain_metrics[-1]["value"] == 3.0
 
 
 def test_scheduler_records_failed_manifest_without_swallowing_error(tmp_path: Path) -> None:

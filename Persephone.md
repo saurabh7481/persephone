@@ -2050,6 +2050,8 @@ world_state = {
 
 This section tightens the original architecture into something that can be built without losing the larger vision. The system should remain powerful, but Version 1 must prove one complete vertical slice before adding distributed execution, GPU kernels, Rust acceleration, or a plugin marketplace.
 
+---
+
 ### 20.1 Fix: define a strict Version 1 boundary
 
 The earlier roadmap listed many correct long-term pieces, but it mixed kernel work, storage, API, UI, distributed compute, and ecosystem features in a way that could delay the first runnable system. Version 1 should be Python-first, local-first, deterministic, and plugin-driven:
@@ -2059,6 +2061,8 @@ The earlier roadmap listed many correct long-term pieces, but it mixed kernel wo
 - Out of scope for Version 1: Rust core, GPU acceleration, MPI, Kubernetes, community plugin marketplace, WASM sandbox, ClickHouse, and production auth.
 
 This keeps the first release honest: a user can install the project, run a simulation from a config, inspect metrics, replay from artefacts, and install or develop at least one real plugin.
+
+---
 
 ### 20.2 Fix: plugin packaging needs a local development path
 
@@ -2071,6 +2075,8 @@ The architecture correctly says production plugins should be external packages d
 
 The core engine still must not import plugin modules directly. The editable plugin is installed as a package and discovered the same way as any external plugin.
 
+---
+
 ### 20.3 Fix: the data bus should be double-buffered
 
 The original data bus describes write-then-read ordering, but the example implementation stores only one current value per channel. That can accidentally let a solver read another solver's current-tick write depending on execution order. The Version 1 bus should be double-buffered:
@@ -2081,6 +2087,8 @@ The original data bus describes write-then-read ordering, but the example implem
 - Each record stores `run_id`, `tick`, `solver_id`, `schema_id`, `logical_time`, `value`, and optional `units`.
 
 This makes scheduler behavior deterministic and prevents hidden ordering bugs.
+
+---
 
 ### 20.4 Fix: formalize schemas before runtime
 
@@ -2097,6 +2105,8 @@ Required schemas:
 
 Schema validation should happen before any solver starts. A bad config should fail fast with a useful message.
 
+---
+
 ### 20.5 Fix: reproducibility requires seeded substreams
 
 One global seed is not enough for multi-solver or ensemble simulation. Version 1 should derive deterministic child random number generators from a base seed:
@@ -2111,6 +2121,8 @@ Each solver receives a named deterministic substream. Ensemble runs should use `
 - Same config bytes + same plugin versions + same seed + same engine version = same metrics.
 - The run manifest records engine version, SDK version, plugin versions, config hash, Python version, platform, dependency lock hash, and seed plan.
 
+---
+
 ### 20.6 Fix: observer and storage boundaries need stricter ownership
 
 Observers should emit records; storage writers should persist them. The original description says the Observer writes to storage, but that couples plugin code to infrastructure. Better split:
@@ -2122,13 +2134,21 @@ Observers should emit records; storage writers should persist them. The original
 
 This keeps plugins portable and makes local runs possible without Docker.
 
+---
+
 ### 20.7 Fix: `pickle` should not be the production wire format
 
 The Redis bus example uses `pickle`, which is fine for throwaway local prototypes but unsafe for untrusted plugin ecosystems and brittle across versions. Version 1 can use in-memory NumPy arrays and local JSON/NPZ artefacts. Later Redis or network backends should use a safer binary representation such as Arrow IPC, MessagePack plus typed array payloads, or `.npy`/`.npz` blobs with schema metadata.
 
+This is not optional polish. Deserializing untrusted pickle data is equivalent to arbitrary code execution. The moment community plugins can write to the Redis bus, any plugin can compromise the host process. Arrow IPC must be the default wire format for any networked backend, not a Phase 3 upgrade.
+
+---
+
 ### 20.8 Fix: solver wrapper contracts should return elapsed time, not absolute time
 
 The solver interface says `step()` returns `(new_state, actual_dt_advanced)`. Some examples return `self.t`, which is absolute solver time. The implementation should consistently return only the elapsed duration advanced during that call. The scheduler owns global logical time.
+
+---
 
 ### 20.9 Fix: first plugin should be scientifically simple but complete
 
@@ -2142,6 +2162,8 @@ The first data source should be ready to run without API keys:
 
 This avoids making the first user depend on GitHub, Slack, Prometheus, or external credentials.
 
+---
+
 ### 20.10 Fix: security and trust levels must be explicit
 
 Version 1 should mark plugins as trusted Python code. Community sandboxing is a later feature. The docs and CLI should say this plainly:
@@ -2150,6 +2172,128 @@ Version 1 should mark plugins as trusted Python code. Community sandboxing is a 
 - Only install trusted plugins in Version 1.
 - Admin-only remote plugin installation belongs to a later production API.
 - WASM sandboxing is Phase 3+ and should not be implied as already solved.
+
+---
+
+### 20.11 Fix: the ODE solver wrapper must not hardcode bus channel names
+
+The `ODESolverWrapper` in section 8 hardcodes `bus.read('temperature_field')` and `bus.read('aerosol_grid')` directly in the engine's source code. This breaks the domain-agnostic promise: the engine now knows about biology. Every solver wrapper must read only the channels declared in the plugin manifest's `bus_reads` list, and write only to channels in `bus_writes`. The wrapper should never reference a domain-specific channel name.
+
+```python
+# Wrong — hardcoded domain knowledge in the engine
+external = {
+    'temperature': bus.read('temperature_field'),
+    'aerosol':     bus.read('aerosol_grid'),
+}
+
+# Correct — driven entirely by the plugin manifest
+external = {
+    channel: bus.read(channel)
+    for channel in self.plugin.manifest.bus_reads
+}
+```
+
+This fix is required before any second plugin can be written. A domain-agnostic engine that reads `aerosol_grid` by name is not domain-agnostic.
+
+---
+
+### 20.12 Fix: the world state type contract must be extended beyond plain ndarray
+
+The current contract uses `dict[str, np.ndarray]` as the universal state type. This is the right default, but it is insufficient for two common simulation patterns:
+
+**Sparse graphs.** A dense adjacency matrix for a 100k-node social network requires 80GB of memory. The correct representation is a sparse matrix (`scipy.sparse.spmatrix`), but the current type contract rejects it. Forcing plugins to simulate sparsity inside a dense array is both wasteful and incorrect.
+
+**Variable-size populations.** ABM agents that are born or die during simulation change the array shape each tick. The correct representation is a masked array (`np.ma.MaskedArray`) with a fixed maximum size and a boolean mask over active agents. The current contract has no mechanism for this.
+
+The state type contract should be extended to:
+
+```python
+StateValue = np.ndarray | scipy.sparse.spmatrix | np.ma.MaskedArray
+WorldState = dict[str, StateValue]
+```
+
+The `BusChannelSchema` should declare which type a channel carries. Solvers and the bus must handle all three without requiring plugins to work around the type system. Plain `np.ndarray` remains the default and is sufficient for most use cases; the extension is needed before graph-heavy or population-dynamic simulations are attempted.
+
+---
+
+### 20.13 Fix: coupling rules must support typed merge functions, not just string keywords
+
+The current coupling rule system (`sum`, `mean`, `last`, `max`) works for scalar channels but silently produces wrong results for structured state. A plugin writing a 10k-node graph state to `infection_map` cannot be meaningfully `sum`-ed with another plugin's contribution — the keyword will either crash on shape mismatch or produce numerically nonsensical output.
+
+Coupling rules should accept callable merge functions in addition to string keywords:
+
+```python
+# String keywords remain valid for scalar/vector channels
+COUPLING_RULES = {
+    'temperature':   'mean',
+    'viral_fitness': 'max',
+}
+
+# Callable rules for structured state
+def merge_infection_maps(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Union of two infection state arrays: infected beats susceptible."""
+    return np.maximum(a, b)
+
+COUPLING_RULES = {
+    'infection_map': merge_infection_maps,
+    'agent_states':  'last',
+}
+```
+
+The experiment config should allow inline Python callables (for programmatic use) or named functions registered via the plugin SDK (for YAML configs). String keywords should be validated against a whitelist at config load time, not silently ignored at merge time.
+
+---
+
+### 20.14 Fix: operator splitting error must be documented and bounded
+
+Operator splitting — advancing each solver independently for one `sync_interval` and then merging outputs — introduces a numerical splitting error proportional to `sync_interval`. This is well understood in the scientific computing literature but is currently undocumented in this architecture. For loosely-coupled paradigms (e.g. ODE viral dynamics and Graph infection propagation) the error is negligible at reasonable sync intervals. For tightly-coupled paradigms where the output of one solver is the input of another within the same tick (e.g. ABM behavior that reads a PDE aerosol field that the ABM itself modifies), artifacts can appear.
+
+The following guidance should be added to the scheduler documentation:
+
+- **Loose coupling** (paradigms that exchange state but do not depend on each other's sub-tick dynamics): `sync_interval` can be set to the slower solver's natural timestep. Splitting error is O(`sync_interval`).
+- **Tight coupling** (paradigms that form a feedback loop within one tick): `sync_interval` should be set to the faster solver's `preferred_dt`. Consider Strang splitting (advance A for half a step, advance B for a full step, advance A for half a step) for second-order symmetric accuracy.
+- The experiment config should expose a `splitting_order` option (`first_order` or `strang`) alongside `sync_interval`.
+
+A warning should be emitted at config load time when `sync_interval` exceeds half the `preferred_dt` of any solver in a tight-coupling group.
+
+---
+
+### 20.15 Fix: the scheduler must support checkpoint and resume
+
+Long-running simulations — multi-year climate models, large ensemble sweeps, parameter searches — will fail partway through due to hardware faults, memory exhaustion, or process interruption. The current artefact system mentions checkpoints but the scheduler has no concept of resuming from one. Without this, any interrupted long run must restart from tick 0.
+
+The scheduler should support a first-class checkpoint/resume protocol:
+
+- `checkpoint_every: N` in the experiment config triggers a full state snapshot every N ticks. This already appears in the config schema but is not wired to the scheduler.
+- Each checkpoint saves: full `WorldState` dict (as `.npz`), bus committed snapshot, global logical time, RNG states for all active solvers, and the `RunManifest` up to that tick.
+- The CLI should support `persephone replay --from-checkpoint <run_id>@<tick>` to resume from any saved checkpoint.
+- Partial results up to the last checkpoint should always be queryable, even for failed runs.
+
+This is not a Phase 3 feature. Any simulation long enough to be scientifically meaningful is long enough to be interrupted.
+
+---
+
+### 20.16 Fix: the scheduler must emit its own telemetry
+
+When a simulation run is slow or produces unexpected results, the researcher currently has no visibility into the scheduler's internal behavior. There is no way to answer: which solver is consuming the most wall-clock time, how often is the CFL condition constraining the sync interval, or how frequently are coupling rules resolving conflicts. Debugging is guesswork.
+
+The scheduler should emit structured telemetry alongside domain metrics:
+
+```python
+# Emitted once per sync interval to the MetricSink
+SchedulerTelemetry(
+    tick=int,
+    logical_time=float,
+    wall_time_ms=float,
+    sync_interval_used=float,
+    solver_step_times={solver_id: float},   # wall ms per solver
+    cfl_constrained=bool,                   # True if PDE forced a smaller sync_interval
+    coupling_conflicts={channel: int},      # number of multi-writer conflicts resolved
+    bus_channel_sizes={channel: int},       # bytes per channel (detect unexpected growth)
+)
+```
+
+This telemetry should be written to the same `MetricSink` as domain metrics, queryable via the same API, and visible in the Svelte UI alongside simulation output. Bottleneck identification and coupling debugging should require no code changes — just a query.
 
 ---
 

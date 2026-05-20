@@ -5,8 +5,11 @@ from typing import Any, Literal
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from persephone.core.coupling import coupling_registry
+
 Paradigm = Literal["ode", "pde", "abm", "graph", "sde", "hybrid"]
 SyncInterval = float | Literal["auto"]
+SplittingOrder = Literal["first_order", "strang"]
 
 
 class StrictModel(BaseModel):
@@ -18,6 +21,8 @@ class SchedulerConfig(StrictModel):
     sync_interval: SyncInterval = "auto"
     dt: float | None = Field(default=None, gt=0)
     ensemble_size: int | None = Field(default=None, gt=0)
+    checkpoint_every: int | None = Field(default=None, gt=0)
+    splitting_order: SplittingOrder = "first_order"
 
     @field_validator("sync_interval")
     @classmethod
@@ -57,7 +62,18 @@ class StorageConfig(StrictModel):
 
 
 class CouplingConfig(StrictModel):
-    rules: dict[str, Literal["sum", "mean", "max", "min", "last"]] = Field(default_factory=dict)
+    rules: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("rules")
+    @classmethod
+    def validate_registered_rules(cls, value: dict[str, str]) -> dict[str, str]:
+        unknown = sorted({rule for rule in value.values() if not coupling_registry.has(rule)})
+        if unknown:
+            allowed = ", ".join(coupling_registry.names())
+            raise ValueError(
+                f"Unknown coupling rule(s): {', '.join(unknown)}. Registered rules: {allowed}"
+            )
+        return value
 
 
 class ExperimentConfig(StrictModel):

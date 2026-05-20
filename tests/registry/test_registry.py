@@ -87,7 +87,14 @@ def test_registry_discovers_plugin_manifests_from_entry_points() -> None:
     registry.discover()
 
     assert registry.get("demo").name == "demo"
-    assert registry.list_all() == [{"name": "demo", "version": "0.2.0", "paradigm": "graph"}]
+    assert registry.list_all() == [
+        {
+            "name": "demo",
+            "version": "0.2.0",
+            "paradigm": "graph",
+            "trust_level": "trusted_python",
+        }
+    ]
 
 
 def test_registry_skips_broken_entry_points_without_crashing() -> None:

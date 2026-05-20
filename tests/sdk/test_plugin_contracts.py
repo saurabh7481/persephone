@@ -145,3 +145,25 @@ class BadPlugin:
 def test_plugin_harness_rejects_undeclared_bus_writes() -> None:
     with pytest.raises(AssertionError, match="undeclared"):
         PluginTestHarness(BadPlugin).run_all()
+
+
+class UndeclaredReadSolver(DemoSolver):
+    def step(
+        self, state: dict[str, np.ndarray], dt: float, bus: Any
+    ) -> tuple[dict[str, np.ndarray], float]:
+        bus.read("undeclared_input")
+        return state, dt
+
+
+class BadReadPlugin:
+    @staticmethod
+    def manifest() -> PluginManifest:
+        manifest = demo_manifest()
+        manifest.solver = UndeclaredReadSolver
+        manifest.bus_reads = ["declared_input"]
+        return manifest
+
+
+def test_plugin_harness_rejects_undeclared_bus_reads() -> None:
+    with pytest.raises(AssertionError, match="undeclared_input"):
+        PluginTestHarness(BadReadPlugin).run_all()

@@ -2,13 +2,23 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { resolve } from '$app/paths';
-	import { Activity, FlaskConical, ListTree, Plug, Settings } from '@lucide/svelte';
+	import {
+		Activity,
+		FlaskConical,
+		GitCompareArrows,
+		ListTree,
+		Plug,
+		Settings,
+		SlidersHorizontal
+	} from '@lucide/svelte';
 
 	let { children } = $props();
 
 	const navItems = [
 		{ href: '/runs', label: 'Runs', icon: ListTree },
 		{ href: '/experiments', label: 'Experiments', icon: FlaskConical },
+		{ href: '/sweeps', label: 'Sweeps', icon: SlidersHorizontal },
+		{ href: '/compare', label: 'Compare', icon: GitCompareArrows },
 		{ href: '/plugins', label: 'Plugins', icon: Plug },
 		{ href: '/settings', label: 'Settings', icon: Settings }
 	] as const;

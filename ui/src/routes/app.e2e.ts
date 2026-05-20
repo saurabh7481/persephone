@@ -61,8 +61,54 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/runs/run-a/metrics', async (route) => {
 		await route.fulfill({ json: metrics });
 	});
+	await page.route('http://127.0.0.1:8787/runs/run-a/stream', async (route) => {
+		await route.fulfill({
+			contentType: 'text/event-stream',
+			body: [
+				'event: metric',
+				'data: {"t":3,"metric":"infected_count","value":8}',
+				'',
+				'event: metric',
+				'data: {"t":3,"metric":"recovered_count","value":2}',
+				'',
+				''
+			].join('\n')
+		});
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a', async (route) => {
 		await route.fulfill({ json: runs[0] });
+	});
+	await page.route('http://127.0.0.1:8787/sweeps', async (route) => {
+		await route.fulfill({
+			status: 201,
+			json: {
+				sweep_id: 'ui-sweep',
+				name: 'UI sweep',
+				parameter: 'solvers[0].params.p_infect',
+				values: [0.2, 0.4],
+				child_runs: [
+					{ run_id: 'ui-sweep-001', value: 0.2, status: 'completed', artifact_path: 'runs/1' },
+					{ run_id: 'ui-sweep-002', value: 0.4, status: 'completed', artifact_path: 'runs/2' }
+				]
+			}
+		});
+	});
+	await page.route('http://127.0.0.1:8787/compare?**', async (route) => {
+		await route.fulfill({
+			json: {
+				run_a: 'run-a',
+				run_b: 'run-b',
+				metric: 'infected_count',
+				aligned: [
+					{ t: 1, run_a: 3, run_b: 2 },
+					{ t: 2, run_a: 4, run_b: 5 }
+				],
+				summaries: {
+					'run-a': { peak: 4, final: 4, auc: 3.5 },
+					'run-b': { peak: 5, final: 5, auc: 3.5 }
+				}
+			}
+		});
 	});
 	await page.route('http://127.0.0.1:8787/runs', async (route) => {
 		if (route.request().method() === 'POST') {
@@ -89,6 +135,8 @@ test('renders run detail metrics and events', async ({ page }) => {
 
 	await expect(page.getByRole('heading', { name: 'run-a' })).toBeVisible();
 	await expect(page.getByText('infected_count')).toBeVisible();
+	await expect(page.getByText('Peak infected')).toBeVisible();
+	await expect(page.getByText('8')).toBeVisible();
 	await page.getByRole('tab', { name: 'Events' }).click();
 	await expect(page.getByText('infection', { exact: true })).toBeVisible();
 });
@@ -100,4 +148,24 @@ test('submits the bundled SIR experiment config', async ({ page }) => {
 	await page.getByRole('button', { name: 'Run experiment' }).click();
 
 	await expect(page.getByText('created-run')).toBeVisible();
+});
+
+test('creates a scalar parameter sweep', async ({ page }) => {
+	await page.goto('/sweeps');
+	await page.getByLabel('Sweep values').fill('0.2, 0.4');
+	await page.getByRole('button', { name: 'Run sweep' }).click();
+
+	await expect(page.getByText('ui-sweep', { exact: true })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'ui-sweep-001' })).toBeVisible();
+});
+
+test('compares two runs with an overlay chart', async ({ page }) => {
+	await page.goto('/compare');
+	await page.getByLabel('Run A').fill('run-a');
+	await page.getByLabel('Run B').fill('run-b');
+	await page.getByRole('button', { name: 'Compare runs' }).click();
+
+	await expect(page.getByText('infected_count')).toBeVisible();
+	await expect(page.getByText('run-a')).toBeVisible();
+	await expect(page.getByText('AUC')).toBeVisible();
 });
