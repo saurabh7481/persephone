@@ -377,6 +377,28 @@
 		color: var(--studio-shell-foreground);
 	}
 
+	.studio-action-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		border: 1px solid var(--studio-border);
+		border-radius: 0.45rem;
+		background: color-mix(in oklab, var(--studio-panel-muted) 46%, transparent);
+		padding: 0.55rem 0.65rem;
+		font-size: 0.85rem;
+		font-weight: 550;
+		color: var(--studio-shell-foreground);
+		text-decoration: none;
+	}
+
+	.studio-action-link:hover,
+	.studio-action-link:focus-visible {
+		border-color: color-mix(in oklab, var(--studio-accent) 48%, var(--studio-border));
+		background: color-mix(in oklab, var(--studio-accent) 12%, var(--studio-panel));
+		outline: 2px solid color-mix(in oklab, var(--studio-accent) 44%, transparent);
+		outline-offset: 2px;
+	}
+
 	.studio-workbench-grid {
 		display: grid;
 		min-height: calc(100vh - 6.25rem);

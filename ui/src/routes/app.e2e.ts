@@ -301,6 +301,16 @@ test('renders the run dashboard with catalog rows', async ({ page }) => {
 	await expect(page.getByRole('cell', { name: 'sir_epidemic' }).first()).toBeVisible();
 });
 
+test('opens on the Simulation Studio workbench', async ({ page }) => {
+	await page.goto('/');
+
+	await expect(page.getByRole('heading', { name: 'Simulation Studio' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Simulation playback viewport' })).toBeVisible();
+	await expect(page.getByText('No run selected')).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Create experiment' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Open run catalog' })).toBeVisible();
+});
+
 test('captures the Studio shell smoke state', async ({ page }) => {
 	await page.goto('/runs');
 
