@@ -1,0 +1,78 @@
+{
+  "config_hash": "f068d2b3e7c53652db41ed152d609c90fde88fef445d89ca0ec22cf6f2058bed",
+  "config_snapshot": {
+    "coupling": {
+      "rules": {}
+    },
+    "description": "California county epidemic over the official 2023 U.S. Census county adjacency file",
+    "name": "us_county_epidemic_california",
+    "observer": {
+      "emit_every": 1.0,
+      "metrics": [
+        "susceptible_count",
+        "infected_count",
+        "recovered_count",
+        "new_infections",
+        "new_recoveries",
+        "r_effective_estimate"
+      ]
+    },
+    "scheduler": {
+      "checkpoint_every": null,
+      "demo_delay_ms_per_tick": 0,
+      "dt": null,
+      "ensemble_size": null,
+      "splitting_order": "first_order",
+      "sync_interval": "auto",
+      "t_end": 3.0
+    },
+    "seed": 42,
+    "solvers": [
+      {
+        "params": {
+          "geoid_prefixes": [
+            "06"
+          ],
+          "initially_infected_geoids": [
+            "06037",
+            "06073"
+          ],
+          "p_infect": 0.3,
+          "p_recover": 0.1
+        },
+        "plugin": "us_county_epidemic",
+        "type": "graph",
+        "version": ">=0.1.0"
+      }
+    ],
+    "storage": {
+      "artifacts_dir": "runs-test-us-county",
+      "events": true,
+      "metrics": true
+    },
+    "visualization": {
+      "emit_every": 1.0,
+      "inline_frame_max_values": 4096
+    }
+  },
+  "dependency_lock_hash": "cc0249e03adc37fee3106a073eceec5bb5d32128df30485bc21ccffa8de8ebec",
+  "engine_version": "0.1.0",
+  "error_message": null,
+  "frame_artifacts_path": "frames/index.json",
+  "platform": "macOS-26.3.1-arm64-arm-64bit-Mach-O",
+  "plugin_versions": {
+    "us_county_epidemic": "0.1.0"
+  },
+  "python_version": "3.14.3",
+  "run_id": "verify-us-county-2",
+  "runtime_backend": "python",
+  "runtime_version": "0.1.0",
+  "sdk_version": "0.1.0",
+  "seed": 42,
+  "seed_plan": {
+    "us_county_epidemic#0": 2684470948
+  },
+  "started_at": "2026-05-21T17:16:18.784931+00:00",
+  "status": "completed",
+  "t_current": 3.0
+}

@@ -31,6 +31,7 @@
 	} = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
+	let viewportElement = $state<HTMLDivElement | null>(null);
 	let width = $state(1);
 	let height = $state(1);
 	let hoverLabel = $state('');
@@ -55,13 +56,15 @@
 	});
 
 	onMount(() => {
-		if (!canvas?.parentElement) return;
+		if (!viewportElement) return;
 		const observer = new ResizeObserver(([entry]) => {
 			width = Math.max(1, Math.floor(entry.contentRect.width));
 			height = Math.max(1, Math.floor(entry.contentRect.height));
 			scheduleRender();
 		});
-		observer.observe(canvas.parentElement);
+		width = Math.max(1, Math.floor(viewportElement.clientWidth));
+		height = Math.max(1, Math.floor(viewportElement.clientHeight));
+		observer.observe(viewportElement);
 		scheduleRender();
 		return () => {
 			observer.disconnect();
@@ -148,7 +151,7 @@
 	}
 </script>
 
-<div class="simulation-viewport" data-status={status}>
+<div bind:this={viewportElement} class="simulation-viewport" data-status={status}>
 	{#if frame}
 		<canvas
 			bind:this={canvas}

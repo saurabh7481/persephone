@@ -35,5 +35,9 @@ describe('PersephoneApiClient frame contracts', () => {
 		);
 		expect(frames.frames[0]?.kind).toBe('field');
 		expect(api.frameStreamUrl('run-a')).toBe('http://api.local/runs/run-a/frames/stream');
+		expect(api.exportRunUrl('run-a', 'parquet')).toBe(
+			'http://api.local/runs/run-a/export?format=parquet'
+		);
+		expect(api.frameUrl('run-a', 'frame-a')).toBe('http://api.local/runs/run-a/frames/frame-a');
 	});
 });

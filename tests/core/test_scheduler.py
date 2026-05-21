@@ -104,9 +104,14 @@ def runtime(solver: Any | None = None) -> SolverRuntime:
     )
 
 
-def make_scheduler(tmp_path: Path, solver: Any | None = None, t_end: float = 3.0) -> Scheduler:
+def make_scheduler(
+    tmp_path: Path,
+    solver: Any | None = None,
+    t_end: float = 3.0,
+    experiment_config: ExperimentConfig | None = None,
+) -> Scheduler:
     run_context = RunContext.create(
-        config(t_end=t_end),
+        experiment_config or config(t_end=t_end),
         {"fake": manifest()},
         run_id="run-scheduler",
     )
@@ -142,6 +147,22 @@ def test_scheduler_advances_exact_tick_count_and_emits_metrics(tmp_path: Path) -
     domain_metrics = [record for record in metric_lines if record["metric"] == "fake_value"]
     assert len(domain_metrics) == 3
     assert domain_metrics[-1]["value"] == 3.0
+
+
+def test_scheduler_applies_optional_demo_delay_per_tick(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    sleeps: list[float] = []
+    experiment_config = config(t_end=2.0)
+    experiment_config.scheduler.demo_delay_ms_per_tick = 25
+    scheduler = make_scheduler(tmp_path, experiment_config=experiment_config)
+    monkeypatch.setattr("persephone.core.scheduler.sleep", lambda seconds: sleeps.append(seconds))
+
+    result = scheduler.run()
+
+    assert result.status == "completed"
+    assert sleeps == [0.025, 0.025]
 
 
 def test_scheduler_records_failed_manifest_without_swallowing_error(tmp_path: Path) -> None:

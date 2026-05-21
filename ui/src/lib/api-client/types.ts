@@ -20,6 +20,17 @@ export type PluginSummary = {
 	trust_level?: string;
 };
 
+export type FieldArtifactSummary = {
+	field_id?: string;
+	id?: string;
+	name?: string;
+	path?: string;
+	shape?: number[];
+	dtype?: string;
+	units?: string;
+	[key: string]: unknown;
+};
+
 export type MetricRecord = {
 	t: number;
 	metric: string;
@@ -88,6 +99,7 @@ export type ExperimentConfig = {
 	scheduler: {
 		t_end: number;
 		sync_interval: 'auto' | number;
+		demo_delay_ms_per_tick?: number;
 	};
 	solvers: Array<{
 		type: string;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import {
 		AlertCircle,
@@ -13,10 +14,11 @@
 		PersephoneApi,
 		compareMetricSummary,
 		type EventRecord,
+		type FieldArtifactSummary,
 		type MetricRecord,
 		type RunSummary
 	} from '$lib/api';
-	import MetricChart from '$lib/components/MetricChart.svelte';
+	import MetricTimeline from '$lib/components/MetricTimeline.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import { SimulationViewport, StudioPanel, StudioWorkbench } from '$lib/components/studio';
 	import * as Alert from '$lib/components/ui/alert';
@@ -24,6 +26,12 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { createPlaybackStore, playbackSourceFromApi } from '$lib/studio/playback';
+	import {
+		artifactSummaries,
+		fieldCellInspection,
+		graphNodeInspection,
+		runInspection
+	} from '$lib/studio/inspector';
 
 	let { data }: { data: { runId: string } } = $props();
 	const api = new PersephoneApi();
@@ -32,6 +40,7 @@
 	let run = $state<RunSummary | null>(null);
 	let metrics = $state<MetricRecord[]>([]);
 	let events = $state<EventRecord[]>([]);
+	let fieldArtifacts = $state<FieldArtifactSummary[]>([]);
 	let error = $state('');
 	let streamState = $state<'idle' | 'connected' | 'closed'>('idle');
 
@@ -39,6 +48,22 @@
 	const selectedFrame = $derived(
 		$playback.frameBuffer.find((frame) => frame.frame_id === $playback.selectedFrameId) ?? null
 	);
+	const selectedObject = $derived($playback.selectedObject);
+	const runDetails = $derived(runInspection(run));
+	const fieldCellDetails = $derived(
+		fieldCellInspection(
+			selectedFrame,
+			selectedObject?.kind === 'field-cell' ? selectedObject.id : null
+		)
+	);
+	const graphNodeDetails = $derived(
+		graphNodeInspection(
+			selectedFrame,
+			selectedObject?.kind === 'graph-node' ? selectedObject.id : null,
+			events
+		)
+	);
+	const artifacts = $derived(artifactSummaries(run, metrics, events, $playback.frameBuffer));
 
 	onMount(() => {
 		let metricStream: EventSource | null = null;
@@ -53,6 +78,11 @@
 				run = runResult;
 				metrics = metricResult;
 				events = eventResult;
+				try {
+					fieldArtifacts = await api.listFields(data.runId);
+				} catch {
+					fieldArtifacts = [];
+				}
 				if (runResult.status === 'completed' || runResult.status === 'failed') {
 					await playback.loadReplay(data.runId);
 					playback.play();
@@ -111,7 +141,26 @@
 			playback.play();
 		}
 	}
+
+	function handleRunKeydown(event: KeyboardEvent) {
+		const target = event.target as HTMLElement | null;
+		if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
+		if (event.key === ' ') {
+			event.preventDefault();
+			togglePlayback();
+		}
+		if (event.key === 'ArrowLeft') {
+			event.preventDefault();
+			playback.scrubTo(Math.max(0, $playback.currentTime - 1));
+		}
+		if (event.key === 'ArrowRight') {
+			event.preventDefault();
+			playback.scrubTo($playback.currentTime + 1);
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleRunKeydown} />
 
 <StudioWorkbench
 	title={data.runId}
@@ -239,9 +288,62 @@
 					<div>
 						<p class="text-xs text-muted-foreground">Selected object</p>
 						<p class="font-mono text-xs break-all">
-							{$playback.selectedObject
-								? `${$playback.selectedObject.kind}:${$playback.selectedObject.id}`
-								: 'none'}
+							{selectedObject ? `${selectedObject.kind}:${selectedObject.id}` : 'none'}
+						</p>
+					</div>
+					{#if fieldCellDetails}
+						<div class="rounded-md border p-3">
+							<p class="studio-eyebrow">Field cell</p>
+							<p class="mt-2 font-mono text-xs">
+								{fieldCellDetails.field}[{fieldCellDetails.row}, {fieldCellDetails.column}]
+							</p>
+							<p class="text-sm">
+								{fieldCellDetails.value ?? '-'}
+								{fieldCellDetails.units}
+							</p>
+							<p class="mt-1 text-xs text-muted-foreground">
+								{fieldCellDetails.dtype} · {fieldCellDetails.shape.join('x')} · {fieldCellDetails.source}
+							</p>
+						</div>
+					{/if}
+					{#if graphNodeDetails}
+						<div class="rounded-md border p-3">
+							<p class="studio-eyebrow">Graph node</p>
+							<p class="mt-2 font-mono text-xs">{graphNodeDetails.id}</p>
+							<p class="text-sm">{graphNodeDetails.state} · degree {graphNodeDetails.degree}</p>
+							<p class="mt-1 text-xs text-muted-foreground">
+								{graphNodeDetails.events.length} related events
+							</p>
+						</div>
+					{/if}
+					{#if runDetails}
+						<details class="rounded-md border p-3">
+							<summary class="cursor-pointer text-sm font-medium">Technical details</summary>
+							<div class="mt-3 grid gap-2 text-xs">
+								<p><span class="text-muted-foreground">Run</span> {runDetails.runId}</p>
+								<p><span class="text-muted-foreground">Status</span> {runDetails.status}</p>
+								<p><span class="text-muted-foreground">Plugins</span> {runDetails.plugins}</p>
+								<p>
+									<span class="text-muted-foreground">Plugin versions</span>
+									{runDetails.pluginVersions}
+								</p>
+								<p>
+									<span class="text-muted-foreground">Runtime backend</span>
+									{runDetails.runtimeBackend}
+								</p>
+								<p><span class="text-muted-foreground">Config</span> {runDetails.configHash}</p>
+								<p><span class="text-muted-foreground">Seed plan</span> {runDetails.seedPlan}</p>
+								<p>
+									<span class="text-muted-foreground">Artifacts</span>
+									{runDetails.artifactPath}
+								</p>
+							</div>
+						</details>
+					{/if}
+					<div class="rounded-md border p-3">
+						<p class="studio-eyebrow">Visualization</p>
+						<p class="mt-2 text-xs text-muted-foreground">
+							Palette, autoscale, bounds, opacity, and layer controls live in the viewport overlay.
 						</p>
 					</div>
 				</div>
@@ -262,7 +364,13 @@
 				</Tabs.TabsList>
 
 				<Tabs.TabsContent value="metrics">
-					<div class="mb-4 grid gap-3 sm:grid-cols-3">
+					<div class="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+						<StudioPanel title="Selected time">
+							<p class="text-2xl font-semibold">{$playback.currentTime.toFixed(2)}</p>
+						</StudioPanel>
+						<StudioPanel title="Current frame">
+							<p class="truncate text-2xl font-semibold">{selectedFrame?.frame_id ?? '-'}</p>
+						</StudioPanel>
 						<StudioPanel title="Peak value">
 							<p class="text-2xl font-semibold">{summary.peakValue}</p>
 						</StudioPanel>
@@ -274,10 +382,16 @@
 						</StudioPanel>
 					</div>
 					<StudioPanel
-						title="Metric chart"
-						description={`${summary.primaryMetric} and related metrics over time.`}
+						title="Metric timeline"
+						description="Metrics, events, and frame ticks synchronized with playback time."
 					>
-						<MetricChart records={metrics} />
+						<MetricTimeline
+							records={metrics}
+							{events}
+							frames={$playback.frameBuffer}
+							selectedTime={$playback.currentTime}
+							onSelectTime={(time) => playback.scrubTo(time)}
+						/>
 					</StudioPanel>
 				</Tabs.TabsContent>
 
@@ -330,16 +444,107 @@
 				</Tabs.TabsContent>
 
 				<Tabs.TabsContent value="artifacts">
-					<StudioPanel title="Artifacts">
-						<p class="text-sm text-muted-foreground">
-							Metrics, events, frames, checkpoints, final state, and exports will appear here.
-						</p>
+					<StudioPanel title="Artifacts" description="Run outputs, exports, and replay payloads.">
+						<div class="mb-3 flex flex-wrap gap-2">
+							<!-- eslint-disable svelte/no-navigation-without-resolve -->
+							<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'csv')}>CSV export</a
+							>
+							<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'parquet')}>
+								Parquet export
+							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
+							<a class="studio-action-link" href={resolve(`/compare?runA=${data.runId}`)}>
+								Compare this run
+							</a>
+							{#if selectedFrame}
+								<!-- eslint-disable svelte/no-navigation-without-resolve -->
+								<a
+									class="studio-action-link"
+									href={api.frameUrl(data.runId, selectedFrame.frame_id)}
+								>
+									Field frame export
+								</a>
+								<!-- eslint-enable svelte/no-navigation-without-resolve -->
+							{/if}
+						</div>
+						<Table.Table>
+							<Table.TableHeader>
+								<Table.TableRow>
+									<Table.TableHead>artifact</Table.TableHead>
+									<Table.TableHead>count</Table.TableHead>
+									<Table.TableHead>open</Table.TableHead>
+								</Table.TableRow>
+							</Table.TableHeader>
+							<Table.TableBody>
+								{#each artifacts as artifact (artifact.kind)}
+									<Table.TableRow>
+										<Table.TableCell>{artifact.label}</Table.TableCell>
+										<Table.TableCell>{artifact.count}</Table.TableCell>
+										<Table.TableCell>
+											<!-- eslint-disable svelte/no-navigation-without-resolve -->
+											<a class="font-medium text-primary hover:underline" href={artifact.href}
+												>Open</a
+											>
+											<!-- eslint-enable svelte/no-navigation-without-resolve -->
+										</Table.TableCell>
+									</Table.TableRow>
+								{/each}
+								{#each fieldArtifacts as field, index (field.field_id ?? field.id ?? index)}
+									<Table.TableRow>
+										<Table.TableCell
+											>{field.name ?? field.field_id ?? field.id ?? 'field'}</Table.TableCell
+										>
+										<Table.TableCell
+											>{Array.isArray(field.shape) ? field.shape.join('x') : '-'}</Table.TableCell
+										>
+										<Table.TableCell>
+											<!-- eslint-disable svelte/no-navigation-without-resolve -->
+											<a
+												class="font-medium text-primary hover:underline"
+												href={api.fieldUrl(
+													data.runId,
+													String(field.field_id ?? field.id ?? field.name ?? index),
+													'csv'
+												)}
+											>
+												CSV
+											</a>
+											<!-- eslint-enable svelte/no-navigation-without-resolve -->
+										</Table.TableCell>
+									</Table.TableRow>
+								{/each}
+							</Table.TableBody>
+						</Table.Table>
 					</StudioPanel>
 				</Tabs.TabsContent>
 
 				<Tabs.TabsContent value="logs">
 					<StudioPanel title="Logs">
-						<p class="text-sm text-muted-foreground">Frame stream status: {$playback.status}</p>
+						<Table.Table>
+							<Table.TableHeader>
+								<Table.TableRow>
+									<Table.TableHead>source</Table.TableHead>
+									<Table.TableHead>status</Table.TableHead>
+									<Table.TableHead>detail</Table.TableHead>
+								</Table.TableRow>
+							</Table.TableHeader>
+							<Table.TableBody>
+								<Table.TableRow>
+									<Table.TableCell>frame stream</Table.TableCell>
+									<Table.TableCell>{$playback.status}</Table.TableCell>
+									<Table.TableCell class="font-mono text-xs">
+										{$playback.error ?? `${$playback.frameBuffer.length} buffered frames`}
+									</Table.TableCell>
+								</Table.TableRow>
+								<Table.TableRow>
+									<Table.TableCell>metric stream</Table.TableCell>
+									<Table.TableCell>{streamState}</Table.TableCell>
+									<Table.TableCell class="font-mono text-xs"
+										>{metrics.length} metric records</Table.TableCell
+									>
+								</Table.TableRow>
+							</Table.TableBody>
+						</Table.Table>
 					</StudioPanel>
 				</Tabs.TabsContent>
 

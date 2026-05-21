@@ -1,0 +1,32 @@
+name: us_county_epidemic_california
+description: "California county epidemic over the official 2023 U.S. Census county adjacency file"
+seed: 42
+
+scheduler:
+  t_end: 18
+  sync_interval: auto
+
+solvers:
+  - type: graph
+    plugin: us_county_epidemic
+    version: ">=0.1.0"
+    params:
+      geoid_prefixes: ["06"]
+      initially_infected_geoids: ["06037", "06073"]
+      p_infect: 0.3
+      p_recover: 0.1
+
+observer:
+  metrics:
+    - susceptible_count
+    - infected_count
+    - recovered_count
+    - new_infections
+    - new_recoveries
+    - r_effective_estimate
+  emit_every: 1.0
+
+storage:
+  artifacts_dir: runs
+  metrics: true
+  events: true

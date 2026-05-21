@@ -10,6 +10,7 @@ dependencies = [
     "packaging>=24.0",
     "persephone-plugin-sir-epidemic",
     "persephone-plugin-heat-diffusion",
+    "persephone-plugin-us-county-epidemic",
     "persephone-sdk",
     "pyarrow>=16.0",
     "pydantic>=2.7",
@@ -45,10 +46,11 @@ dev = [
 persephone = { workspace = true }
 persephone-plugin-sir-epidemic = { workspace = true }
 persephone-plugin-heat-diffusion = { workspace = true }
+persephone-plugin-us-county-epidemic = { workspace = true }
 persephone-sdk = { workspace = true }
 
 [tool.uv.workspace]
-members = ["sdk", "plugins/persephone-plugin-sir-epidemic", "plugins/persephone-plugin-heat-diffusion"]
+members = ["sdk", "plugins/persephone-plugin-sir-epidemic", "plugins/persephone-plugin-heat-diffusion", "plugins/persephone-plugin-us-county-epidemic"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "sdk/tests"]
@@ -64,4 +66,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "sdk/src", "plugins/persephone-plugin-sir-epidemic/src", "plugins/persephone-plugin-heat-diffusion/src"]
+files = ["src", "sdk/src", "plugins/persephone-plugin-sir-epidemic/src", "plugins/persephone-plugin-heat-diffusion/src", "plugins/persephone-plugin-us-county-epidemic/src"]

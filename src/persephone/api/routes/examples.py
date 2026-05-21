@@ -32,6 +32,18 @@ EXAMPLES = {
         description="2D field simulation with scalar field metrics.",
         path="configs/examples/heat_diffusion.yaml",
     ),
+    "heat_diffusion_large": ExampleConfig(
+        id="heat_diffusion_large",
+        name="Heat diffusion large demo",
+        description="Larger heat field with dense playback frames and a paced demo runtime.",
+        path="configs/examples/heat_diffusion_large.yaml",
+    ),
+    "us_county_epidemic": ExampleConfig(
+        id="us_county_epidemic",
+        name="U.S. county epidemic demo",
+        description="Real-world county adjacency simulation backed by the 2023 U.S. Census file.",
+        path="configs/examples/us_county_epidemic.yaml",
+    ),
 }
 
 

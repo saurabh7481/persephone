@@ -9,6 +9,7 @@
 		type ExperimentConfig,
 		type SweepManifest
 	} from '$lib/api';
+	import { scalarParameterPaths } from '$lib/studio/experiment-builder';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -23,6 +24,7 @@
 	let error = $state('');
 	let manifest = $state<SweepManifest | null>(null);
 	let baseConfig = $state<ExperimentConfig | null>(null);
+	const parameterChoices = $derived(baseConfig ? scalarParameterPaths(baseConfig) : []);
 
 	onMount(async () => {
 		try {
@@ -75,7 +77,12 @@
 			<Card.CardContent class="space-y-4">
 				<label class="grid gap-2 text-sm font-medium">
 					Parameter path
-					<Input bind:value={parameter} />
+					<Input bind:value={parameter} list="sweep-parameter-paths" />
+					<datalist id="sweep-parameter-paths">
+						{#each parameterChoices as choice (choice.path)}
+							<option value={choice.path}>{choice.label}</option>
+						{/each}
+					</datalist>
 				</label>
 				<label class="grid gap-2 text-sm font-medium">
 					Sweep values
@@ -116,10 +123,11 @@
 							<Table.TableHead>Run</Table.TableHead>
 							<Table.TableHead>Value</Table.TableHead>
 							<Table.TableHead>Status</Table.TableHead>
+							<Table.TableHead>Compare</Table.TableHead>
 						</Table.TableRow>
 					</Table.TableHeader>
 					<Table.TableBody>
-						{#each manifest.child_runs as child (child.run_id)}
+						{#each manifest.child_runs as child, index (child.run_id)}
 							<Table.TableRow>
 								<Table.TableCell>
 									<a
@@ -129,10 +137,27 @@
 								</Table.TableCell>
 								<Table.TableCell>{child.value}</Table.TableCell>
 								<Table.TableCell>{child.status}</Table.TableCell>
+								<Table.TableCell>
+									{#if index > 0}
+										<a
+											class="font-medium text-primary hover:underline"
+											href={resolve(
+												`/compare?runA=${manifest.child_runs[0]?.run_id}&runB=${child.run_id}`
+											)}
+										>
+											Compare to baseline
+										</a>
+									{:else}
+										<span class="text-muted-foreground">baseline</span>
+									{/if}
+								</Table.TableCell>
 							</Table.TableRow>
 						{/each}
 					</Table.TableBody>
 				</Table.Table>
+				<div class="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+					Frame comparison workspace is reserved for multi-run visual overlays in a later pass.
+				</div>
 			{:else}
 				<div class="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
 					No sweep has been run yet.

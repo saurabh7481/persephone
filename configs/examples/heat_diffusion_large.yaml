@@ -1,0 +1,41 @@
+name: heat_diffusion_large_demo
+description: "Large 2D heat diffusion demo with paced playback frames"
+seed: 42
+
+scheduler:
+  t_end: 20.0
+  sync_interval: 0.05
+  checkpoint_every: 20
+  demo_delay_ms_per_tick: 25
+
+solvers:
+  - type: pde
+    plugin: heat_diffusion
+    version: ">=0.1.0"
+    params:
+      width: 96
+      height: 96
+      alpha: 0.2
+      dx: 1.0
+      dy: 1.0
+      initial_condition: gaussian
+      hotspot_temperature: 100.0
+      ambient_temperature: 0.0
+
+observer:
+  metrics:
+    - temperature_min
+    - temperature_max
+    - temperature_mean
+    - total_heat
+    - center_temperature
+  emit_every: 0.25
+
+storage:
+  artifacts_dir: runs
+  metrics: true
+  events: true
+
+visualization:
+  emit_every: 0.25
+  inline_frame_max_values: 16384

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import Any, cast
 
 import numpy as np
@@ -102,6 +102,7 @@ class Scheduler:
                 )
                 self._emit_frames(t, tick=tick)
                 self._checkpoint_if_needed(tick=tick, logical_time=t)
+                self._delay_demo_tick()
 
             self.artifact_store.write_final_state(self.run_context.run_id, self._final_state())
             self.artifact_store.update_status(self.run_context.run_id, "completed", t_current=t)
@@ -144,7 +145,7 @@ class Scheduler:
         emit_every = self._emit_every()
         if t + 1e-9 < emit_every and t + 1e-9 < self._t_end():
             return
-        if not np.isclose((t / emit_every) % 1.0, 0.0, atol=1e-9) and t + 1e-9 < self._t_end():
+        if not _is_cadence_time(t, emit_every) and t + 1e-9 < self._t_end():
             return
 
         for runtime in self.runtimes:
@@ -218,7 +219,7 @@ class Scheduler:
         emit_every = self._visualization_emit_every()
         if t + 1e-9 < emit_every:
             return
-        if not np.isclose((t / emit_every) % 1.0, 0.0, atol=1e-9):
+        if not _is_cadence_time(t, emit_every):
             return
 
         frames: list[dict[str, Any]] = []
@@ -274,6 +275,12 @@ class Scheduler:
         value = scheduler.get("checkpoint_every")
         return int(cast(int, value)) if value is not None else None
 
+    def _delay_demo_tick(self) -> None:
+        scheduler = cast(Mapping[str, object], self.run_context.config_snapshot["scheduler"])
+        delay_ms = int(cast(int, scheduler.get("demo_delay_ms_per_tick", 0)))
+        if delay_ms > 0:
+            sleep(delay_ms / 1000.0)
+
     def _visualization_emit_every(self) -> float:
         visualization = cast(
             Mapping[str, object], self.run_context.config_snapshot.get("visualization", {})
@@ -300,3 +307,8 @@ class Scheduler:
 
     def _requested_window(self, logical_time: float) -> float:
         return self._next_dt(max(0.0, logical_time - 1e-9))
+
+
+def _is_cadence_time(t: float, cadence: float) -> bool:
+    ratio = t / cadence
+    return bool(np.isclose(ratio, round(ratio), atol=1e-9))

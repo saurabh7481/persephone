@@ -1,0 +1,27 @@
+{"metric": "infected_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 1.0, "tags": {}, "value": 3.0}
+{"metric": "new_infections", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 1.0, "tags": {}, "value": 1.0}
+{"metric": "new_recoveries", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 1.0, "tags": {}, "value": 0.0}
+{"metric": "r_effective_estimate", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 1.0, "tags": {}, "value": 0.3333333333333333}
+{"metric": "recovered_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 1.0, "tags": {}, "value": 0.0}
+{"metric": "susceptible_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 1.0, "tags": {}, "value": 55.0}
+{"metric": "scheduler.solver_step_time_ms", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 1.0, "tags": {"cfl_constrained": "false", "solver_id": "us_county_epidemic#0", "sync_interval_used": "1", "tick": "1"}, "value": 0.15970799995557172}
+{"metric": "scheduler.sync_interval_used", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 1.0, "tags": {"cfl_constrained": "false", "sync_interval_used": "1", "tick": "1"}, "value": 1.0}
+{"metric": "scheduler.wall_time_ms", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 1.0, "tags": {"cfl_constrained": "false", "sync_interval_used": "1", "tick": "1"}, "value": 0.576874999978827}
+{"metric": "infected_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 2.0, "tags": {}, "value": 3.0}
+{"metric": "new_infections", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 2.0, "tags": {}, "value": 1.0}
+{"metric": "new_recoveries", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 2.0, "tags": {}, "value": 1.0}
+{"metric": "r_effective_estimate", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 2.0, "tags": {}, "value": 0.3333333333333333}
+{"metric": "recovered_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 2.0, "tags": {}, "value": 1.0}
+{"metric": "susceptible_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 2.0, "tags": {}, "value": 54.0}
+{"metric": "scheduler.solver_step_time_ms", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 2.0, "tags": {"cfl_constrained": "false", "solver_id": "us_county_epidemic#0", "sync_interval_used": "1", "tick": "2"}, "value": 0.2067920001991297}
+{"metric": "scheduler.sync_interval_used", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 2.0, "tags": {"cfl_constrained": "false", "sync_interval_used": "1", "tick": "2"}, "value": 1.0}
+{"metric": "scheduler.wall_time_ms", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 2.0, "tags": {"cfl_constrained": "false", "sync_interval_used": "1", "tick": "2"}, "value": 0.7106250000106229}
+{"metric": "infected_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 3.0, "tags": {}, "value": 4.0}
+{"metric": "new_infections", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 3.0, "tags": {}, "value": 1.0}
+{"metric": "new_recoveries", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 3.0, "tags": {}, "value": 0.0}
+{"metric": "r_effective_estimate", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 3.0, "tags": {}, "value": 0.25}
+{"metric": "recovered_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 3.0, "tags": {}, "value": 1.0}
+{"metric": "susceptible_count", "run_id": "verify-us-county-registered", "solver_id": "us_county_epidemic#0", "t": 3.0, "tags": {}, "value": 53.0}
+{"metric": "scheduler.solver_step_time_ms", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 3.0, "tags": {"cfl_constrained": "false", "solver_id": "us_county_epidemic#0", "sync_interval_used": "1", "tick": "3"}, "value": 0.09245899991583428}
+{"metric": "scheduler.sync_interval_used", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 3.0, "tags": {"cfl_constrained": "false", "sync_interval_used": "1", "tick": "3"}, "value": 1.0}
+{"metric": "scheduler.wall_time_ms", "run_id": "verify-us-county-registered", "solver_id": "scheduler", "t": 3.0, "tags": {"cfl_constrained": "false", "sync_interval_used": "1", "tick": "3"}, "value": 0.33091699992837675}

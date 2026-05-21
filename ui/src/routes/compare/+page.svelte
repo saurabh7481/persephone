@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { AlertCircle, GitCompareArrows } from '@lucide/svelte';
+	import { onMount } from 'svelte';
 
 	import { PersephoneApi, type CompareResult } from '$lib/api';
 	import ComparisonChart from '$lib/components/ComparisonChart.svelte';
@@ -17,6 +18,13 @@
 	let loading = $state(false);
 	let error = $state('');
 	let result = $state<CompareResult | null>(null);
+
+	onMount(() => {
+		const params = new URLSearchParams(location.search);
+		runA = params.get('runA') ?? runA;
+		runB = params.get('runB') ?? runB;
+		metric = params.get('metric') ?? metric;
+	});
 
 	async function submit() {
 		error = '';
@@ -84,11 +92,23 @@
 	<Card.Card>
 		<Card.CardHeader>
 			<Card.CardTitle>{result?.metric ?? metric}</Card.CardTitle>
-			<Card.CardDescription>Aligned by logical simulation time.</Card.CardDescription>
+			<Card.CardDescription>Overlay chart aligned by logical simulation time.</Card.CardDescription>
 		</Card.CardHeader>
 		<Card.CardContent class="space-y-5">
 			<ComparisonChart rows={result?.aligned ?? []} />
 			{#if result}
+				<div class="grid gap-3 md:grid-cols-2">
+					{#each [result.run_a, result.run_b] as runId (runId)}
+						<div class="rounded-md border p-3">
+							<p class="studio-eyebrow">{runId === result.run_a ? 'Run A' : 'Run B'}</p>
+							<p class="mt-1 font-mono text-sm">{runId}</p>
+							<p class="mt-1 text-xs text-muted-foreground">
+								Peak {result.summaries[runId]?.peak ?? 0} · Final {result.summaries[runId]?.final ??
+									0}
+							</p>
+						</div>
+					{/each}
+				</div>
 				<Table.Table>
 					<Table.TableHeader>
 						<Table.TableRow>
@@ -109,6 +129,10 @@
 						{/each}
 					</Table.TableBody>
 				</Table.Table>
+				<div class="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+					Frame comparison placeholder: synchronized side-by-side playback will use the same frame
+					renderers once multi-run visual overlays are available.
+				</div>
 			{/if}
 		</Card.CardContent>
 	</Card.Card>

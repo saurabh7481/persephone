@@ -1,0 +1,4 @@
+{"entity_id": "06025", "event": "infection", "new_state": "infected", "old_state": "susceptible", "run_id": "verify-us-county-2", "solver_id": "us_county_epidemic#0", "source_id": "06073", "t": 1.0, "tags": {}}
+{"entity_id": "06059", "event": "infection", "new_state": "infected", "old_state": "susceptible", "run_id": "verify-us-county-2", "solver_id": "us_county_epidemic#0", "source_id": "06073", "t": 2.0, "tags": {}}
+{"entity_id": "06037", "event": "recovery", "new_state": "recovered", "old_state": "infected", "run_id": "verify-us-county-2", "solver_id": "us_county_epidemic#0", "t": 2.0, "tags": {}}
+{"entity_id": "06065", "event": "infection", "new_state": "infected", "old_state": "susceptible", "run_id": "verify-us-county-2", "solver_id": "us_county_epidemic#0", "source_id": "06025", "t": 3.0, "tags": {}}

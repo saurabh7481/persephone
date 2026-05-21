@@ -1,0 +1,65 @@
+{
+  "us_county_epidemic#0.edge_sources": {
+    "dtype": "int64",
+    "kind": "ndarray",
+    "shape": [
+      144
+    ]
+  },
+  "us_county_epidemic#0.edge_targets": {
+    "dtype": "int64",
+    "kind": "ndarray",
+    "shape": [
+      144
+    ]
+  },
+  "us_county_epidemic#0.edge_weights": {
+    "dtype": "float64",
+    "kind": "ndarray",
+    "shape": [
+      144
+    ]
+  },
+  "us_county_epidemic#0.last_new_infections": {
+    "dtype": "int64",
+    "kind": "ndarray",
+    "shape": [
+      1
+    ]
+  },
+  "us_county_epidemic#0.last_new_recoveries": {
+    "dtype": "int64",
+    "kind": "ndarray",
+    "shape": [
+      1
+    ]
+  },
+  "us_county_epidemic#0.node_geoids": {
+    "dtype": "int64",
+    "kind": "ndarray",
+    "shape": [
+      58
+    ]
+  },
+  "us_county_epidemic#0.p_infect": {
+    "dtype": "float64",
+    "kind": "ndarray",
+    "shape": [
+      1
+    ]
+  },
+  "us_county_epidemic#0.p_recover": {
+    "dtype": "float64",
+    "kind": "ndarray",
+    "shape": [
+      1
+    ]
+  },
+  "us_county_epidemic#0.states": {
+    "dtype": "int8",
+    "kind": "ndarray",
+    "shape": [
+      58
+    ]
+  }
+}

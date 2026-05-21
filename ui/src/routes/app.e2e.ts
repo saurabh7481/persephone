@@ -39,7 +39,12 @@ test.beforeEach(async ({ page }) => {
 		await route.fulfill({ json: { status: 'ok', version: '0.1.0' } });
 	});
 	await page.route('http://127.0.0.1:8787/plugins', async (route) => {
-		await route.fulfill({ json: [{ name: 'sir_epidemic', version: '0.1.0', paradigm: 'graph' }] });
+		await route.fulfill({
+			json: [
+				{ name: 'sir_epidemic', version: '0.1.0', paradigm: 'graph' },
+				{ name: 'heat_diffusion', version: '0.1.0', paradigm: 'pde' }
+			]
+		});
 	});
 	await page.route('http://127.0.0.1:8787/examples', async (route) => {
 		await route.fulfill({
@@ -48,6 +53,16 @@ test.beforeEach(async ({ page }) => {
 					id: 'sir_epidemic',
 					name: 'SIR baseline',
 					description: 'Synthetic graph example'
+				},
+				{
+					id: 'heat_diffusion',
+					name: 'Heat baseline',
+					description: '2D field example'
+				},
+				{
+					id: 'heat_diffusion_large',
+					name: 'Heat large demo',
+					description: 'Large 2D field example'
 				}
 			]
 		});
@@ -82,8 +97,77 @@ test.beforeEach(async ({ page }) => {
 			}
 		});
 	});
+	await page.route('http://127.0.0.1:8787/examples/heat_diffusion_large', async (route) => {
+		await route.fulfill({
+			json: {
+				id: 'heat_diffusion_large',
+				name: 'Heat large demo',
+				description: 'Large 2D field example',
+				config: {
+					name: 'heat_diffusion_large_demo',
+					seed: 42,
+					scheduler: { t_end: 20, sync_interval: 0.05, demo_delay_ms_per_tick: 25 },
+					solvers: [
+						{
+							type: 'pde',
+							plugin: 'heat_diffusion',
+							version: '>=0.1.0',
+							params: {
+								width: 96,
+								height: 96,
+								alpha: 0.2,
+								dx: 1,
+								dy: 1,
+								initial_condition: 'gaussian',
+								hotspot_temperature: 100,
+								ambient_temperature: 0
+							}
+						}
+					],
+					observer: {
+						metrics: ['temperature_min', 'temperature_max', 'temperature_mean'],
+						emit_every: 0.25
+					},
+					storage: { artifacts_dir: 'runs', metrics: true, events: true },
+					visualization: { emit_every: 0.25, inline_frame_max_values: 16384 }
+				}
+			}
+		});
+	});
+	await page.route('http://127.0.0.1:8787/examples/heat_diffusion', async (route) => {
+		await route.fulfill({
+			json: {
+				id: 'heat_diffusion',
+				name: 'Heat baseline',
+				description: '2D field example',
+				config: {
+					name: 'heat_diffusion_baseline',
+					seed: 7,
+					scheduler: { t_end: 1, sync_interval: 'auto' },
+					solvers: [
+						{
+							type: 'field',
+							plugin: 'heat_diffusion',
+							version: '>=0.1.0',
+							params: {
+								grid_size: 12,
+								diffusivity: 0.15,
+								dt: 0.1
+							}
+						}
+					],
+					observer: { metrics: [], emit_every: 0.2 },
+					storage: { artifacts_dir: 'runs', metrics: true, events: true },
+					visualization: { emit_every: 0.2 }
+				}
+			}
+		});
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a/events', async (route) => {
 		await route.fulfill({ json: [{ t: 1, event_type: 'infection', node: 4 }] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/created-run/events', async (route) => {
+		await route.fulfill({ json: [] });
 	});
 	await page.route('http://127.0.0.1:8787/runs/run-graph/events', async (route) => {
 		await route.fulfill({ json: [{ t: 2, event_type: 'infection', node: 1 }] });
@@ -91,8 +175,19 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/runs/run-a/metrics', async (route) => {
 		await route.fulfill({ json: metrics });
 	});
+	await page.route('http://127.0.0.1:8787/runs/created-run/metrics', async (route) => {
+		await route.fulfill({ json: [] });
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-graph/metrics', async (route) => {
 		await route.fulfill({ json: metrics });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-a/fields', async (route) => {
+		await route.fulfill({
+			json: [{ field_id: 'temperature', name: 'temperature', shape: [1, 1], dtype: 'float64' }]
+		});
+	});
+	await page.route('http://127.0.0.1:8787/runs/created-run/fields', async (route) => {
+		await route.fulfill({ json: [] });
 	});
 	await page.route(/http:\/\/127\.0\.0\.1:8787\/runs\/run-a\/frames(\?.*)?$/, async (route) => {
 		await route.fulfill({
@@ -243,8 +338,17 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/runs/run-graph/stream', async (route) => {
 		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
 	});
+	await page.route('http://127.0.0.1:8787/runs/created-run/frames/stream', async (route) => {
+		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
+	});
+	await page.route('http://127.0.0.1:8787/runs/created-run/stream', async (route) => {
+		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a', async (route) => {
 		await route.fulfill({ json: runs[0] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/created-run', async (route) => {
+		await route.fulfill({ json: { ...runs[0], run_id: 'created-run', status: 'running' } });
 	});
 	await page.route('http://127.0.0.1:8787/runs/run-graph', async (route) => {
 		await route.fulfill({ json: runs[1] });
@@ -328,11 +432,39 @@ test('renders run detail metrics and events', async ({ page }) => {
 	await expect(page.getByLabel('Rendered simulation frame')).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Pause playback' })).toBeVisible();
 	await expect(page.getByText(/Frame buffer \d+/)).toBeVisible();
-	await expect(page.getByText('infected_count')).toBeVisible();
+	await expect
+		.poll(async () =>
+			page.getByLabel('Rendered simulation frame').evaluate((canvas) => ({
+				width: (canvas as HTMLCanvasElement).width,
+				height: (canvas as HTMLCanvasElement).height
+			}))
+		)
+		.toMatchObject({ width: expect.any(Number), height: expect.any(Number) });
+	const canvasSize = await page.getByLabel('Rendered simulation frame').evaluate((canvas) => ({
+		width: (canvas as HTMLCanvasElement).width,
+		height: (canvas as HTMLCanvasElement).height
+	}));
+	expect(canvasSize.width).toBeGreaterThan(100);
+	expect(canvasSize.height).toBeGreaterThan(100);
+	await expect(page.getByLabel('Current metric cards').getByText('infected_count')).toBeVisible();
 	await expect(page.getByText('Peak value')).toBeVisible();
 	await expect(page.getByText('Final value')).toBeVisible();
+	await expect(page.getByLabel('Metric timeline')).toBeVisible();
+	await page.getByLabel('Metric timeline').focus();
+	await page.keyboard.press('Enter');
+	await expect(page.getByText('Selected time 2.00').first()).toBeVisible();
+	await expect(page.getByLabel('Inspector').getByText('frame-b')).toBeVisible();
+	await page.getByRole('tab', { name: 'Artifacts' }).click();
+	await expect(page.getByRole('link', { name: 'CSV export' })).toHaveAttribute(
+		'href',
+		/http:\/\/127\.0\.0\.1:8787\/runs\/run-a\/export\?format=csv/
+	);
+	await expect(page.getByRole('link', { name: 'Parquet export' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Compare this run' })).toBeVisible();
 	await page.getByRole('tab', { name: 'Events' }).click();
-	await expect(page.getByText('infection', { exact: true })).toBeVisible();
+	await expect(page.getByRole('cell', { name: 'infection', exact: true })).toBeVisible();
+	await page.getByRole('tab', { name: 'Logs' }).click();
+	await expect(page.getByRole('cell', { name: 'metric stream' })).toBeVisible();
 });
 
 test('renders SIR graph replay frames and supports node inspection', async ({ page }) => {
@@ -355,9 +487,44 @@ test('renders SIR graph replay frames and supports node inspection', async ({ pa
 
 test('submits an example experiment config', async ({ page }) => {
 	await page.goto('/experiments');
+	await expect(page.getByText('Plugin selection')).toBeVisible();
+	await expect(page.getByRole('tab', { name: /Parameters/ })).toBeVisible();
+	await expect(page.getByLabel('Experiment name')).toBeVisible();
 	await page.getByRole('button', { name: 'Run experiment' }).click();
 
-	await expect(page.getByText('created-run')).toBeVisible();
+	await expect(page).toHaveURL(/\/runs\/created-run$/);
+	await expect(page.getByRole('heading', { name: 'created-run' })).toBeVisible();
+	await expect(page.getByText('Run started')).toBeVisible();
+});
+
+test('selects installed plugins from the experiment builder', async ({ page }) => {
+	await page.goto('/experiments');
+
+	await page.getByRole('button', { name: /heat_diffusion.*pde/ }).click();
+
+	await expect(page.getByLabel('Experiment name')).toHaveValue('heat_diffusion_baseline');
+	await expect(page.getByLabel('Primary plugin')).toHaveValue('heat_diffusion');
+	await expect(page.getByText('Diffusivity', { exact: true })).toBeVisible();
+});
+
+test('loads the large heat demo preset from the experiment builder', async ({ page }) => {
+	await page.goto('/experiments');
+
+	await page.getByRole('button', { name: 'Heat large demo' }).click();
+
+	await expect(page.getByLabel('Experiment name')).toHaveValue('heat_diffusion_large_demo');
+	await expect(page.getByLabel('Primary plugin')).toHaveValue('heat_diffusion');
+	await expect(page.getByText('Demo delay per tick', { exact: true })).toBeVisible();
+	await expect(page.getByText('solvers[0].params.width')).toBeVisible();
+});
+
+test('shows validation for invalid experiment payloads', async ({ page }) => {
+	await page.goto('/experiments');
+	await page.getByRole('tab', { name: /Advanced JSON/ }).click();
+	await page.getByLabel('Run payload').fill('{}');
+
+	await expect(page.getByText('Experiment name is required.')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Run experiment' })).toBeDisabled();
 });
 
 test('creates a scalar parameter sweep', async ({ page }) => {
@@ -368,6 +535,8 @@ test('creates a scalar parameter sweep', async ({ page }) => {
 
 	await expect(page.getByText('ui-sweep', { exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'ui-sweep-001' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Compare to baseline' })).toBeVisible();
+	await expect(page.getByText('Frame comparison workspace')).toBeVisible();
 });
 
 test('compares two runs with an overlay chart', async ({ page }) => {
@@ -378,6 +547,17 @@ test('compares two runs with an overlay chart', async ({ page }) => {
 	await page.getByRole('button', { name: 'Compare runs' }).click();
 
 	await expect(page.getByText('infected_count')).toBeVisible();
-	await expect(page.getByText('run-a')).toBeVisible();
+	await expect(page.getByRole('cell', { name: 'run-a' })).toBeVisible();
 	await expect(page.getByText('AUC')).toBeVisible();
+	await expect(page.getByText('Frame comparison placeholder')).toBeVisible();
+});
+
+test('opens command palette from the Studio shell', async ({ page }) => {
+	await page.goto('/');
+	await page.getByRole('button', { name: 'Command' }).click();
+
+	await expect(page.getByRole('heading', { name: 'Command palette' })).toBeVisible();
+	await expect(
+		page.getByLabel('Command palette').getByRole('link', { name: 'Runs' })
+	).toBeVisible();
 });

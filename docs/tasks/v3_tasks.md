@@ -294,72 +294,72 @@ This is a spike, not required for v3 shipping.
 
 ### Checkpoint 14 — D3 timeline and analytics dock
 
-- [ ] Add D3 metric timeline component.
-- [ ] Support multiple metrics on one timeline.
-- [ ] Add event markers.
-- [ ] Add frame tick markers.
-- [ ] Add brush/zoom.
-- [ ] Sync selected timeline time to playback store.
-- [ ] Add metric cards for current frame and selected time.
-- [ ] Add events/logs table.
-- [ ] Add tests for timeline interactions.
+- [x] Add D3 metric timeline component.
+- [x] Support multiple metrics on one timeline.
+- [x] Add event markers.
+- [x] Add frame tick markers.
+- [x] Add brush/zoom.
+- [x] Sync selected timeline time to playback store.
+- [x] Add metric cards for current frame and selected time.
+- [x] Add events/logs table.
+- [x] Add tests for timeline interactions.
 - [ ] Commit: `feat: add synchronized D3 analysis timeline`.
 
 ### Checkpoint 15 — Experiment builder for non-technical users
 
-- [ ] Add plugin selection flow.
-- [ ] Render parameter forms from plugin schemas.
-- [ ] Add friendly labels, descriptions, units, defaults, and validation messages.
-- [ ] Add presets for SIR and heat diffusion examples.
-- [ ] Add advanced technical tab for raw YAML/schema view.
-- [ ] Add safe validation before run submission.
-- [ ] Add run button that opens live playback immediately.
-- [ ] Add tests for successful and invalid experiment creation.
+- [x] Add plugin selection flow.
+- [x] Render parameter forms from plugin schemas.
+- [x] Add friendly labels, descriptions, units, defaults, and validation messages.
+- [x] Add presets for SIR and heat diffusion examples.
+- [x] Add advanced technical tab for raw YAML/schema view.
+- [x] Add safe validation before run submission.
+- [x] Add run button that opens live playback immediately.
+- [x] Add tests for successful and invalid experiment creation.
 - [ ] Commit: `feat: add Studio experiment builder`.
 
 ### Checkpoint 16 — Inspector system
 
-- [ ] Add inspector store for selected frame, selected field cell, selected graph node, selected artifact, and selected metric.
-- [ ] Add field inspector: value, coordinates, units, bounds, dtype, shape, frame id, source.
-- [ ] Add graph node inspector: id, state, degree, event history if available.
-- [ ] Add run inspector: status, runtime backend, config hash, plugin versions, seed plan.
-- [ ] Add visualization controls: palette, scale, opacity, layer visibility.
-- [ ] Add technical details disclosure for advanced users.
-- [ ] Add tests for selection and inspector updates.
+- [x] Add inspector store for selected frame, selected field cell, selected graph node, selected artifact, and selected metric.
+- [x] Add field inspector: value, coordinates, units, bounds, dtype, shape, frame id, source.
+- [x] Add graph node inspector: id, state, degree, event history if available.
+- [x] Add run inspector: status, runtime backend, config hash, plugin versions, seed plan.
+- [x] Add visualization controls: palette, scale, opacity, layer visibility.
+- [x] Add technical details disclosure for advanced users.
+- [x] Add tests for selection and inspector updates.
 - [ ] Commit: `feat: add Studio inspector`.
 
 ### Checkpoint 17 — Results, artifacts, and exports UX
 
-- [ ] Add artifact browser in the analysis dock.
-- [ ] List metrics, events, frames, checkpoints, final state, field artifacts, and exports.
-- [ ] Add one-click CSV and Parquet export from the UI.
-- [ ] Add field frame export.
-- [ ] Add run comparison entry point from current run.
-- [ ] Add clear completed/failed/cancelled run states.
-- [ ] Add tests for export and artifact interactions.
+- [x] Add artifact browser in the analysis dock.
+- [x] List metrics, events, frames, checkpoints, final state, field artifacts, and exports.
+- [x] Add one-click CSV and Parquet export from the UI.
+- [x] Add field frame export.
+- [x] Add run comparison entry point from current run.
+- [x] Add clear completed/failed/cancelled run states.
+- [x] Add tests for export and artifact interactions.
 - [ ] Commit: `feat: add Studio artifact and export workflows`.
 
 ### Checkpoint 18 — Sweep and comparison Studio workflows
 
-- [ ] Add sweep builder with scalar path selection.
-- [ ] Show sweep child runs as comparable playback entries.
-- [ ] Add compare workspace that can overlay metric timelines.
-- [ ] Add side-by-side run metadata.
-- [ ] Add frame comparison placeholder for future multi-run visual overlays.
-- [ ] Add tests for creating and comparing a sweep from the UI.
+- [x] Add sweep builder with scalar path selection.
+- [x] Show sweep child runs as comparable playback entries.
+- [x] Add compare workspace that can overlay metric timelines.
+- [x] Add side-by-side run metadata.
+- [x] Add frame comparison placeholder for future multi-run visual overlays.
+- [x] Add tests for creating and comparing a sweep from the UI.
 - [ ] Commit: `feat: add Studio sweep comparison workflows`.
 
 ### Checkpoint 19 — Professional polish and accessibility
 
-- [ ] Add command palette.
-- [ ] Add keyboard shortcuts for run, pause, scrub, inspector focus, and panel toggles.
-- [ ] Add consistent loading skeletons.
-- [ ] Add empty states that guide non-technical users without sounding like docs.
-- [ ] Add error states with recovery actions.
-- [ ] Add app-wide toasts or status notifications.
-- [ ] Add focus management for dialogs and panels.
-- [ ] Add accessibility checks for controls, charts, and canvas alternatives.
-- [ ] Add reduced-motion handling.
+- [x] Add command palette.
+- [x] Add keyboard shortcuts for run, pause, scrub, inspector focus, and panel toggles.
+- [x] Add consistent loading skeletons.
+- [x] Add empty states that guide non-technical users without sounding like docs.
+- [x] Add error states with recovery actions.
+- [x] Add app-wide toasts or status notifications.
+- [x] Add focus management for dialogs and panels.
+- [x] Add accessibility checks for controls, charts, and canvas alternatives.
+- [x] Add reduced-motion handling.
 - [ ] Commit: `feat: polish Studio interaction model`.
 
 ### Checkpoint 20 — Docker and local deployment

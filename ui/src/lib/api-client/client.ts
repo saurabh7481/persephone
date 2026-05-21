@@ -4,6 +4,7 @@ import type {
 	ExampleConfigResponse,
 	ExampleSummary,
 	ExperimentConfig,
+	FieldArtifactSummary,
 	FetchLike,
 	FrameListResponse,
 	MetricRecord,
@@ -57,6 +58,10 @@ export class PersephoneApiClient {
 		return this.getJson(`/runs/${encodeURIComponent(runId)}/frames/${encodeURIComponent(frameId)}`);
 	}
 
+	async listFields(runId: string): Promise<FieldArtifactSummary[]> {
+		return this.getJson(`/runs/${encodeURIComponent(runId)}/fields`);
+	}
+
 	async listPlugins(): Promise<PluginSummary[]> {
 		return this.getJson('/plugins');
 	}
@@ -107,6 +112,20 @@ export class PersephoneApiClient {
 
 	frameStreamUrl(runId: string): string {
 		return this.url(`/runs/${encodeURIComponent(runId)}/frames/stream`);
+	}
+
+	exportRunUrl(runId: string, format: 'csv' | 'parquet' = 'csv'): string {
+		return this.url(`/runs/${encodeURIComponent(runId)}/export?format=${format}`);
+	}
+
+	frameUrl(runId: string, frameId: string): string {
+		return this.url(`/runs/${encodeURIComponent(runId)}/frames/${encodeURIComponent(frameId)}`);
+	}
+
+	fieldUrl(runId: string, fieldId: string, format: 'csv' | 'npy' = 'csv'): string {
+		return this.url(
+			`/runs/${encodeURIComponent(runId)}/fields/${encodeURIComponent(fieldId)}?format=${format}`
+		);
 	}
 
 	private async getJson<T>(path: string): Promise<T> {

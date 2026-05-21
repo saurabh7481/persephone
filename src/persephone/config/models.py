@@ -22,6 +22,7 @@ class SchedulerConfig(StrictModel):
     dt: float | None = Field(default=None, gt=0)
     ensemble_size: int | None = Field(default=None, gt=0)
     checkpoint_every: int | None = Field(default=None, gt=0)
+    demo_delay_ms_per_tick: int = Field(default=0, ge=0)
     splitting_order: SplittingOrder = "first_order"
 
     @field_validator("sync_interval")

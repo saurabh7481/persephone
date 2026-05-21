@@ -11,6 +11,7 @@ members = [
     "persephone",
     "persephone-plugin-heat-diffusion",
     "persephone-plugin-sir-epidemic",
+    "persephone-plugin-us-county-epidemic",
     "persephone-sdk",
 ]
 
@@ -563,6 +564,7 @@ dependencies = [
     { name = "packaging" },
     { name = "persephone-plugin-heat-diffusion" },
     { name = "persephone-plugin-sir-epidemic" },
+    { name = "persephone-plugin-us-county-epidemic" },
     { name = "persephone-sdk" },
     { name = "pyarrow" },
     { name = "pydantic" },
@@ -591,6 +593,7 @@ requires-dist = [
     { name = "packaging", specifier = ">=24.0" },
     { name = "persephone-plugin-heat-diffusion", editable = "plugins/persephone-plugin-heat-diffusion" },
     { name = "persephone-plugin-sir-epidemic", editable = "plugins/persephone-plugin-sir-epidemic" },
+    { name = "persephone-plugin-us-county-epidemic", editable = "plugins/persephone-plugin-us-county-epidemic" },
     { name = "persephone-sdk", editable = "sdk" },
     { name = "pyarrow", specifier = ">=16.0" },
     { name = "pydantic", specifier = ">=2.7" },
@@ -631,6 +634,23 @@ requires-dist = [
 name = "persephone-plugin-sir-epidemic"
 version = "0.1.0"
 source = { editable = "plugins/persephone-plugin-sir-epidemic" }
+dependencies = [
+    { name = "numpy" },
+    { name = "persephone" },
+    { name = "persephone-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "persephone", editable = "." },
+    { name = "persephone-sdk", editable = "sdk" },
+]
+
+[[package]]
+name = "persephone-plugin-us-county-epidemic"
+version = "0.1.0"
+source = { editable = "plugins/persephone-plugin-us-county-epidemic" }
 dependencies = [
     { name = "numpy" },
     { name = "persephone" },

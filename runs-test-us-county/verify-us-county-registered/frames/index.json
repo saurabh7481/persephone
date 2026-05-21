@@ -1,0 +1,47 @@
+{
+  "frames": [
+    {
+      "frame_id": "us_county_epidemic#0:graph:000001",
+      "kind": "graph",
+      "payload_ref": {
+        "byte_length": null,
+        "byte_offset": null,
+        "format": "jsonl",
+        "uri": "frames/frames.jsonl"
+      },
+      "solver_id": "us_county_epidemic#0",
+      "source": "live",
+      "t": 1.0,
+      "tick": 1
+    },
+    {
+      "frame_id": "us_county_epidemic#0:graph:000002",
+      "kind": "graph",
+      "payload_ref": {
+        "byte_length": null,
+        "byte_offset": null,
+        "format": "jsonl",
+        "uri": "frames/frames.jsonl"
+      },
+      "solver_id": "us_county_epidemic#0",
+      "source": "live",
+      "t": 2.0,
+      "tick": 2
+    },
+    {
+      "frame_id": "us_county_epidemic#0:graph:000003",
+      "kind": "graph",
+      "payload_ref": {
+        "byte_length": null,
+        "byte_offset": null,
+        "format": "jsonl",
+        "uri": "frames/frames.jsonl"
+      },
+      "solver_id": "us_county_epidemic#0",
+      "source": "live",
+      "t": 3.0,
+      "tick": 3
+    }
+  ],
+  "run_id": "verify-us-county-registered"
+}
