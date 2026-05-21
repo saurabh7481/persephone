@@ -5,120 +5,107 @@
 
 	import {
 		PersephoneApi,
-		buildSirExampleConfig,
-		parseInitialInfected,
 		validateExperimentConfigAgainstSchema,
-		validateSirValues,
+		type ExampleConfigResponse,
+		type ExampleSummary,
+		type ExperimentConfig,
 		type RunSummary
 	} from '$lib/api';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 
 	const api = new PersephoneApi();
 
-	let seed = $state(42);
-	let tEnd = $state(24);
-	let pInfect = $state(0.6);
-	let pRecover = $state(0.08);
-	let initiallyInfected = $state('0, 10');
+	let examples = $state<ExampleSummary[]>([]);
+	let selectedExampleId = $state('');
+	let selectedExample = $state<ExampleConfigResponse | null>(null);
+	let configText = $state('');
 	let submitting = $state(false);
 	let createdRun = $state<RunSummary | null>(null);
 	let submitError = $state('');
 
-	const values = $derived({
-		seed,
-		tEnd,
-		pInfect,
-		pRecover,
-		initiallyInfected: parseInitialInfected(initiallyInfected)
-	});
-	const errors = $derived(validateSirValues(values));
-	const config = $derived(buildSirExampleConfig(values));
-	const schemaErrors = $derived(validateExperimentConfigAgainstSchema(config));
+	const parsedConfig = $derived(parseConfig(configText));
+	const schemaErrors = $derived(
+		parsedConfig.ok
+			? validateExperimentConfigAgainstSchema(parsedConfig.config)
+			: [parsedConfig.error]
+	);
 
 	onMount(async () => {
 		try {
-			const example = await api.getSirExampleConfig();
-			seed = example.seed;
-			tEnd = example.scheduler.t_end;
-			pInfect = example.solvers[0]?.params.p_infect ?? pInfect;
-			pRecover = example.solvers[0]?.params.p_recover ?? pRecover;
-			initiallyInfected = (example.solvers[0]?.params.initially_infected ?? [0, 10]).join(', ');
-		} catch {
-			// The local UI still works with its bundled defaults when the API is offline.
+			examples = await api.listExamples();
+			selectedExampleId = examples[0]?.id ?? '';
+			if (selectedExampleId) await loadExample(selectedExampleId);
+		} catch (err) {
+			submitError = err instanceof Error ? err.message : 'Unable to load examples.';
 		}
 	});
+
+	async function loadExample(exampleId: string) {
+		selectedExampleId = exampleId;
+		selectedExample = await api.getExampleConfig(exampleId);
+		configText = JSON.stringify(selectedExample.config, null, 2);
+		createdRun = null;
+		submitError = '';
+	}
 
 	async function submit() {
 		submitError = '';
 		createdRun = null;
-		if (errors.length || schemaErrors.length) return;
+		if (!parsedConfig.ok || schemaErrors.length) return;
 		submitting = true;
 		try {
-			createdRun = await api.startRun(config);
+			createdRun = await api.startRun(parsedConfig.config);
 		} catch (err) {
 			submitError = err instanceof Error ? err.message : 'Unable to start run.';
 		} finally {
 			submitting = false;
 		}
 	}
+
+	function parseConfig(
+		text: string
+	): { ok: true; config: ExperimentConfig } | { ok: false; error: string } {
+		try {
+			return { ok: true, config: JSON.parse(text) as ExperimentConfig };
+		} catch {
+			return { ok: false, error: 'Config must be valid JSON.' };
+		}
+	}
 </script>
 
-<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+<div class="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
 	<div class="space-y-5">
 		<div>
 			<h1 class="text-2xl font-semibold tracking-normal">Experiments</h1>
 			<p class="text-sm text-muted-foreground">
-				Edit the bundled SIR example and start a local run.
+				Start from any installed example, then edit the generated run payload.
 			</p>
 		</div>
 
 		<Card.Card>
 			<Card.CardHeader>
-				<Card.CardTitle>SIR example config</Card.CardTitle>
-				<Card.CardDescription
-					>20-node contact network with infection and recovery parameters.</Card.CardDescription
-				>
+				<Card.CardTitle>Example catalog</Card.CardTitle>
+				<Card.CardDescription>Examples are presets, not platform assumptions.</Card.CardDescription>
 			</Card.CardHeader>
-			<Card.CardContent>
-				<form class="grid gap-4 sm:grid-cols-2" onsubmit={(event) => event.preventDefault()}>
-					<label class="grid gap-2 text-sm font-medium">
-						Seed
-						<Input type="number" bind:value={seed} />
-					</label>
-					<label class="grid gap-2 text-sm font-medium">
-						Duration
-						<Input type="number" min="1" bind:value={tEnd} />
-					</label>
-					<label class="grid gap-2 text-sm font-medium">
-						Infection probability
-						<Input type="number" min="0" max="1" step="0.01" bind:value={pInfect} />
-					</label>
-					<label class="grid gap-2 text-sm font-medium">
-						Recovery probability
-						<Input type="number" min="0" max="1" step="0.01" bind:value={pRecover} />
-					</label>
-					<label class="grid gap-2 text-sm font-medium sm:col-span-2">
-						Initially infected nodes
-						<Input bind:value={initiallyInfected} />
-					</label>
-				</form>
-
-				{#if errors.length || schemaErrors.length}
-					<Alert.Alert variant="destructive" class="mt-4">
-						<AlertCircle size={16} />
-						<Alert.AlertTitle>Validation</Alert.AlertTitle>
-						<Alert.AlertDescription>{[...errors, ...schemaErrors].join(' ')}</Alert.AlertDescription
-						>
-					</Alert.Alert>
+			<Card.CardContent class="grid gap-3">
+				{#each examples as example (example.id)}
+					<Button
+						variant={selectedExampleId === example.id ? 'default' : 'outline'}
+						onclick={() => void loadExample(example.id)}
+					>
+						{example.name}
+					</Button>
+				{/each}
+				{#if selectedExample}
+					<p class="text-sm text-muted-foreground">{selectedExample.description}</p>
 				{/if}
 			</Card.CardContent>
 			<Card.CardFooter class="flex flex-wrap items-center gap-3">
 				<Button
-					disabled={submitting || errors.length > 0 || schemaErrors.length > 0}
+					disabled={submitting || !parsedConfig.ok || schemaErrors.length > 0}
 					onclick={() => void submit()}
 				>
 					<Play size={16} />
@@ -135,6 +122,14 @@
 			</Card.CardFooter>
 		</Card.Card>
 
+		{#if schemaErrors.length}
+			<Alert.Alert variant="destructive">
+				<AlertCircle size={16} />
+				<Alert.AlertTitle>Validation</Alert.AlertTitle>
+				<Alert.AlertDescription>{schemaErrors.join(' ')}</Alert.AlertDescription>
+			</Alert.Alert>
+		{/if}
+
 		{#if submitError}
 			<Alert.Alert variant="destructive">
 				<AlertCircle size={16} />
@@ -146,15 +141,11 @@
 
 	<Card.Card>
 		<Card.CardHeader>
-			<Card.CardTitle>Config preview</Card.CardTitle>
-			<Card.CardDescription>Payload sent to `POST /runs`.</Card.CardDescription>
+			<Card.CardTitle>Run payload</Card.CardTitle>
+			<Card.CardDescription>Advanced JSON payload sent to POST /runs.</Card.CardDescription>
 		</Card.CardHeader>
 		<Card.CardContent>
-			<Textarea
-				class="min-h-[520px] font-mono text-xs"
-				readonly
-				value={JSON.stringify(config, null, 2)}
-			/>
+			<Textarea class="min-h-[620px] font-mono text-xs" bind:value={configText} />
 		</Card.CardContent>
 	</Card.Card>
 </div>

@@ -8,7 +8,8 @@ import numpy as np
 from persephone_sdk.plugin import World
 from persephone_sdk.types import StateDict
 
-from persephone.solvers.graph import INFECTED, SUSCEPTIBLE, ContactGraph
+from persephone.solvers.graph import ContactGraph
+from persephone_sir_epidemic.model import INFECTED, SUSCEPTIBLE
 
 
 class SIRWorld(World):

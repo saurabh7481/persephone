@@ -76,6 +76,11 @@ class CouplingConfig(StrictModel):
         return value
 
 
+class VisualizationConfig(StrictModel):
+    emit_every: float = Field(default=1.0, gt=0)
+    inline_frame_max_values: int = Field(default=4096, gt=0)
+
+
 class ExperimentConfig(StrictModel):
     name: str = Field(min_length=1)
     seed: int
@@ -84,4 +89,5 @@ class ExperimentConfig(StrictModel):
     observer: ObserverConfig = Field(default_factory=ObserverConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
     coupling: CouplingConfig = Field(default_factory=CouplingConfig)
+    visualization: VisualizationConfig = Field(default_factory=VisualizationConfig)
     description: str | None = None

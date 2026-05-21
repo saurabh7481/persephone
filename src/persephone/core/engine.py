@@ -128,11 +128,13 @@ class PersephoneEngine:
             state = world.init(solver_config.params, seed=run_context.seed_plan[solver_id])
             solver = manifest.solver()
             observer = manifest.observer()
+            renderer = manifest.renderer()
             runtimes.append(
                 SolverRuntime(
                     solver_id=solver_id,
                     solver=solver,
                     observer=observer,
+                    renderer=renderer,
                     state=state,
                     rng=np.random.default_rng(run_context.seed_plan[solver_id]),
                 )

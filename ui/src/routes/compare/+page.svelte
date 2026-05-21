@@ -13,7 +13,7 @@
 
 	let runA = $state('');
 	let runB = $state('');
-	let metric = $state('infected_count');
+	let metric = $state('');
 	let loading = $state(false);
 	let error = $state('');
 	let result = $state<CompareResult | null>(null);

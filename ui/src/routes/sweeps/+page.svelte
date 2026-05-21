@@ -5,7 +5,6 @@
 
 	import {
 		PersephoneApi,
-		buildSirExampleConfig,
 		sweepValuesFromText,
 		type ExperimentConfig,
 		type SweepManifest
@@ -18,26 +17,20 @@
 
 	const api = new PersephoneApi();
 
-	let parameter = $state('solvers[0].params.p_infect');
-	let values = $state('0.2, 0.4, 0.6');
+	let parameter = $state('');
+	let values = $state('');
 	let running = $state(false);
 	let error = $state('');
 	let manifest = $state<SweepManifest | null>(null);
-	let baseConfig = $state<ExperimentConfig>(
-		buildSirExampleConfig({
-			seed: 42,
-			tEnd: 24,
-			pInfect: 0.6,
-			pRecover: 0.08,
-			initiallyInfected: [0, 10]
-		})
-	);
+	let baseConfig = $state<ExperimentConfig | null>(null);
 
 	onMount(async () => {
 		try {
-			baseConfig = await api.getSirExampleConfig();
+			const examples = await api.listExamples();
+			const example = examples[0] ? await api.getExampleConfig(examples[0].id) : null;
+			baseConfig = example?.config ?? null;
 		} catch {
-			// Keep bundled defaults when the local API is unavailable.
+			// The page reports the missing base config in the form validation below.
 		}
 	});
 
@@ -45,14 +38,14 @@
 		error = '';
 		manifest = null;
 		const parsedValues = sweepValuesFromText(values);
-		if (!parameter || parsedValues.length === 0) {
-			error = 'Parameter and at least one sweep value are required.';
+		if (!baseConfig || !parameter || parsedValues.length === 0) {
+			error = 'Base config, parameter, and at least one sweep value are required.';
 			return;
 		}
 		running = true;
 		try {
 			manifest = await api.startSweep({
-				name: 'SIR scalar parameter sweep',
+				name: 'Scalar parameter sweep',
 				base_config: baseConfig,
 				parameter,
 				values: parsedValues
@@ -75,7 +68,8 @@
 		<Card.Card>
 			<Card.CardHeader>
 				<Card.CardTitle>Scalar parameter</Card.CardTitle>
-				<Card.CardDescription>Uses the bundled SIR example as the base config.</Card.CardDescription
+				<Card.CardDescription
+					>Uses the first available example as the base config.</Card.CardDescription
 				>
 			</Card.CardHeader>
 			<Card.CardContent class="space-y-4">

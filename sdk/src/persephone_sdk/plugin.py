@@ -6,7 +6,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 
-from persephone_sdk.types import EventRecord, MetricRecord, StateDict
+from persephone_sdk.types import EventRecord, MetricRecord, SimulationFrame, StateDict
 
 VALID_PARADIGMS = frozenset({"ode", "pde", "abm", "graph", "sde", "hybrid"})
 
@@ -65,6 +65,19 @@ class Renderer(ABC):
     @abstractmethod
     def viz_schema(self) -> dict[str, Any]:
         """Return a UI visualization schema."""
+
+    def frame(
+        self,
+        state: StateDict,
+        *,
+        t: float,
+        run_id: str,
+        solver_id: str,
+        tick: int,
+        source: str = "live",
+    ) -> list[SimulationFrame]:
+        """Return normalized visualization frames for the current state."""
+        return []
 
 
 @dataclass

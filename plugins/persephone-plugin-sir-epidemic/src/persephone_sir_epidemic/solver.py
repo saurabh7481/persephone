@@ -7,7 +7,8 @@ from numpy.random import Generator
 from persephone_sdk.plugin import Solver
 from persephone_sdk.types import StateDict
 
-from persephone.solvers.graph import ContactGraph, sir_step
+from persephone.solvers.graph import ContactGraph
+from persephone_sir_epidemic.model import sir_step
 
 
 class SIRSolver(Solver):

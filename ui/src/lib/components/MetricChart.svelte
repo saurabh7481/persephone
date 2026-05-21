@@ -4,15 +4,14 @@
 
 	let { records }: { records: MetricRecord[] } = $props();
 
-	const visibleMetrics = ['susceptible_count', 'infected_count', 'recovered_count'];
-	const colors: Record<string, string> = {
-		susceptible_count: '#2563eb',
-		infected_count: '#dc2626',
-		recovered_count: '#059669'
-	};
+	const palette = ['#2563eb', '#dc2626', '#059669', '#7c3aed', '#ea580c', '#0891b2'];
 
 	const series = $derived(metricSeries(records));
-	const selected = $derived(visibleMetrics.filter((metric) => series[metric]?.length));
+	const selected = $derived(
+		Object.keys(series)
+			.filter((metric) => !metric.startsWith('scheduler.'))
+			.slice(0, 6)
+	);
 	const maxT = $derived(Math.max(1, ...records.map((record) => record.t)));
 	const maxValue = $derived(Math.max(1, ...records.map((record) => record.value)));
 
@@ -37,7 +36,7 @@
 					<path
 						d={pathFor(series[metric] ?? [])}
 						fill="none"
-						stroke={colors[metric]}
+						stroke={palette[selected.indexOf(metric) % palette.length]}
 						stroke-width="2"
 						vector-effect="non-scaling-stroke"
 					/>
@@ -51,7 +50,10 @@
 	<div class="flex flex-wrap gap-3 text-sm">
 		{#each selected as metric (metric)}
 			<div class="flex items-center gap-2">
-				<span class="h-2.5 w-2.5 rounded-full" style={`background-color: ${colors[metric]}`}></span>
+				<span
+					class="h-2.5 w-2.5 rounded-full"
+					style={`background-color: ${palette[selected.indexOf(metric) % palette.length]}`}
+				></span>
 				<span>{metric}</span>
 			</div>
 		{/each}

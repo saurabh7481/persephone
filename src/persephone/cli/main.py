@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import json
 from pathlib import Path
 from typing import Annotated, Any, cast
@@ -154,12 +153,15 @@ def show_metrics(
 
 
 @app.command("replay")
-def replay_run(run: Annotated[Path, typer.Argument()]) -> None:
+def replay_run(
+    run: Annotated[Path, typer.Argument()],
+    metrics: Annotated[list[str] | None, typer.Option("--metric")] = None,
+) -> None:
     """Replay a completed run as a compact metric timeline."""
     run_dir = _resolve_run_dir(run)
     records = _read_jsonl(run_dir / "metrics.jsonl")
-    key_metrics = {"susceptible_count", "infected_count", "recovered_count"}
-    records = [record for record in records if record.get("metric") in key_metrics]
+    selected_metrics = set(metrics or _default_metric_names(records))
+    records = [record for record in records if record.get("metric") in selected_metrics]
 
     table = Table(title="Replay")
     table.add_column("t")
@@ -197,17 +199,18 @@ def sweep_config(
 def compare_runs(
     run_a: Annotated[str, typer.Argument()],
     run_b: Annotated[str, typer.Argument()],
-    metric: Annotated[str, typer.Option("--metric")] = "infected_count",
+    metric: Annotated[str | None, typer.Option("--metric")] = None,
     artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
 ) -> None:
     """Compare two runs for one metric."""
     try:
         records_a = _read_jsonl(_resolve_run_dir(run_a, artifacts_dir) / "metrics.jsonl")
         records_b = _read_jsonl(_resolve_run_dir(run_b, artifacts_dir) / "metrics.jsonl")
+        selected_metric = metric or _first_common_metric(records_a, records_b)
         result = compare_metric_records(
             run_a=run_a,
             run_b=run_b,
-            metric=metric,
+            metric=selected_metric,
             records_a=records_a,
             records_b=records_b,
         )
@@ -347,36 +350,6 @@ def export_field_command(
     console.print(f"[green]Exported[/green] {path}")
 
 
-@examples_app.command("generate-sir-network")
-def generate_sir_network(
-    output: Annotated[Path, typer.Option("--output")],
-    nodes: Annotated[int, typer.Option("--nodes", min=2)] = 500,
-) -> None:
-    """Generate a deterministic synthetic SIR contact graph CSV."""
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=["source", "target", "weight"])
-        writer.writeheader()
-        for source in range(nodes):
-            writer.writerow({"source": source, "target": (source + 1) % nodes, "weight": 1.0})
-            writer.writerow({"source": source, "target": (source + 5) % nodes, "weight": 0.35})
-    console.print(f"[green]Generated[/green] {output}")
-
-
-@examples_app.command("generate-heat-field")
-def generate_heat_field(
-    output: Annotated[Path, typer.Option("--output")],
-    width: Annotated[int, typer.Option("--width", min=3)] = 32,
-    height: Annotated[int, typer.Option("--height", min=3)] = 32,
-    seed: Annotated[int, typer.Option("--seed")] = 42,
-) -> None:
-    """Generate a deterministic heat diffusion initial-condition NPY file."""
-    from persephone_heat_diffusion.initial_conditions import write_initial_condition
-
-    path = write_initial_condition(output, width=width, height=height, seed=seed)
-    console.print(f"[green]Generated[/green] {path}")
-
-
 def _resolve_run_dir(run: str | Path, artifacts_dir: Path = Path("runs")) -> Path:
     try:
         return RunCatalog.scan(artifacts_dir).get(run).path
@@ -396,6 +369,44 @@ def _read_jsonl(path: Path) -> list[dict[str, object]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def _default_metric_names(records: list[dict[str, object]], limit: int = 3) -> list[str]:
+    names: list[str] = []
+    for record in records:
+        metric = record.get("metric")
+        value = record.get("value")
+        if (
+            isinstance(metric, str)
+            and isinstance(value, int | float)
+            and not metric.startswith("scheduler.")
+            and metric not in names
+        ):
+            names.append(metric)
+        if len(names) >= limit:
+            break
+    return names
+
+
+def _first_common_metric(
+    records_a: list[dict[str, object]],
+    records_b: list[dict[str, object]],
+) -> str:
+    names_b = {
+        str(record["metric"])
+        for record in records_b
+        if isinstance(record.get("metric"), str) and isinstance(record.get("value"), int | float)
+    }
+    for record in records_a:
+        metric = record.get("metric")
+        if (
+            isinstance(metric, str)
+            and isinstance(record.get("value"), int | float)
+            and metric in names_b
+            and not metric.startswith("scheduler.")
+        ):
+            return metric
+    raise ValueError("No common numeric metric found; pass --metric explicitly")
 
 
 if __name__ == "__main__":

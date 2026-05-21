@@ -22,3 +22,5 @@ dist/
 runs/*
 !runs/.gitkeep
 
+# Local brainstorming/mockup scratch files
+.superpowers/

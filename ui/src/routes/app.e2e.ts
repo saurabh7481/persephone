@@ -30,28 +30,44 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/plugins', async (route) => {
 		await route.fulfill({ json: [{ name: 'sir_epidemic', version: '0.1.0', paradigm: 'graph' }] });
 	});
+	await page.route('http://127.0.0.1:8787/examples', async (route) => {
+		await route.fulfill({
+			json: [
+				{
+					id: 'sir_epidemic',
+					name: 'SIR baseline',
+					description: 'Synthetic graph example'
+				}
+			]
+		});
+	});
 	await page.route('http://127.0.0.1:8787/examples/sir_epidemic', async (route) => {
 		await route.fulfill({
 			json: {
-				name: 'sir_epidemic_baseline',
-				seed: 42,
-				scheduler: { t_end: 24, sync_interval: 'auto' },
-				solvers: [
-					{
-						type: 'graph',
-						plugin: 'sir_epidemic',
-						version: '>=0.1.0',
-						params: {
-							contact_graph: 'configs/examples/data/sir_contact_edges.csv',
-							n_nodes: 20,
-							initially_infected: [0, 10],
-							p_infect: 0.6,
-							p_recover: 0.08
+				id: 'sir_epidemic',
+				name: 'SIR baseline',
+				description: 'Synthetic graph example',
+				config: {
+					name: 'sir_epidemic_baseline',
+					seed: 42,
+					scheduler: { t_end: 24, sync_interval: 'auto' },
+					solvers: [
+						{
+							type: 'graph',
+							plugin: 'sir_epidemic',
+							version: '>=0.1.0',
+							params: {
+								contact_graph: 'configs/examples/data/sir_contact_edges.csv',
+								n_nodes: 20,
+								initially_infected: [0, 10],
+								p_infect: 0.6,
+								p_recover: 0.08
+							}
 						}
-					}
-				],
-				observer: { metrics: [], emit_every: 1 },
-				storage: { artifacts_dir: 'runs', metrics: true, events: true }
+					],
+					observer: { metrics: [], emit_every: 1 },
+					storage: { artifacts_dir: 'runs', metrics: true, events: true }
+				}
 			}
 		});
 	});
@@ -135,16 +151,14 @@ test('renders run detail metrics and events', async ({ page }) => {
 
 	await expect(page.getByRole('heading', { name: 'run-a' })).toBeVisible();
 	await expect(page.getByText('infected_count')).toBeVisible();
-	await expect(page.getByText('Peak infected')).toBeVisible();
-	await expect(page.getByText('8')).toBeVisible();
+	await expect(page.getByText('Peak value')).toBeVisible();
+	await expect(page.getByText('Final value')).toBeVisible();
 	await page.getByRole('tab', { name: 'Events' }).click();
 	await expect(page.getByText('infection', { exact: true })).toBeVisible();
 });
 
-test('submits the bundled SIR experiment config', async ({ page }) => {
+test('submits an example experiment config', async ({ page }) => {
 	await page.goto('/experiments');
-	await page.getByLabel('Seed').fill('77');
-	await page.getByLabel('Infection probability').fill('0.45');
 	await page.getByRole('button', { name: 'Run experiment' }).click();
 
 	await expect(page.getByText('created-run')).toBeVisible();
@@ -152,6 +166,7 @@ test('submits the bundled SIR experiment config', async ({ page }) => {
 
 test('creates a scalar parameter sweep', async ({ page }) => {
 	await page.goto('/sweeps');
+	await page.getByLabel('Parameter path').fill('solvers[0].params.p_infect');
 	await page.getByLabel('Sweep values').fill('0.2, 0.4');
 	await page.getByRole('button', { name: 'Run sweep' }).click();
 
@@ -163,6 +178,7 @@ test('compares two runs with an overlay chart', async ({ page }) => {
 	await page.goto('/compare');
 	await page.getByLabel('Run A').fill('run-a');
 	await page.getByLabel('Run B').fill('run-b');
+	await page.getByLabel('Metric').fill('infected_count');
 	await page.getByRole('button', { name: 'Compare runs' }).click();
 
 	await expect(page.getByText('infected_count')).toBeVisible();

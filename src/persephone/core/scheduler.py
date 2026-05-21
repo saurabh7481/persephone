@@ -7,10 +7,11 @@ from typing import Any, cast
 
 import numpy as np
 from numpy.random import Generator
-from persephone_sdk.plugin import Observer, Solver
+from persephone_sdk.plugin import Observer, Renderer, Solver
 from persephone_sdk.types import StateDict
 
 from persephone.core.bus import BusCommitSummary, InMemoryDataBus
+from persephone.core.frames import validate_frame
 from persephone.core.records import SchedulerTelemetry
 from persephone.core.run import RunContext
 from persephone.storage.artifacts import ArtifactStore
@@ -21,6 +22,7 @@ class SolverRuntime:
     solver_id: str
     solver: Solver
     observer: Observer
+    renderer: Renderer
     state: StateDict
     rng: Generator
 
@@ -98,6 +100,7 @@ class Scheduler:
                     solver_step_times=solver_step_times,
                     commit_summary=commit_summary,
                 )
+                self._emit_frames(t, tick=tick)
                 self._checkpoint_if_needed(tick=tick, logical_time=t)
 
             self.artifact_store.write_final_state(self.run_context.run_id, self._final_state())
@@ -211,6 +214,27 @@ class Scheduler:
         except Exception:
             pass
 
+    def _emit_frames(self, t: float, *, tick: int) -> None:
+        emit_every = self._visualization_emit_every()
+        if t + 1e-9 < emit_every:
+            return
+        if not np.isclose((t / emit_every) % 1.0, 0.0, atol=1e-9):
+            return
+
+        frames: list[dict[str, Any]] = []
+        for runtime in self.runtimes:
+            raw_frames = runtime.renderer.frame(
+                runtime.state,
+                t=t,
+                run_id=self.run_context.run_id,
+                solver_id=runtime.solver_id,
+                tick=tick,
+                source="live",
+            )
+            for frame in raw_frames:
+                frames.append(validate_frame(cast(dict[str, Any], frame)).model_dump(mode="json"))
+        self._emit_records("frame", frames)
+
     def _checkpoint_if_needed(self, *, tick: int, logical_time: float) -> None:
         checkpoint_every = self._checkpoint_every()
         if checkpoint_every is None or tick % checkpoint_every != 0:
@@ -248,6 +272,12 @@ class Scheduler:
         scheduler = cast(Mapping[str, object], self.run_context.config_snapshot["scheduler"])
         value = scheduler.get("checkpoint_every")
         return int(cast(int, value)) if value is not None else None
+
+    def _visualization_emit_every(self) -> float:
+        visualization = cast(
+            Mapping[str, object], self.run_context.config_snapshot.get("visualization", {})
+        )
+        return float(cast(int | float, visualization.get("emit_every", 1.0)))
 
     def _validated_elapsed_interval(
         self,

@@ -89,16 +89,10 @@ export type ExperimentConfig = {
 		sync_interval: 'auto' | number;
 	};
 	solvers: Array<{
-		type: 'graph';
-		plugin: 'sir_epidemic';
+		type: string;
+		plugin: string;
 		version: string;
-		params: {
-			contact_graph: string;
-			n_nodes: number;
-			initially_infected: number[];
-			p_infect: number;
-			p_recover: number;
-		};
+		params: Record<string, unknown>;
 	}>;
 	observer: {
 		metrics: string[];
@@ -109,9 +103,23 @@ export type ExperimentConfig = {
 		metrics: boolean;
 		events: boolean;
 	};
+	visualization?: {
+		emit_every: number;
+		inline_frame_max_values?: number;
+	};
 };
 
-export const sirExampleJsonSchema = {
+export type ExampleSummary = {
+	id: string;
+	name: string;
+	description: string;
+};
+
+export type ExampleConfigResponse = ExampleSummary & {
+	config: ExperimentConfig;
+};
+
+export const experimentConfigJsonSchema = {
 	type: 'object',
 	required: ['name', 'seed', 'scheduler', 'solvers', 'observer', 'storage'],
 	properties: {
@@ -131,14 +139,6 @@ export const sirExampleJsonSchema = {
 		}
 	}
 } as const;
-
-export type SirEditorValues = {
-	seed: number;
-	tEnd: number;
-	pInfect: number;
-	pRecover: number;
-	initiallyInfected: number[];
-};
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -174,8 +174,12 @@ export class PersephoneApi {
 		return this.getJson('/plugins');
 	}
 
-	async getSirExampleConfig(): Promise<ExperimentConfig> {
-		return this.getJson('/examples/sir_epidemic');
+	async listExamples(): Promise<ExampleSummary[]> {
+		return this.getJson('/examples');
+	}
+
+	async getExampleConfig(exampleId: string): Promise<ExampleConfigResponse> {
+		return this.getJson(`/examples/${encodeURIComponent(exampleId)}`);
 	}
 
 	async startRun(config: ExperimentConfig): Promise<RunSummary> {
@@ -233,85 +237,13 @@ export async function parseJsonResponse<T>(response: Response): Promise<T> {
 	return (await response.json()) as T;
 }
 
-export function parseInitialInfected(value: string): number[] {
-	const nodes = value
-		.split(',')
-		.map((item) => Number.parseInt(item.trim(), 10))
-		.filter((item) => Number.isFinite(item));
-	return [...new Set(nodes)];
-}
-
-export function validateSirValues(values: SirEditorValues): string[] {
-	const errors: string[] = [];
-	if (!Number.isInteger(values.seed)) errors.push('Seed must be an integer.');
-	if (values.tEnd <= 0) errors.push('Simulation duration must be positive.');
-	if (values.pInfect < 0 || values.pInfect > 1) {
-		errors.push('Infection probability must be between 0 and 1.');
-	}
-	if (values.pRecover < 0 || values.pRecover > 1) {
-		errors.push('Recovery probability must be between 0 and 1.');
-	}
-	if (values.initiallyInfected.length === 0) {
-		errors.push('At least one initially infected node is required.');
-	}
-	if (values.initiallyInfected.some((node) => node < 0 || node > 19)) {
-		errors.push('Initially infected nodes must be between 0 and 19.');
-	}
-	return errors;
-}
-
 export function validateExperimentConfigAgainstSchema(config: ExperimentConfig): string[] {
 	const errors: string[] = [];
 	if (!config.name) errors.push('Experiment name is required.');
 	if (!Number.isInteger(config.seed)) errors.push('Config seed must be an integer.');
 	if (config.scheduler.t_end <= 0) errors.push('Config duration must be positive.');
 	if (config.solvers.length === 0) errors.push('At least one solver is required.');
-	if (config.solvers[0]?.plugin !== 'sir_epidemic') {
-		errors.push('The bundled editor expects the sir_epidemic plugin.');
-	}
 	return errors;
-}
-
-export function buildSirExampleConfig(values: SirEditorValues): ExperimentConfig {
-	return {
-		name: 'sir_epidemic_baseline',
-		description: 'Synthetic 20-node SIR contact-network simulation',
-		seed: values.seed,
-		scheduler: {
-			t_end: values.tEnd,
-			sync_interval: 'auto'
-		},
-		solvers: [
-			{
-				type: 'graph',
-				plugin: 'sir_epidemic',
-				version: '>=0.1.0',
-				params: {
-					contact_graph: 'configs/examples/data/sir_contact_edges.csv',
-					n_nodes: 20,
-					initially_infected: values.initiallyInfected,
-					p_infect: values.pInfect,
-					p_recover: values.pRecover
-				}
-			}
-		],
-		observer: {
-			metrics: [
-				'susceptible_count',
-				'infected_count',
-				'recovered_count',
-				'new_infections',
-				'new_recoveries',
-				'r_effective_estimate'
-			],
-			emit_every: 1
-		},
-		storage: {
-			artifacts_dir: 'runs',
-			metrics: true,
-			events: true
-		}
-	};
 }
 
 export function metricSeries(records: MetricRecord[]): Record<string, MetricRecord[]> {
@@ -323,17 +255,23 @@ export function metricSeries(records: MetricRecord[]): Record<string, MetricReco
 }
 
 export function compareMetricSummary(records: MetricRecord[]): {
-	peakInfected: number;
-	finalRecovered: number;
+	peakValue: number;
+	finalValue: number;
+	primaryMetric: string;
 	duration: number;
 } {
-	const infected = records.filter((record) => record.metric === 'infected_count');
-	const recovered = records.filter((record) => record.metric === 'recovered_count');
+	const primaryMetric = firstDomainMetric(records);
+	const primaryRecords = records.filter((record) => record.metric === primaryMetric);
 	return {
-		peakInfected: Math.max(0, ...infected.map((record) => record.value)),
-		finalRecovered: recovered.at(-1)?.value ?? 0,
+		peakValue: Math.max(0, ...primaryRecords.map((record) => record.value)),
+		finalValue: primaryRecords.at(-1)?.value ?? 0,
+		primaryMetric,
 		duration: Math.max(0, ...records.map((record) => record.t))
 	};
+}
+
+export function firstDomainMetric(records: MetricRecord[]): string {
+	return records.find((record) => !record.metric.startsWith('scheduler.'))?.metric ?? 'metric';
 }
 
 export function sweepValuesFromText(value: string): SweepValue[] {

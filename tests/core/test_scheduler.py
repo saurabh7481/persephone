@@ -98,6 +98,7 @@ def runtime(solver: Any | None = None) -> SolverRuntime:
         solver_id="fake#0",
         solver=solver or FakeSolver(),
         observer=FakeObserver(),
+        renderer=FakeRenderer(),
         state=state,
         rng=np.random.default_rng(123),
     )

@@ -36,6 +36,8 @@ class RunContext:
     python_version: str = field(default_factory=lambda: sys.version.split()[0])
     platform: str = field(default_factory=platform.platform)
     dependency_lock_hash: str | None = None
+    runtime_backend: str = "python"
+    runtime_version: str = engine_version
 
     @classmethod
     def create(

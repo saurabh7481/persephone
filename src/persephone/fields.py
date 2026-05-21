@@ -9,6 +9,7 @@ from urllib.parse import quote, unquote
 
 import numpy as np
 
+from persephone.registry.registry import PluginRegistry
 from persephone.storage.catalog import RunCatalog
 
 FieldExportFormat = Literal["csv", "npy"]
@@ -30,8 +31,11 @@ class FieldArtifact:
 
 def list_field_artifacts(artifact_root: str | Path, run_id: str) -> list[FieldArtifact]:
     run_dir = RunCatalog.scan(artifact_root).get(run_id).path
+    metadata = _visualization_metadata(run_dir)
     fields: list[FieldArtifact] = []
-    fields.extend(_fields_from_npz(run_dir / "final_state.npz", source="final_state"))
+    fields.extend(
+        _fields_from_npz(run_dir / "final_state.npz", source="final_state", metadata=metadata)
+    )
     for checkpoint_dir in sorted((run_dir / "checkpoints").glob("*")):
         if not checkpoint_dir.is_dir():
             continue
@@ -41,6 +45,7 @@ def list_field_artifacts(artifact_root: str | Path, run_id: str) -> list[FieldAr
                 checkpoint_dir / "state.npz",
                 source="checkpoint",
                 tick=tick,
+                metadata=metadata,
             )
         )
     return fields
@@ -84,7 +89,13 @@ def field_to_dict(field: FieldArtifact) -> dict[str, Any]:
     }
 
 
-def _fields_from_npz(path: Path, *, source: str, tick: int | None = None) -> list[FieldArtifact]:
+def _fields_from_npz(
+    path: Path,
+    *,
+    source: str,
+    metadata: dict[str, dict[str, Any]],
+    tick: int | None = None,
+) -> list[FieldArtifact]:
     if not path.exists():
         return []
     fields: list[FieldArtifact] = []
@@ -94,6 +105,8 @@ def _fields_from_npz(path: Path, *, source: str, tick: int | None = None) -> lis
             if array.ndim != 2:
                 continue
             source_prefix = source if tick is None else f"{source}:{tick:06d}"
+            field_name = _field_name(name)
+            field_metadata = metadata.get(field_name, {})
             fields.append(
                 FieldArtifact(
                     id=f"{source_prefix}:{name}",
@@ -103,8 +116,8 @@ def _fields_from_npz(path: Path, *, source: str, tick: int | None = None) -> lis
                     dimensions=[int(array.shape[0]), int(array.shape[1])],
                     dtype=str(array.dtype),
                     bounds={"min": float(np.min(array)), "max": float(np.max(array))},
-                    units=_units_for_name(name),
-                    visualization={"kind": "heatmap", "color_scale": "viridis"},
+                    units=str(field_metadata.get("units", "unitless")),
+                    visualization=dict(field_metadata.get("visualization", {"kind": "field"})),
                     tick=tick,
                 )
             )
@@ -124,12 +137,49 @@ def _load_array(field: FieldArtifact) -> np.ndarray[Any, Any]:
         return cast(np.ndarray[Any, Any], data[field.name])
 
 
-def _units_for_name(name: str) -> str:
-    if name.endswith("temperature"):
-        return "temperature"
-    metadata_path = Path(str(name))
-    metadata = metadata_path.name
-    return metadata or "unitless"
+def _field_name(name: str) -> str:
+    return name.rsplit(".", maxsplit=1)[-1]
+
+
+def _visualization_metadata(run_dir: Path) -> dict[str, dict[str, Any]]:
+    manifest_path = run_dir / "manifest.json"
+    if not manifest_path.exists():
+        return {}
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    config = manifest.get("config_snapshot", {})
+    if not isinstance(config, dict):
+        return {}
+    solvers = config.get("solvers", [])
+    if not isinstance(solvers, list):
+        return {}
+
+    registry = PluginRegistry()
+    registry.discover()
+    metadata: dict[str, dict[str, Any]] = {}
+    for solver in solvers:
+        if not isinstance(solver, dict) or not isinstance(solver.get("plugin"), str):
+            continue
+        try:
+            renderer = registry.require(
+                str(solver["plugin"]), str(solver.get("version", ">=0"))
+            ).renderer()
+        except Exception:
+            continue
+        schema = renderer.viz_schema()
+        fields = schema.get("fields", []) if isinstance(schema, dict) else []
+        if not isinstance(fields, list):
+            continue
+        for field in fields:
+            if not isinstance(field, dict) or not isinstance(field.get("name"), str):
+                continue
+            name = str(field["name"])
+            metadata[name] = {
+                "units": field.get("units", "unitless"),
+                "visualization": {
+                    key: value for key, value in field.items() if key not in {"name", "units"}
+                },
+            }
+    return metadata
 
 
 def write_field_metadata(artifact_root: str | Path, run_id: str) -> Path:

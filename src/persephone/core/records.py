@@ -126,6 +126,8 @@ class RunManifest(BaseModel):
     started_at: str
     t_current: float = 0.0
     error_message: str | None = None
+    runtime_backend: str = Field(default="python", min_length=1)
+    runtime_version: str = Field(default="", min_length=1)
 
 
 StateValueKind = Literal["ndarray", "sparse", "masked"]

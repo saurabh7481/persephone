@@ -3,14 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+from persephone_sir_epidemic.model import INFECTED, RECOVERED, SUSCEPTIBLE, sir_step
 
-from persephone.solvers.graph import (
-    INFECTED,
-    RECOVERED,
-    SUSCEPTIBLE,
-    ContactGraph,
-    sir_step,
-)
+from persephone.solvers.graph import ContactGraph
 
 
 def write_edges(tmp_path: Path) -> Path:

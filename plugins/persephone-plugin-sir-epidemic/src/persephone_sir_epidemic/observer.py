@@ -4,7 +4,7 @@ import numpy as np
 from persephone_sdk.plugin import Observer
 from persephone_sdk.types import MetricRecord, StateDict
 
-from persephone.solvers.graph import INFECTED, RECOVERED, SUSCEPTIBLE
+from persephone_sir_epidemic.model import INFECTED, RECOVERED, SUSCEPTIBLE
 
 
 class SIRObserver(Observer):

@@ -117,14 +117,14 @@
 			<div class="mb-4 grid gap-3 sm:grid-cols-3">
 				<Card.Card>
 					<Card.CardHeader class="pb-2">
-						<Card.CardDescription>Peak infected</Card.CardDescription>
-						<Card.CardTitle>{summary.peakInfected}</Card.CardTitle>
+						<Card.CardDescription>Peak value</Card.CardDescription>
+						<Card.CardTitle>{summary.peakValue}</Card.CardTitle>
 					</Card.CardHeader>
 				</Card.Card>
 				<Card.Card>
 					<Card.CardHeader class="pb-2">
-						<Card.CardDescription>Final recovered</Card.CardDescription>
-						<Card.CardTitle>{summary.finalRecovered}</Card.CardTitle>
+						<Card.CardDescription>Final value</Card.CardDescription>
+						<Card.CardTitle>{summary.finalValue}</Card.CardTitle>
 					</Card.CardHeader>
 				</Card.Card>
 				<Card.Card>
@@ -137,7 +137,9 @@
 			<Card.Card>
 				<Card.CardHeader>
 					<Card.CardTitle>Metric chart</Card.CardTitle>
-					<Card.CardDescription>SIR population counts over simulation time.</Card.CardDescription>
+					<Card.CardDescription
+						>{summary.primaryMetric} and related metrics over time.</Card.CardDescription
+					>
 				</Card.CardHeader>
 				<Card.CardContent>
 					<MetricChart records={metrics} />

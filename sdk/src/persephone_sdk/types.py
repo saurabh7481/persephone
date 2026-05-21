@@ -34,3 +34,59 @@ class BusRecord(TypedDict, total=False):
     logical_time: float
     value: Any
     units: str | None
+
+
+class FramePayloadRef(TypedDict, total=False):
+    uri: str
+    format: str
+    byte_offset: int | None
+    byte_length: int | None
+
+
+class FieldFrame(TypedDict, total=False):
+    kind: str
+    run_id: str
+    frame_id: str
+    t: float
+    tick: int
+    solver_id: str
+    source: str
+    schema_version: int
+    field: str
+    shape: tuple[int, int]
+    dtype: str
+    bounds: dict[str, float]
+    units: str
+    visualization: dict[str, Any]
+    values: list[float]
+    payload_ref: FramePayloadRef
+
+
+class GraphNode(TypedDict, total=False):
+    id: str
+    x: float | None
+    y: float | None
+    state: str | None
+
+
+class GraphEdge(TypedDict, total=False):
+    source: str
+    target: str
+    weight: float | None
+
+
+class GraphFrame(TypedDict, total=False):
+    kind: str
+    run_id: str
+    frame_id: str
+    t: float
+    tick: int
+    solver_id: str
+    source: str
+    schema_version: int
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
+    visualization: dict[str, Any]
+
+
+SimulationFrame: TypeAlias = FieldFrame | GraphFrame
