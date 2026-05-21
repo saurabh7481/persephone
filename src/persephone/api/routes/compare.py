@@ -5,13 +5,14 @@ from typing import Annotated, Any, cast
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from persephone.api.manager import RunManager
-from persephone.compare import compare_metric_records
+from persephone.api.schemas import ApiError
+from persephone.compare import CompareResult, compare_metric_records
 from persephone.storage.catalog import RunCatalogError
 
 router = APIRouter()
 
 
-@router.get("/compare")
+@router.get("/compare", response_model=CompareResult, responses={404: {"model": ApiError}})
 def compare_runs(
     request: Request,
     run: Annotated[list[str], Query(min_length=2, max_length=2)],
@@ -28,5 +29,12 @@ def compare_runs(
             records_b=manager.metric_records(run_b, metric=metric),
         )
     except RunCatalogError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=404,
+            detail=ApiError(
+                code="run_not_found",
+                message=str(exc),
+                details={"runs": run},
+            ).model_dump(mode="json"),
+        ) from exc
     return result.model_dump(mode="json")

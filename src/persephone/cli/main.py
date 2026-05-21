@@ -16,6 +16,13 @@ from persephone.core.checkpoints import load_checkpoint
 from persephone.core.engine import PersephoneEngine
 from persephone.export import export_run
 from persephone.fields import export_field_artifact, list_field_artifacts
+from persephone.frames import (
+    FrameNotFoundError,
+    UnsupportedFrameFormatError,
+    export_frame,
+    get_frame,
+    list_frames,
+)
 from persephone.registry.registry import PluginRegistry
 from persephone.scaffold import scaffold_plugin
 from persephone.storage.catalog import RunCatalog, RunCatalogError
@@ -27,11 +34,13 @@ runs_app = typer.Typer(help="Inspect completed simulation runs.")
 examples_app = typer.Typer(help="Generate example inputs.")
 checkpoints_app = typer.Typer(help="Inspect simulation checkpoints.")
 fields_app = typer.Typer(help="Inspect and export field artifacts.")
+frames_app = typer.Typer(help="Inspect and export simulation frames.")
 app.add_typer(plugins_app, name="plugins")
 app.add_typer(runs_app, name="runs")
 app.add_typer(examples_app, name="examples")
 app.add_typer(checkpoints_app, name="checkpoints")
 app.add_typer(fields_app, name="fields")
+app.add_typer(frames_app, name="frames")
 console = Console()
 
 
@@ -346,6 +355,84 @@ def export_field_command(
         )
     except (OSError, ValueError, RunCatalogError) as exc:
         console.print(f"[red]Field export failed:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print(f"[green]Exported[/green] {path}")
+
+
+@frames_app.command("list")
+def list_frames_command(
+    run: Annotated[str, typer.Argument()],
+    kind: Annotated[str | None, typer.Option("--kind")] = None,
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """List replayable frames for a run."""
+    if kind is not None and kind not in {"field", "graph"}:
+        raise typer.BadParameter("--kind must be field or graph")
+    try:
+        frames = list_frames(artifacts_dir, run, kind=cast(Any, kind))
+    except (OSError, ValueError, RunCatalogError) as exc:
+        console.print(f"[red]Frames unavailable:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    table = Table(title=f"Frames {run}")
+    table.add_column("ID")
+    table.add_column("Kind")
+    table.add_column("t")
+    table.add_column("Solver")
+    table.add_column("Payload")
+    for frame in frames.frames:
+        table.add_row(
+            frame.frame_id,
+            frame.kind,
+            f"{frame.t:g}",
+            frame.solver_id,
+            frame.payload_ref.uri,
+        )
+    console.print(table)
+
+
+@frames_app.command("show")
+def show_frame_command(
+    run: Annotated[str, typer.Argument()],
+    frame_id: Annotated[str, typer.Argument()],
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """Show one replay frame as JSON."""
+    try:
+        frame = get_frame(artifacts_dir, run, frame_id)
+    except (OSError, FrameNotFoundError, ValueError, RunCatalogError) as exc:
+        console.print(f"[red]Frame unavailable:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print_json(data=frame)
+
+
+@frames_app.command("export")
+def export_frame_command(
+    run: Annotated[str, typer.Argument()],
+    frame_id: Annotated[str, typer.Argument()],
+    output: Annotated[Path, typer.Option("--output")] = Path("frame.json"),
+    export_format: Annotated[str, typer.Option("--format")] = "json",
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """Export one replay frame to JSON, CSV, or NPY."""
+    if export_format not in {"json", "csv", "npy"}:
+        raise typer.BadParameter("--format must be json, csv, or npy")
+    try:
+        path = export_frame(
+            artifacts_dir,
+            run,
+            frame_id,
+            output=output,
+            export_format=cast(Any, export_format),
+        )
+    except (
+        OSError,
+        FrameNotFoundError,
+        UnsupportedFrameFormatError,
+        ValueError,
+        RunCatalogError,
+    ) as exc:
+        console.print(f"[red]Frame export failed:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(f"[green]Exported[/green] {path}")
 

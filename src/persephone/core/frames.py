@@ -91,6 +91,7 @@ class FrameIndexEntry(BaseModel):
     tick: int = Field(ge=0)
     solver_id: str = Field(min_length=1)
     source: str = Field(min_length=1)
+    payload_ref: FramePayloadRef | None = None
 
 
 class FrameIndex(BaseModel):

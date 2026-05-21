@@ -233,6 +233,7 @@ class Scheduler:
             )
             for frame in raw_frames:
                 frames.append(validate_frame(cast(dict[str, Any], frame)).model_dump(mode="json"))
+        self.artifact_store.write_frames(self.run_context.run_id, frames)
         self._emit_records("frame", frames)
 
     def _checkpoint_if_needed(self, *, tick: int, logical_time: float) -> None:

@@ -6,6 +6,7 @@ from typing import Annotated, Literal, cast
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
 
+from persephone.api.schemas import ApiError
 from persephone.export import export_run_archive
 from persephone.fields import export_field_artifact, field_to_dict, list_field_artifacts
 from persephone.storage.catalog import RunCatalogError
@@ -13,7 +14,7 @@ from persephone.storage.catalog import RunCatalogError
 router = APIRouter()
 
 
-@router.get("/runs/{run_id}/export")
+@router.get("/runs/{run_id}/export", response_model=None, responses={404: {"model": ApiError}})
 def export_run_endpoint(
     run_id: str,
     request: Request,
@@ -22,7 +23,7 @@ def export_run_endpoint(
     try:
         archive = export_run_archive(request.app.state.artifact_root, run_id, export_format=format)
     except (RunCatalogError, ValueError) as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise _not_found("run_export_unavailable", str(exc), {"run_id": run_id}) from exc
     return FileResponse(
         archive,
         media_type="application/zip",
@@ -30,17 +31,25 @@ def export_run_endpoint(
     )
 
 
-@router.get("/runs/{run_id}/fields")
+@router.get(
+    "/runs/{run_id}/fields",
+    response_model=list[dict[str, object]],
+    responses={404: {"model": ApiError}},
+)
 def list_fields(run_id: str, request: Request) -> list[dict[str, object]]:
     try:
         return [
             field_to_dict(field) for field in list_field_artifacts(_artifact_root(request), run_id)
         ]
     except (RunCatalogError, ValueError) as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise _not_found("fields_unavailable", str(exc), {"run_id": run_id}) from exc
 
 
-@router.get("/runs/{run_id}/fields/{field_id:path}", response_model=None)
+@router.get(
+    "/runs/{run_id}/fields/{field_id:path}",
+    response_model=None,
+    responses={404: {"model": ApiError}},
+)
 def download_field(
     run_id: str,
     field_id: str,
@@ -58,7 +67,9 @@ def download_field(
             export_format=format,
         )
     except (RunCatalogError, ValueError) as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise _not_found(
+            "field_unavailable", str(exc), {"run_id": run_id, "field_id": field_id}
+        ) from exc
     if format == "csv":
         return Response(path.read_text(encoding="utf-8"), media_type="text/csv")
     return FileResponse(path, media_type="application/octet-stream", filename=path.name)
@@ -66,3 +77,10 @@ def download_field(
 
 def _artifact_root(request: Request) -> Path:
     return cast(Path, request.app.state.artifact_root)
+
+
+def _not_found(code: str, message: str, details: dict[str, object]) -> HTTPException:
+    return HTTPException(
+        status_code=404,
+        detail=ApiError(code=code, message=message, details=details).model_dump(mode="json"),
+    )

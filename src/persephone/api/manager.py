@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -10,9 +11,12 @@ from uuid import uuid4
 
 from persephone.config.models import ExperimentConfig
 from persephone.core.engine import PersephoneEngine, RunResult
+from persephone.frames import get_frame, list_frames
 from persephone.storage.catalog import RunCatalog, RunNotFoundError, RunSummary
 
 TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
+FRAME_STREAM_BUFFER_LIMIT = 512
+SSE_STREAM_BUFFER_LIMIT = 2_048
 
 
 @dataclass
@@ -24,6 +28,10 @@ class ManagedRun:
     error_message: str | None = None
     metric_events: list[dict[str, Any]] = field(default_factory=list)
     data_events: list[dict[str, Any]] = field(default_factory=list)
+    frame_events: list[tuple[int, dict[str, Any]]] = field(default_factory=list)
+    frame_sequence: int = 0
+    stream_events: list[tuple[int, str, dict[str, Any]]] = field(default_factory=list)
+    event_sequence: int = 0
     result: RunResult | None = None
     cancel_requested: bool = False
 
@@ -114,6 +122,46 @@ class RunManager:
             for record in self.metric_records(run_id):
                 yield _to_sse("metric", record)
 
+    def sse_frame_events(self, run_id: str, last_event_id: str | None = None) -> Iterator[str]:
+        last_seen = _parse_last_event_id(last_event_id)
+        yielded = 0
+        while True:
+            with self._lock:
+                managed = self._runs.get(run_id)
+                in_memory = list(managed.stream_events) if managed else []
+                status = managed.status if managed else None
+                error_message = managed.error_message if managed else None
+
+            for sequence_id, event_name, event in in_memory:
+                if sequence_id <= last_seen:
+                    continue
+                yielded += 1
+                last_seen = sequence_id
+                yield _to_sse(event_name, event, event_id=sequence_id)
+
+            if status in {None, *TERMINAL_STATUSES}:
+                if status == "failed":
+                    yield _to_sse(
+                        "error",
+                        {"run_id": run_id, "message": error_message or "Run failed"},
+                    )
+                yield _to_sse("status", {"run_id": run_id, "status": status or "completed"})
+                break
+
+            if yielded == 0:
+                yield _to_sse("heartbeat", {"run_id": run_id, "status": status})
+            time.sleep(0.05)
+
+        if yielded == 0:
+            for sequence_id, entry in enumerate(list_frames(self.artifact_root, run_id).frames, 1):
+                if sequence_id <= last_seen:
+                    continue
+                yield _to_sse(
+                    "frame",
+                    get_frame(self.artifact_root, run_id, entry.frame_id),
+                    event_id=sequence_id,
+                )
+
     def _run_in_background(
         self,
         config: ExperimentConfig,
@@ -126,6 +174,16 @@ class RunManager:
                     managed.metric_events.append(record)
                 elif kind == "event":
                     managed.data_events.append(record)
+                elif kind == "frame":
+                    managed.frame_sequence += 1
+                    managed.frame_events.append((managed.frame_sequence, record))
+                    if len(managed.frame_events) > FRAME_STREAM_BUFFER_LIMIT:
+                        managed.frame_events = managed.frame_events[-FRAME_STREAM_BUFFER_LIMIT:]
+                if kind in {"metric", "event", "frame"}:
+                    managed.event_sequence += 1
+                    managed.stream_events.append((managed.event_sequence, kind, record))
+                    if len(managed.stream_events) > SSE_STREAM_BUFFER_LIMIT:
+                        managed.stream_events = managed.stream_events[-SSE_STREAM_BUFFER_LIMIT:]
 
         try:
             with self._lock:
@@ -198,5 +256,15 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     ]
 
 
-def _to_sse(event: str, data: dict[str, Any]) -> str:
-    return f"event: {event}\ndata: {json.dumps(data, sort_keys=True)}\n\n"
+def _to_sse(event: str, data: dict[str, Any], event_id: int | None = None) -> str:
+    prefix = f"id: {event_id}\n" if event_id is not None else ""
+    return f"{prefix}event: {event}\ndata: {json.dumps(data, sort_keys=True)}\n\n"
+
+
+def _parse_last_event_id(value: str | None) -> int:
+    if value is None:
+        return 0
+    try:
+        return max(0, int(value))
+    except ValueError:
+        return 0

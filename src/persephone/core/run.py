@@ -38,6 +38,7 @@ class RunContext:
     dependency_lock_hash: str | None = None
     runtime_backend: str = "python"
     runtime_version: str = engine_version
+    frame_artifacts_path: str = "frames/index.json"
 
     @classmethod
     def create(

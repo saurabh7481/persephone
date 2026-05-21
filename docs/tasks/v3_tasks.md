@@ -166,54 +166,54 @@ This checkpoint makes domain agnosticism an explicit v3 invariant. By the end of
 
 ### Checkpoint 4 — Frame storage and replay artifacts
 
-- [ ] Add `FrameSink` interface.
-- [ ] Persist frame index under `runs/<run_id>/frames/index.json`.
-- [ ] Persist small frame payloads as JSONL or compact JSON.
-- [ ] Persist large field payloads as NPZ/Zarr-compatible artifacts or references.
-- [ ] Link frame artifacts from run manifest or artifact index.
-- [ ] Add replay API that can reconstruct frame timeline after process restart.
-- [ ] Add CLI commands:
-  - [ ] `persephone frames list <run>`
-  - [ ] `persephone frames show <run> <frame_id>`
-  - [ ] `persephone frames export <run> <frame_id>`
-- [ ] Add tests for frame index, payload persistence, and replay discovery.
+- [x] Add `FrameSink` interface.
+- [x] Persist frame index under `runs/<run_id>/frames/index.json`.
+- [x] Persist small frame payloads as JSONL or compact JSON.
+- [x] Persist large field payloads as NPZ/Zarr-compatible artifacts or references.
+- [x] Link frame artifacts from run manifest or artifact index.
+- [x] Add replay API that can reconstruct frame timeline after process restart.
+- [x] Add CLI commands:
+  - [x] `persephone frames list <run>`
+  - [x] `persephone frames show <run> <frame_id>`
+  - [x] `persephone frames export <run> <frame_id>`
+- [x] Add tests for frame index, payload persistence, and replay discovery.
 - [ ] Commit: `feat: persist replay frames`.
 
 ### Checkpoint 5 — Live frame streaming API
 
-- [ ] Add `GET /runs/{run_id}/frames/stream`.
-- [ ] Stream frames as SSE first.
-- [ ] Add event names: `frame`, `metric`, `event`, `status`, `error`, `heartbeat`.
-- [ ] Include monotonic sequence ids for reconnect/resume.
-- [ ] Add `Last-Event-ID` support or equivalent resume token.
-- [ ] Add backpressure policy for high-frequency frames.
-- [ ] Add frame thinning/downsampling policy for UI-safe streaming.
-- [ ] Add API tests for streaming heat frames while a run is active.
-- [ ] Add API tests for graceful completion and failure.
-- [ ] Document when WebSocket should replace or supplement SSE later.
+- [x] Add `GET /runs/{run_id}/frames/stream`.
+- [x] Stream frames as SSE first.
+- [x] Add event names: `frame`, `metric`, `event`, `status`, `error`, `heartbeat`.
+- [x] Include monotonic sequence ids for reconnect/resume.
+- [x] Add `Last-Event-ID` support or equivalent resume token.
+- [x] Add backpressure policy for high-frequency frames.
+- [x] Add frame thinning/downsampling policy for UI-safe streaming.
+- [x] Add API tests for streaming heat frames while a run is active.
+- [x] Add API tests for graceful completion and failure.
+- [x] Document when WebSocket should replace or supplement SSE later.
 - [ ] Commit: `feat: stream live simulation frames`.
 
 ### Checkpoint 6 — Replay frame API
 
-- [ ] Add `GET /runs/{run_id}/frames`.
-- [ ] Add `GET /runs/{run_id}/frames/{frame_id}`.
-- [ ] Add query options for frame kind, time range, solver id, and max count.
-- [ ] Add response metadata for available frame kinds and time bounds.
-- [ ] Add API tests for completed heat diffusion replay frames.
-- [ ] Add API tests for SIR graph replay frames.
-- [ ] Add error responses for missing runs, missing frames, and unsupported frame formats.
+- [x] Add `GET /runs/{run_id}/frames`.
+- [x] Add `GET /runs/{run_id}/frames/{frame_id}`.
+- [x] Add query options for frame kind, time range, solver id, and max count.
+- [x] Add response metadata for available frame kinds and time bounds.
+- [x] Add API tests for completed heat diffusion replay frames.
+- [x] Add API tests for SIR graph replay frames.
+- [x] Add error responses for missing runs, missing frames, and unsupported frame formats.
 - [ ] Commit: `feat: add replay frame API`.
 
 ### Checkpoint 7 — Hardened OpenAPI and typed client
 
-- [ ] Ensure every public route has explicit request and response models.
-- [ ] Standardize API error model: code, message, details, request id.
-- [ ] Add OpenAPI snapshot test.
-- [ ] Add schema compatibility test for critical models.
-- [ ] Generate TypeScript API client from OpenAPI, or create a strongly typed client package with schema tests.
-- [ ] Put generated/manual client under `ui/src/lib/api-client/`.
-- [ ] Replace ad hoc frontend fetch types with the typed client.
-- [ ] Add tests that frontend client types match API fixtures.
+- [x] Ensure every public route has explicit request and response models.
+- [x] Standardize API error model: code, message, details, request id.
+- [x] Add OpenAPI snapshot test.
+- [x] Add schema compatibility test for critical models.
+- [x] Generate TypeScript API client from OpenAPI, or create a strongly typed client package with schema tests.
+- [x] Put generated/manual client under `ui/src/lib/api-client/`.
+- [x] Replace ad hoc frontend fetch types with the typed client.
+- [x] Add tests that frontend client types match API fixtures.
 - [ ] Commit: `feat: harden API contracts for Studio UI`.
 
 ### Checkpoint 8 — Optional Hono gateway spike

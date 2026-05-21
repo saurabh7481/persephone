@@ -5,6 +5,7 @@ from typing import cast
 
 from fastapi import APIRouter
 
+from persephone.api.schemas import ExampleConfigResponse, ExampleSummaryResponse
 from persephone.config.load import load_experiment_config
 
 router = APIRouter()
@@ -34,7 +35,7 @@ EXAMPLES = {
 }
 
 
-@router.get("/examples")
+@router.get("/examples", response_model=list[ExampleSummaryResponse])
 def list_examples() -> list[dict[str, object]]:
     return [
         {"id": example.id, "name": example.name, "description": example.description}
@@ -42,12 +43,12 @@ def list_examples() -> list[dict[str, object]]:
     ]
 
 
-@router.get("/examples/sir_epidemic")
+@router.get("/examples/sir_epidemic", response_model=dict[str, object])
 def sir_epidemic_example() -> dict[str, object]:
     return cast(dict[str, object], example_config("sir_epidemic")["config"])
 
 
-@router.get("/examples/{example_id}")
+@router.get("/examples/{example_id}", response_model=ExampleConfigResponse)
 def example_config(example_id: str) -> dict[str, object]:
     example = EXAMPLES[example_id]
     config = load_experiment_config(example.path)
