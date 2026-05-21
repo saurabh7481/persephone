@@ -270,26 +270,26 @@ This is a spike, not required for v3 shipping.
 
 ### Checkpoint 12 — Canvas viewport renderer
 
-- [ ] Add `SimulationViewport.svelte`.
-- [ ] Add canvas sizing with device-pixel-ratio support.
-- [ ] Add renderer registry keyed by frame kind.
-- [ ] Implement `FieldFrameCanvasRenderer`.
-- [ ] Implement color palettes, autoscale/manual bounds, and opacity controls.
-- [ ] Implement pointer hover and click selection for field cells.
-- [ ] Add empty/loading/error viewport states.
-- [ ] Add canvas pixel tests or Playwright visual smoke checks.
-- [ ] Add performance guard so Svelte does not rerender on every animation frame.
+- [x] Add `SimulationViewport.svelte`.
+- [x] Add canvas sizing with device-pixel-ratio support.
+- [x] Add renderer registry keyed by frame kind.
+- [x] Implement `FieldFrameCanvasRenderer`.
+- [x] Implement color palettes, autoscale/manual bounds, and opacity controls.
+- [x] Implement pointer hover and click selection for field cells.
+- [x] Add empty/loading/error viewport states.
+- [x] Add canvas pixel tests or Playwright visual smoke checks.
+- [x] Add performance guard so Svelte does not rerender on every animation frame.
 - [ ] Commit: `feat: render field frames in canvas viewport`.
 
 ### Checkpoint 13 — Graph frame renderer
 
-- [ ] Implement `GraphFrameCanvasRenderer` or SVG/canvas hybrid renderer.
-- [ ] Support node state coloring for SIR susceptible/infected/recovered states.
-- [ ] Support edge weight styling.
-- [ ] Support static layout first, then optional D3 force layout if needed.
-- [ ] Add hover/click node inspection.
-- [ ] Add playback support for infection spread frames.
-- [ ] Add tests using SIR replay frames.
+- [x] Implement `GraphFrameCanvasRenderer` or SVG/canvas hybrid renderer.
+- [x] Support node state coloring for SIR susceptible/infected/recovered states.
+- [x] Support edge weight styling.
+- [x] Support static layout first, then optional D3 force layout if needed.
+- [x] Add hover/click node inspection.
+- [x] Add playback support for infection spread frames.
+- [x] Add tests using SIR replay frames.
 - [ ] Commit: `feat: render graph simulation frames`.
 
 ### Checkpoint 14 — D3 timeline and analytics dock

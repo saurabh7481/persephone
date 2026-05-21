@@ -18,7 +18,7 @@
 	} from '$lib/api';
 	import MetricChart from '$lib/components/MetricChart.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import { StudioPanel, StudioWorkbench } from '$lib/components/studio';
+	import { SimulationViewport, StudioPanel, StudioWorkbench } from '$lib/components/studio';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
@@ -208,16 +208,15 @@
 				<Alert.AlertDescription>{error}</Alert.AlertDescription>
 			</Alert.Alert>
 		{:else}
-			<div class="studio-viewport-empty">
-				<div>
-					<p class="studio-eyebrow">{$playback.mode} · {$playback.status}</p>
-					<h2>{selectedFrame?.kind ?? 'Frame'} playback viewport</h2>
-					<p>
-						Frame buffer {$playback.frameBuffer.length} · t={$playback.currentTime.toFixed(2)} ·
-						{$playback.speed}x
-					</p>
-				</div>
-			</div>
+			<SimulationViewport
+				frame={selectedFrame}
+				mode={$playback.mode}
+				status={$playback.status}
+				speed={$playback.speed}
+				bufferedFrames={$playback.frameBuffer.length}
+				selectedObject={$playback.selectedObject}
+				onSelect={(object) => playback.selectObject(object)}
+			/>
 		{/if}
 	{/snippet}
 
@@ -239,7 +238,11 @@
 					</div>
 					<div>
 						<p class="text-xs text-muted-foreground">Selected object</p>
-						<p class="font-mono text-xs break-all">{$playback.selectedObject?.id ?? 'none'}</p>
+						<p class="font-mono text-xs break-all">
+							{$playback.selectedObject
+								? `${$playback.selectedObject.kind}:${$playback.selectedObject.id}`
+								: 'none'}
+						</p>
 					</div>
 				</div>
 			</StudioPanel>

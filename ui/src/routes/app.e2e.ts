@@ -11,6 +11,17 @@ const runs = [
 		config_hash: 'abc123',
 		artifact_path: 'runs/run-a',
 		error_message: null
+	},
+	{
+		run_id: 'run-graph',
+		name: 'SIR graph replay',
+		status: 'completed',
+		started_at: '2026-05-19T00:00:00Z',
+		final_time: 2,
+		plugins: ['sir_epidemic'],
+		config_hash: 'def456',
+		artifact_path: 'runs/run-graph',
+		error_message: null
 	}
 ];
 
@@ -74,10 +85,16 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/runs/run-a/events', async (route) => {
 		await route.fulfill({ json: [{ t: 1, event_type: 'infection', node: 4 }] });
 	});
+	await page.route('http://127.0.0.1:8787/runs/run-graph/events', async (route) => {
+		await route.fulfill({ json: [{ t: 2, event_type: 'infection', node: 1 }] });
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a/metrics', async (route) => {
 		await route.fulfill({ json: metrics });
 	});
-	await page.route('http://127.0.0.1:8787/runs/run-a/frames', async (route) => {
+	await page.route('http://127.0.0.1:8787/runs/run-graph/metrics', async (route) => {
+		await route.fulfill({ json: metrics });
+	});
+	await page.route(/http:\/\/127\.0\.0\.1:8787\/runs\/run-a\/frames(\?.*)?$/, async (route) => {
 		await route.fulfill({
 			json: {
 				metadata: {
@@ -148,6 +165,52 @@ test.beforeEach(async ({ page }) => {
 			}
 		});
 	});
+	await page.route(/http:\/\/127\.0\.0\.1:8787\/runs\/run-graph\/frames(\?.*)?$/, async (route) => {
+		await route.fulfill({
+			json: {
+				metadata: {
+					run_id: 'run-graph',
+					frame_count: 1,
+					available_kinds: ['graph'],
+					t_min: 2,
+					t_max: 2
+				},
+				frames: [
+					{
+						frame_id: 'sir-frame-a',
+						kind: 'graph',
+						t: 2,
+						tick: 2,
+						solver_id: 'sir#0',
+						source: 'replay',
+						payload_ref: { uri: 'frames/graph.jsonl', format: 'jsonl' }
+					}
+				]
+			}
+		});
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-graph/frames/sir-frame-a', async (route) => {
+		await route.fulfill({
+			json: {
+				kind: 'graph',
+				frame_id: 'sir-frame-a',
+				t: 2,
+				tick: 2,
+				solver_id: 'sir#0',
+				source: 'replay',
+				nodes: [
+					{ id: '0', state: 'susceptible', x: 0, y: 0 },
+					{ id: '1', state: 'infected', x: 1, y: 0 },
+					{ id: '2', state: 'recovered', x: 0.5, y: 1 }
+				],
+				edges: [
+					{ source: '0', target: '1', weight: 0.25 },
+					{ source: '1', target: '2', weight: 1 }
+				],
+				visualization: {}
+			}
+		});
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a/frames/stream', async (route) => {
 		await route.fulfill({
 			contentType: 'text/event-stream',
@@ -177,8 +240,14 @@ test.beforeEach(async ({ page }) => {
 			].join('\n')
 		});
 	});
+	await page.route('http://127.0.0.1:8787/runs/run-graph/stream', async (route) => {
+		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a', async (route) => {
 		await route.fulfill({ json: runs[0] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-graph', async (route) => {
+		await route.fulfill({ json: runs[1] });
 	});
 	await page.route('http://127.0.0.1:8787/sweeps', async (route) => {
 		await route.fulfill({
@@ -229,7 +298,7 @@ test('renders the run dashboard with catalog rows', async ({ page }) => {
 
 	await expect(page.getByRole('heading', { name: 'Runs' })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'run-a' })).toBeVisible();
-	await expect(page.getByText('sir_epidemic')).toBeVisible();
+	await expect(page.getByRole('cell', { name: 'sir_epidemic' }).first()).toBeVisible();
 });
 
 test('captures the Studio shell smoke state', async ({ page }) => {
@@ -246,6 +315,7 @@ test('renders run detail metrics and events', async ({ page }) => {
 
 	await expect(page.getByRole('heading', { name: 'run-a' })).toBeVisible();
 	await expect(page.getByRole('region', { name: 'Simulation playback viewport' })).toBeVisible();
+	await expect(page.getByLabel('Rendered simulation frame')).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Pause playback' })).toBeVisible();
 	await expect(page.getByText(/Frame buffer \d+/)).toBeVisible();
 	await expect(page.getByText('infected_count')).toBeVisible();
@@ -253,6 +323,24 @@ test('renders run detail metrics and events', async ({ page }) => {
 	await expect(page.getByText('Final value')).toBeVisible();
 	await page.getByRole('tab', { name: 'Events' }).click();
 	await expect(page.getByText('infection', { exact: true })).toBeVisible();
+});
+
+test('renders SIR graph replay frames and supports node inspection', async ({ page }) => {
+	await page.goto('/runs/run-graph');
+
+	const canvas = page.getByLabel('Rendered simulation frame');
+	await expect(canvas).toBeVisible();
+	await expect(page.getByText('Graph frame')).toBeVisible();
+	const canvasBox = await canvas.boundingBox();
+	expect(canvasBox).not.toBeNull();
+	await page.mouse.click(
+		canvasBox!.x + canvasBox!.width / 2,
+		canvasBox!.y + canvasBox!.height - 36
+	);
+
+	await expect(page.getByText('graph-node:2')).toBeVisible();
+	const screenshot = await page.screenshot();
+	expect(screenshot.length).toBeGreaterThan(10_000);
 });
 
 test('submits an example experiment config', async ({ page }) => {
