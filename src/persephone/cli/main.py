@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 
 import typer
 import yaml
@@ -15,7 +15,10 @@ from persephone.compare import compare_metric_records
 from persephone.config.load import load_experiment_config
 from persephone.core.checkpoints import load_checkpoint
 from persephone.core.engine import PersephoneEngine
+from persephone.export import export_run
+from persephone.fields import export_field_artifact, list_field_artifacts
 from persephone.registry.registry import PluginRegistry
+from persephone.scaffold import scaffold_plugin
 from persephone.storage.catalog import RunCatalog, RunCatalogError
 from persephone.sweeps import SweepConfig, execute_sweep
 
@@ -24,10 +27,12 @@ plugins_app = typer.Typer(help="Inspect installed simulation plugins.")
 runs_app = typer.Typer(help="Inspect completed simulation runs.")
 examples_app = typer.Typer(help="Generate example inputs.")
 checkpoints_app = typer.Typer(help="Inspect simulation checkpoints.")
+fields_app = typer.Typer(help="Inspect and export field artifacts.")
 app.add_typer(plugins_app, name="plugins")
 app.add_typer(runs_app, name="runs")
 app.add_typer(examples_app, name="examples")
 app.add_typer(checkpoints_app, name="checkpoints")
+app.add_typer(fields_app, name="fields")
 console = Console()
 
 
@@ -95,6 +100,20 @@ def list_plugins() -> None:
     )
     if registry.load_errors:
         console.print(f"[yellow]{len(registry.load_errors)} plugin(s) failed to load[/yellow]")
+
+
+@plugins_app.command("scaffold")
+def scaffold_plugin_command(
+    name: Annotated[str, typer.Argument()],
+    output_dir: Annotated[Path, typer.Option("--output-dir")] = Path("."),
+) -> None:
+    """Generate a new trusted-Python plugin package scaffold."""
+    try:
+        result = scaffold_plugin(name, output_dir)
+    except (OSError, ValueError) as exc:
+        console.print(f"[red]Scaffold failed:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print(f"[green]Generated[/green] {result.plugin_root}")
 
 
 @runs_app.command("show")
@@ -206,6 +225,36 @@ def compare_runs(
     console.print(table)
 
 
+@app.command("export")
+def export_run_command(
+    run: Annotated[str, typer.Argument()],
+    export_format: Annotated[str, typer.Option("--format")] = "csv",
+    output: Annotated[Path, typer.Option("--output")] = Path("exports"),
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """Export run metrics and events to CSV or Parquet."""
+    if export_format not in {"csv", "parquet"}:
+        raise typer.BadParameter("--format must be csv or parquet")
+    try:
+        manifest = export_run(
+            artifacts_dir,
+            run,
+            output_dir=output,
+            export_format=cast(Any, export_format),
+        )
+    except (OSError, ValueError, RunCatalogError) as exc:
+        console.print(f"[red]Export failed:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    table = Table(title=f"Export {manifest.run_id}")
+    table.add_column("Record type")
+    table.add_column("Rows")
+    table.add_column("Path")
+    for exported in manifest.files:
+        table.add_row(exported.record_type, str(exported.row_count), str(exported.path))
+    console.print(table)
+
+
 @app.command("api")
 def api(
     host: Annotated[str, typer.Option("--host")] = "127.0.0.1",
@@ -251,6 +300,53 @@ def show_checkpoint(
     console.print(table)
 
 
+@fields_app.command("list")
+def list_fields_command(
+    run: Annotated[str, typer.Argument()],
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """List 2D field artifacts for a run."""
+    try:
+        fields = list_field_artifacts(artifacts_dir, run)
+    except (OSError, ValueError, RunCatalogError) as exc:
+        console.print(f"[red]Fields unavailable:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    table = Table(title=f"Fields {run}")
+    table.add_column("ID")
+    table.add_column("Source")
+    table.add_column("Shape")
+    table.add_column("Dtype")
+    for field in fields:
+        table.add_row(field.id, field.source, "x".join(map(str, field.dimensions)), field.dtype)
+    console.print(table)
+
+
+@fields_app.command("export")
+def export_field_command(
+    run: Annotated[str, typer.Argument()],
+    field_id: Annotated[str, typer.Argument()],
+    output: Annotated[Path, typer.Option("--output")],
+    export_format: Annotated[str, typer.Option("--format")] = "csv",
+    artifacts_dir: Annotated[Path, typer.Option("--artifacts-dir")] = Path("runs"),
+) -> None:
+    """Export one field artifact to CSV or NPY."""
+    if export_format not in {"csv", "npy"}:
+        raise typer.BadParameter("--format must be csv or npy")
+    try:
+        path = export_field_artifact(
+            artifacts_dir,
+            run,
+            field_id,
+            output=output,
+            export_format=cast(Any, export_format),
+        )
+    except (OSError, ValueError, RunCatalogError) as exc:
+        console.print(f"[red]Field export failed:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print(f"[green]Exported[/green] {path}")
+
+
 @examples_app.command("generate-sir-network")
 def generate_sir_network(
     output: Annotated[Path, typer.Option("--output")],
@@ -265,6 +361,20 @@ def generate_sir_network(
             writer.writerow({"source": source, "target": (source + 1) % nodes, "weight": 1.0})
             writer.writerow({"source": source, "target": (source + 5) % nodes, "weight": 0.35})
     console.print(f"[green]Generated[/green] {output}")
+
+
+@examples_app.command("generate-heat-field")
+def generate_heat_field(
+    output: Annotated[Path, typer.Option("--output")],
+    width: Annotated[int, typer.Option("--width", min=3)] = 32,
+    height: Annotated[int, typer.Option("--height", min=3)] = 32,
+    seed: Annotated[int, typer.Option("--seed")] = 42,
+) -> None:
+    """Generate a deterministic heat diffusion initial-condition NPY file."""
+    from persephone_heat_diffusion.initial_conditions import write_initial_condition
+
+    path = write_initial_condition(output, width=width, height=height, seed=seed)
+    console.print(f"[green]Generated[/green] {path}")
 
 
 def _resolve_run_dir(run: str | Path, artifacts_dir: Path = Path("runs")) -> Path:

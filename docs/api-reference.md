@@ -63,3 +63,40 @@ Streams metric records as Server-Sent Events with `event: metric`.
 ### `POST /runs/{run_id}/cancel`
 
 Requests cooperative cancellation for an active run. Cancellation is checked at scheduler tick boundaries.
+
+### `GET /runs/{run_id}/export`
+
+Downloads a zip archive containing `metrics` and `events` records.
+
+Query:
+
+- `format=csv`
+- `format=parquet`
+
+### `GET /runs/{run_id}/fields`
+
+Lists 2D field artifacts discovered in `final_state.npz` and checkpoint state snapshots. Each field includes id, raw id, source, dimensions, dtype, bounds, units, visualization hints, and optional checkpoint tick.
+
+### `GET /runs/{run_id}/fields/{field_id}`
+
+Downloads one field artifact.
+
+Query:
+
+- `format=csv`
+- `format=npy`
+
+Use the URL-safe `id` returned by `GET /runs/{run_id}/fields`, or the raw id in CLI contexts.
+
+### `POST /sweeps`
+
+Runs a sequential scalar parameter sweep and returns a sweep manifest with child run ids.
+
+### `GET /compare`
+
+Compares two runs by metric.
+
+Query:
+
+- `run=<run-a>&run=<run-b>`
+- `metric=infected_count`

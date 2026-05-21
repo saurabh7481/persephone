@@ -19,3 +19,18 @@ Runs the same SIR model three times while sweeping `solvers[0].params.p_infect` 
 ```bash
 uv run persephone sweep configs/examples/sir_p_infect_sweep.yaml
 ```
+
+## `heat_diffusion.yaml`
+
+Runs the `heat_diffusion` PDE plugin over a 12x12 2D temperature grid with a center hotspot.
+
+```bash
+uv run persephone run configs/examples/heat_diffusion.yaml --run-id heat-demo
+uv run persephone fields list heat-demo
+```
+
+Generate a custom `.npy` initial condition file:
+
+```bash
+uv run persephone examples generate-heat-field --output configs/examples/data/heat_initial.npy
+```

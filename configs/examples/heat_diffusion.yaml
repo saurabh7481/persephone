@@ -1,0 +1,36 @@
+name: heat_diffusion_baseline
+description: "2D explicit finite-difference heat diffusion simulation"
+seed: 42
+
+scheduler:
+  t_end: 1.0
+  sync_interval: 0.1
+  checkpoint_every: 5
+
+solvers:
+  - type: pde
+    plugin: heat_diffusion
+    version: ">=0.1.0"
+    params:
+      width: 12
+      height: 12
+      alpha: 0.2
+      dx: 1.0
+      dy: 1.0
+      initial_condition: center_hotspot
+      hotspot_temperature: 100.0
+      ambient_temperature: 0.0
+
+observer:
+  metrics:
+    - temperature_min
+    - temperature_max
+    - temperature_mean
+    - total_heat
+    - center_temperature
+  emit_every: 0.1
+
+storage:
+  artifacts_dir: runs
+  metrics: true
+  events: true

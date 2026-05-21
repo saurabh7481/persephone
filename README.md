@@ -1,6 +1,6 @@
 # Persephone
 
-Persephone is a local-first, plugin-driven simulation platform. Version 1 proves the full loop with a graph-based SIR epidemic simulation: validate a YAML config, discover a plugin, run the simulation, write run artifacts, inspect metrics, and replay results from the CLI.
+Persephone is a local-first, plugin-driven simulation platform. Version 2 is a headless-first research workbench: validate configs, discover trusted Python plugins, run simulations, stream local API metrics, compare sweeps, export results, and inspect field artifacts from PDE-style simulations.
 
 See [Persephone.md](Persephone.md) for the architecture and [docs/tasks/v1_tasks.md](docs/tasks/v1_tasks.md) for the implementation checklist.
 Core scheduler, checkpoint, telemetry, and state-contract notes live in [docs/core-architecture.md](docs/core-architecture.md).
@@ -14,7 +14,7 @@ Requirements:
 
 For Docker-only local usage, skip to [Docker Quickstart](#docker-quickstart).
 
-Install the workspace packages, including the editable SIR plugin:
+Install the workspace packages, including the editable SIR and heat diffusion plugins:
 
 ```bash
 uv sync
@@ -38,12 +38,34 @@ Run the example simulation:
 uv run persephone run configs/examples/sir_epidemic.yaml --run-id sir-demo
 ```
 
+Run the PDE example:
+
+```bash
+uv run persephone run configs/examples/heat_diffusion.yaml --run-id heat-demo
+```
+
 Inspect the output:
 
 ```bash
 uv run persephone runs show runs/sir-demo
 uv run persephone runs metrics runs/sir-demo --metric infected_count
 uv run persephone replay runs/sir-demo
+uv run persephone fields list heat-demo
+uv run persephone export sir-demo --format csv --output exports/sir-demo-csv
+uv run persephone export sir-demo --format parquet --output exports/sir-demo-parquet
+```
+
+Start the local API:
+
+```bash
+uv run persephone api --host 127.0.0.1 --port 8787
+```
+
+Start the MVP UI in another terminal:
+
+```bash
+cd ui
+bun run dev -- --host 127.0.0.1
 ```
 
 ## Docker Quickstart
@@ -92,13 +114,14 @@ Persephone is developed as a monorepo for Version 1, but each package has a clea
 
 - `src/persephone`: engine, config validation, scheduler, registry, storage, CLI, and reusable solver kernels.
 - `sdk/src/persephone_sdk`: public plugin SDK contracts: `World`, `Solver`, `Observer`, `Renderer`, `PluginManifest`, and `PluginTestHarness`.
-- `plugins/persephone-plugin-sir-epidemic`: first plugin package, discovered through the same `persephone.plugins` entry point used by future external plugins.
+- `plugins/persephone-plugin-sir-epidemic`: graph SIR plugin, discovered through the same `persephone.plugins` entry point used by future external plugins.
+- `plugins/persephone-plugin-heat-diffusion`: 2D PDE heat diffusion plugin with field artifacts.
 
 The engine should not directly import plugin modules. Plugins are installed packages and are discovered through entry points.
 
-## Version 1 Plugin Trust Model
+## Version 2 Plugin Trust Model
 
-Version 1 plugins are trusted Python code. Installing a plugin executes Python from that package, exactly like installing any other Python dependency. Only install plugins you trust.
+Version 2 plugins are trusted Python code. Installing a plugin executes Python from that package, exactly like installing any other Python dependency. Only install plugins you trust.
 
 Sandboxing, remote plugin installation, plugin registry publishing, and untrusted plugin execution are later-phase features.
 
@@ -120,6 +143,12 @@ source,target,weight
 
 The graph is synthetic to keep the first run deterministic, offline, fast, and license-clean.
 
+The heat diffusion example uses a generated in-memory 2D hotspot field. You can create an `.npy` initial condition file with:
+
+```bash
+uv run persephone examples generate-heat-field --output configs/examples/data/heat_initial.npy
+```
+
 ## Run Artifacts
 
 A completed run writes:
@@ -131,6 +160,7 @@ runs/<run_id>/
 ├── events.jsonl
 ├── final_state.npz
 ├── final_state.json
+├── exports/
 └── checkpoints/
 ```
 
@@ -140,6 +170,7 @@ runs/<run_id>/
 - `final_state.npz`: NumPy arrays for final solver state.
 - `final_state.json`: metadata for final-state arrays.
 - `checkpoints/`: optional checkpoint snapshots when `scheduler.checkpoint_every` is configured.
+- `exports/`: optional CSV, Parquet, or field downloads created by the CLI/API.
 
 ## Reproducibility
 

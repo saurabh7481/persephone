@@ -330,84 +330,84 @@ This checkpoint is mandatory before Checkpoint 10 or any new simulation paradigm
 
 ### Checkpoint 10 — Results export
 
-- [ ] Add CSV export for metrics and events.
-- [ ] Add Parquet export for metrics and events.
-- [ ] Add dependency for Parquet support, such as `pyarrow`.
-- [ ] Implement `persephone export <run> --format csv`.
-- [ ] Implement `persephone export <run> --format parquet`.
-- [ ] Add API endpoint for export download.
-- [ ] Defer UI export button to the future UI rewrite.
-- [ ] Add tests that exported CSV and Parquet preserve row counts and metric names.
+- [x] Add CSV export for metrics and events.
+- [x] Add Parquet export for metrics and events.
+- [x] Add dependency for Parquet support, such as `pyarrow`.
+- [x] Implement `persephone export <run> --format csv`.
+- [x] Implement `persephone export <run> --format parquet`.
+- [x] Add API endpoint for export download.
+- [x] Defer UI export button to the future UI rewrite.
+- [x] Add tests that exported CSV and Parquet preserve row counts and metric names.
 - [ ] Commit: `feat: export run results`.
 
 ### Checkpoint 11 — Heat diffusion PDE plugin
 
-- [ ] Create `plugins/persephone-plugin-heat-diffusion/pyproject.toml`.
-- [ ] Declare entry point `heat_diffusion`.
-- [ ] Implement `HeatWorld` for a 2D temperature grid.
-- [ ] Implement explicit finite-difference heat equation step.
-- [ ] Enforce CFL stability for `dt`.
-- [ ] Implement `HeatObserver` with min, max, mean, total heat, and center temperature.
-- [ ] Implement `HeatRenderer` with field visualization schema.
-- [ ] Add example config `configs/examples/heat_diffusion.yaml`.
-- [ ] Add example initial condition generator.
-- [ ] Add plugin harness tests.
-- [ ] Add conservation/stability tests.
-- [ ] Add API/CLI support for field metrics and artifacts.
+- [x] Create `plugins/persephone-plugin-heat-diffusion/pyproject.toml`.
+- [x] Declare entry point `heat_diffusion`.
+- [x] Implement `HeatWorld` for a 2D temperature grid.
+- [x] Implement explicit finite-difference heat equation step.
+- [x] Enforce CFL stability for `dt`.
+- [x] Implement `HeatObserver` with min, max, mean, total heat, and center temperature.
+- [x] Implement `HeatRenderer` with field visualization schema.
+- [x] Add example config `configs/examples/heat_diffusion.yaml`.
+- [x] Add example initial condition generator.
+- [x] Add plugin harness tests.
+- [x] Add conservation/stability tests.
+- [x] Add API/CLI support for field metrics and artifacts.
 - [ ] Commit: `feat: add heat diffusion plugin`.
 
 ### Checkpoint 12 — Field artifact API
 
-- [ ] Add field artifact support for selected snapshots.
-- [ ] Add field metadata schema: dimensions, dtype, bounds, units, and visualization hints.
-- [ ] Store final and selected intermediate fields from `final_state.npz` or checkpoint snapshots.
-- [ ] Add CLI commands for listing and exporting field artifacts.
-- [ ] Add API endpoints to inspect and download field artifacts.
-- [ ] Defer heatmap canvas and polished UI rendering to the future UI rewrite.
-- [ ] Add tests for field metadata, snapshot discovery, and API download behavior.
+- [x] Add field artifact support for selected snapshots.
+- [x] Add field metadata schema: dimensions, dtype, bounds, units, and visualization hints.
+- [x] Store final and selected intermediate fields from `final_state.npz` or checkpoint snapshots.
+- [x] Add CLI commands for listing and exporting field artifacts.
+- [x] Add API endpoints to inspect and download field artifacts.
+- [x] Defer heatmap canvas and polished UI rendering to the future UI rewrite.
+- [x] Add tests for field metadata, snapshot discovery, and API download behavior.
 - [ ] Commit: `feat: add field artifact api`.
 
 ### Checkpoint 13 — Plugin template command
 
-- [ ] Add `persephone plugins scaffold <name>`.
-- [ ] Generate plugin package layout.
-- [ ] Generate `pyproject.toml` with entry point.
-- [ ] Generate stub `World`, `Solver`, `Observer`, `Renderer`.
-- [ ] Generate plugin harness test.
-- [ ] Generate README.
-- [ ] Add tests that scaffolded plugin imports and passes generated harness tests after install.
+- [x] Add `persephone plugins scaffold <name>`.
+- [x] Generate plugin package layout.
+- [x] Generate `pyproject.toml` with entry point.
+- [x] Generate stub `World`, `Solver`, `Observer`, `Renderer`.
+- [x] Generate plugin harness test.
+- [x] Generate README.
+- [x] Add tests that scaffolded plugin imports and passes generated harness tests after install.
 - [ ] Commit: `feat: scaffold plugin packages`.
 
 ### Checkpoint 14 — Documentation and examples
 
-- [ ] Update README with API and UI quickstart.
-- [ ] Add `docs/api-reference.md`.
-- [ ] Add `docs/ui-guide.md`.
-- [ ] Add `docs/sweeps.md`.
-- [ ] Add `docs/run-comparison.md`.
-- [ ] Add `docs/exporting-results.md`.
-- [ ] Add heat diffusion plugin docs.
-- [ ] Add schema/API examples for future UI work.
+- [x] Update README with API and UI quickstart.
+- [x] Add `docs/api-reference.md`.
+- [x] Add `docs/ui-guide.md`.
+- [x] Add `docs/sweeps.md`.
+- [x] Add `docs/run-comparison.md`.
+- [x] Add `docs/exporting-results.md`.
+- [x] Add heat diffusion plugin docs.
+- [x] Add schema/API examples for future UI work.
 - [ ] Commit: `docs: add v2 user docs`.
 
 ### Checkpoint 15 — Version 2 quality gate
 
-- [ ] Run `uv sync`.
-- [ ] Run engine tests with coverage.
-- [ ] Run API tests.
-- [ ] Run UI tests.
-- [ ] Run UI build.
-- [ ] Run lint, format, and type checks for Python.
-- [ ] Run TypeScript checks.
-- [ ] Run `persephone run configs/examples/sir_epidemic.yaml`.
-- [ ] Run `persephone run configs/examples/heat_diffusion.yaml`.
-- [ ] Run a parameter sweep.
-- [ ] Compare two sweep child runs.
-- [ ] Export one run to CSV.
-- [ ] Export one run to Parquet.
-- [ ] Start API and verify `/health`.
-- [ ] Start UI and verify dashboard loads.
-- [ ] Update `docs/release-v0.2.md`.
+- [x] Run `uv sync`.
+- [x] Run engine tests with coverage.
+- [x] Run API tests.
+- [x] Run UI tests.
+- [x] Run UI build.
+- [x] Run lint, format, and type checks for Python.
+- [x] Run TypeScript checks.
+- [x] Run `persephone run configs/examples/sir_epidemic.yaml`.
+- [x] Run `persephone run configs/examples/heat_diffusion.yaml`.
+- [x] Run a parameter sweep.
+- [x] Compare two sweep child runs.
+- [x] Export one run to CSV.
+- [x] Export one run to Parquet.
+- [x] Start API and verify `/health`.
+- [x] Start UI and verify dashboard loads.
+- [x] Update `docs/release-v0.2.md`.
 - [ ] Commit: `test: complete v2 quality gate`.
 
 ---
