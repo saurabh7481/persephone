@@ -231,41 +231,41 @@ This is a spike, not required for v3 shipping.
 
 ### Checkpoint 9 — Studio design system foundation
 
-- [ ] Define product design principles: instrument-like, calm, dense, readable, non-technical default, technical on demand.
-- [ ] Create Studio color tokens with light and dark themes.
-- [ ] Create typography scale for app shell, panels, charts, dense tables, and viewport overlays.
-- [ ] Create spacing, radius, elevation, and border tokens.
-- [ ] Build shadcn-svelte wrapper components for Persephone-specific usage.
-- [ ] Add icon language with `lucide-svelte`.
-- [ ] Add design system page or Storybook-like internal route if lightweight.
-- [ ] Ensure cards are not used as page-section wrappers; use panels, docks, and workbench regions.
-- [ ] Add accessibility checks for contrast and keyboard navigation.
+- [x] Define product design principles: instrument-like, calm, dense, readable, non-technical default, technical on demand.
+- [x] Create Studio color tokens with light and dark themes.
+- [x] Create typography scale for app shell, panels, charts, dense tables, and viewport overlays.
+- [x] Create spacing, radius, elevation, and border tokens.
+- [x] Build shadcn-svelte wrapper components for Persephone-specific usage.
+- [x] Add icon language with `lucide-svelte`.
+- [x] Add design system page or Storybook-like internal route if lightweight.
+- [x] Ensure cards are not used as page-section wrappers; use panels, docks, and workbench regions.
+- [x] Add accessibility checks for contrast and keyboard navigation.
 - [ ] Commit: `feat: add Studio design system foundation`.
 
 ### Checkpoint 10 — Studio shell layout
 
-- [ ] Replace MVP navigation with Studio shell.
-- [ ] Add persistent top bar with project/run context and command actions.
-- [ ] Add left icon rail for Studio, Runs, Sweeps, Compare, Artifacts, Plugins, Settings.
-- [ ] Add contextual left panel for experiment controls.
-- [ ] Add central viewport region.
-- [ ] Add right inspector panel.
-- [ ] Add bottom analysis dock with tabs for Metrics, Events, Frames, Artifacts, Logs.
-- [ ] Add resizable/collapsible panels.
-- [ ] Add responsive fallback for laptop and tablet widths.
-- [ ] Add Playwright screenshots for key shell states.
+- [x] Replace MVP navigation with Studio shell.
+- [x] Add persistent top bar with project/run context and command actions.
+- [x] Add left icon rail for Studio, Runs, Sweeps, Compare, Artifacts, Plugins, Settings.
+- [x] Add contextual left panel for experiment controls.
+- [x] Add central viewport region.
+- [x] Add right inspector panel.
+- [x] Add bottom analysis dock with tabs for Metrics, Events, Frames, Artifacts, Logs.
+- [x] Add resizable/collapsible panels.
+- [x] Add responsive fallback for laptop and tablet widths.
+- [x] Add Playwright screenshots for key shell states.
 - [ ] Commit: `feat: build Simulation Studio shell`.
 
 ### Checkpoint 11 — Playback engine store
 
-- [ ] Add frontend playback store: mode, status, current time, speed, frame buffer, selected frame, selected object.
-- [ ] Support live source and replay source with the same interface.
-- [ ] Add buffering policy for incoming live frames.
-- [ ] Add pause, resume, scrub, jump-to-start, jump-to-end, speed control.
-- [ ] Add local pause while backend run continues.
-- [ ] Add transition from live mode to replay mode after completion.
-- [ ] Add unit tests for playback state transitions.
-- [ ] Add UI tests for controls.
+- [x] Add frontend playback store: mode, status, current time, speed, frame buffer, selected frame, selected object.
+- [x] Support live source and replay source with the same interface.
+- [x] Add buffering policy for incoming live frames.
+- [x] Add pause, resume, scrub, jump-to-start, jump-to-end, speed control.
+- [x] Add local pause while backend run continues.
+- [x] Add transition from live mode to replay mode after completion.
+- [x] Add unit tests for playback state transitions.
+- [x] Add UI tests for controls.
 - [ ] Commit: `feat: add Studio playback engine`.
 
 ### Checkpoint 12 — Canvas viewport renderer

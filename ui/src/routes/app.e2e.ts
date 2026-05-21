@@ -77,6 +77,92 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/runs/run-a/metrics', async (route) => {
 		await route.fulfill({ json: metrics });
 	});
+	await page.route('http://127.0.0.1:8787/runs/run-a/frames', async (route) => {
+		await route.fulfill({
+			json: {
+				metadata: {
+					run_id: 'run-a',
+					frame_count: 2,
+					available_kinds: ['field'],
+					t_min: 1,
+					t_max: 2
+				},
+				frames: [
+					{
+						frame_id: 'frame-a',
+						kind: 'field',
+						t: 1,
+						tick: 1,
+						solver_id: 'heat#0',
+						source: 'replay',
+						payload_ref: { uri: 'frames/frames.jsonl', format: 'jsonl' }
+					},
+					{
+						frame_id: 'frame-b',
+						kind: 'field',
+						t: 2,
+						tick: 2,
+						solver_id: 'heat#0',
+						source: 'replay',
+						payload_ref: { uri: 'frames/frames.jsonl', format: 'jsonl' }
+					}
+				]
+			}
+		});
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-a/frames/frame-a', async (route) => {
+		await route.fulfill({
+			json: {
+				kind: 'field',
+				frame_id: 'frame-a',
+				t: 1,
+				tick: 1,
+				solver_id: 'heat#0',
+				source: 'replay',
+				field: 'temperature',
+				shape: [1, 1],
+				dtype: 'float64',
+				bounds: { min: 0, max: 1 },
+				units: 'temperature',
+				visualization: {},
+				values: [0.4]
+			}
+		});
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-a/frames/frame-b', async (route) => {
+		await route.fulfill({
+			json: {
+				kind: 'field',
+				frame_id: 'frame-b',
+				t: 2,
+				tick: 2,
+				solver_id: 'heat#0',
+				source: 'replay',
+				field: 'temperature',
+				shape: [1, 1],
+				dtype: 'float64',
+				bounds: { min: 0, max: 1 },
+				units: 'temperature',
+				visualization: {},
+				values: [0.8]
+			}
+		});
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-a/frames/stream', async (route) => {
+		await route.fulfill({
+			contentType: 'text/event-stream',
+			body: [
+				'id: 1',
+				'event: frame',
+				'data: {"kind":"field","frame_id":"frame-c","t":3,"tick":3,"solver_id":"heat#0","source":"live","field":"temperature","shape":[1,1],"dtype":"float64","bounds":{"min":0,"max":1},"units":"temperature","visualization":{},"values":[0.9]}',
+				'',
+				'event: status',
+				'data: {"run_id":"run-a","status":"completed"}',
+				'',
+				''
+			].join('\n')
+		});
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a/stream', async (route) => {
 		await route.fulfill({
 			contentType: 'text/event-stream',
@@ -146,10 +232,22 @@ test('renders the run dashboard with catalog rows', async ({ page }) => {
 	await expect(page.getByText('sir_epidemic')).toBeVisible();
 });
 
+test('captures the Studio shell smoke state', async ({ page }) => {
+	await page.goto('/runs');
+
+	await expect(page.getByLabel('Primary navigation')).toBeVisible();
+	await expect(page.getByLabel('Studio workspace')).toBeVisible();
+	const screenshot = await page.screenshot();
+	expect(screenshot.length).toBeGreaterThan(10_000);
+});
+
 test('renders run detail metrics and events', async ({ page }) => {
 	await page.goto('/runs/run-a');
 
 	await expect(page.getByRole('heading', { name: 'run-a' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Simulation playback viewport' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Pause playback' })).toBeVisible();
+	await expect(page.getByText(/Frame buffer \d+/)).toBeVisible();
 	await expect(page.getByText('infected_count')).toBeVisible();
 	await expect(page.getByText('Peak value')).toBeVisible();
 	await expect(page.getByText('Final value')).toBeVisible();

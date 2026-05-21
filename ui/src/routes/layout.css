@@ -6,33 +6,44 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-	--background: oklch(1 0 0);
-	--foreground: oklch(0.145 0 0);
+	--background: oklch(0.982 0.008 248);
+	--foreground: oklch(0.21 0.03 257);
 	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.145 0 0);
+	--card-foreground: oklch(0.21 0.03 257);
 	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.145 0 0);
-	--primary: oklch(0.205 0 0);
-	--primary-foreground: oklch(0.985 0 0);
-	--secondary: oklch(0.97 0 0);
-	--secondary-foreground: oklch(0.205 0 0);
-	--muted: oklch(0.97 0 0);
-	--muted-foreground: oklch(0.556 0 0);
-	--accent: oklch(0.97 0 0);
-	--accent-foreground: oklch(0.205 0 0);
+	--popover-foreground: oklch(0.21 0.03 257);
+	--primary: oklch(0.47 0.1 206);
+	--primary-foreground: oklch(0.985 0.005 210);
+	--secondary: oklch(0.94 0.018 248);
+	--secondary-foreground: oklch(0.26 0.04 257);
+	--muted: oklch(0.95 0.012 248);
+	--muted-foreground: oklch(0.47 0.035 257);
+	--accent: oklch(0.93 0.035 196);
+	--accent-foreground: oklch(0.24 0.055 210);
 	--destructive: oklch(0.577 0.245 27.325);
-	--border: oklch(0.922 0 0);
-	--input: oklch(0.922 0 0);
-	--ring: oklch(0.708 0 0);
+	--border: oklch(0.87 0.018 248);
+	--input: oklch(0.87 0.018 248);
+	--ring: oklch(0.62 0.09 206);
 	--chart-1: oklch(0.55 0.19 253);
 	--chart-2: oklch(0.58 0.22 29);
 	--chart-3: oklch(0.58 0.14 158);
 	--chart-4: oklch(0.64 0.15 70);
 	--chart-5: oklch(0.55 0.13 288);
-	--radius: 0.625rem;
-	--sidebar: oklch(0.985 0 0);
-	--sidebar-foreground: oklch(0.145 0 0);
-	--sidebar-primary: oklch(0.205 0 0);
+	--radius: 0.5rem;
+	--studio-shell: #f6f8fb;
+	--studio-shell-foreground: #172033;
+	--studio-panel: #ffffff;
+	--studio-panel-muted: #eef3f8;
+	--studio-rail: #101722;
+	--studio-rail-foreground: #eef4fb;
+	--studio-border: #cfd9e6;
+	--studio-accent: #0f6b7a;
+	--studio-accent-foreground: #ffffff;
+	--studio-warning: #a85b00;
+	--studio-success: #1f7a4d;
+	--sidebar: oklch(0.985 0.006 248);
+	--sidebar-foreground: oklch(0.21 0.03 257);
+	--sidebar-primary: oklch(0.47 0.1 206);
 	--sidebar-primary-foreground: oklch(0.985 0 0);
 	--sidebar-accent: oklch(0.97 0 0);
 	--sidebar-accent-foreground: oklch(0.205 0 0);
@@ -41,20 +52,20 @@
 }
 
 .dark {
-	--background: oklch(0.145 0 0);
-	--foreground: oklch(0.985 0 0);
-	--card: oklch(0.205 0 0);
-	--card-foreground: oklch(0.985 0 0);
-	--popover: oklch(0.205 0 0);
-	--popover-foreground: oklch(0.985 0 0);
-	--primary: oklch(0.922 0 0);
-	--primary-foreground: oklch(0.205 0 0);
-	--secondary: oklch(0.269 0 0);
-	--secondary-foreground: oklch(0.985 0 0);
-	--muted: oklch(0.269 0 0);
-	--muted-foreground: oklch(0.708 0 0);
-	--accent: oklch(0.269 0 0);
-	--accent-foreground: oklch(0.985 0 0);
+	--background: oklch(0.17 0.025 257);
+	--foreground: oklch(0.96 0.008 248);
+	--card: oklch(0.22 0.028 257);
+	--card-foreground: oklch(0.96 0.008 248);
+	--popover: oklch(0.22 0.028 257);
+	--popover-foreground: oklch(0.96 0.008 248);
+	--primary: oklch(0.78 0.09 206);
+	--primary-foreground: oklch(0.16 0.025 257);
+	--secondary: oklch(0.28 0.025 257);
+	--secondary-foreground: oklch(0.96 0.008 248);
+	--muted: oklch(0.28 0.025 257);
+	--muted-foreground: oklch(0.74 0.022 248);
+	--accent: oklch(0.34 0.045 206);
+	--accent-foreground: oklch(0.96 0.008 248);
 	--destructive: oklch(0.704 0.191 22.216);
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
@@ -64,6 +75,17 @@
 	--chart-3: oklch(0.439 0 0);
 	--chart-4: oklch(0.371 0 0);
 	--chart-5: oklch(0.269 0 0);
+	--studio-shell: #101722;
+	--studio-shell-foreground: #eef4fb;
+	--studio-panel: #151f2c;
+	--studio-panel-muted: #0d131c;
+	--studio-rail: #0d131c;
+	--studio-rail-foreground: #eef4fb;
+	--studio-border: #344255;
+	--studio-accent: #5ac8d8;
+	--studio-accent-foreground: #061115;
+	--studio-warning: #f2b35d;
+	--studio-success: #71d29a;
 	--sidebar: oklch(0.205 0 0);
 	--sidebar-foreground: oklch(0.985 0 0);
 	--sidebar-primary: oklch(0.488 0.243 264.376);
@@ -126,10 +148,395 @@
 	html {
 		@apply font-sans;
 	}
+	button,
+	a,
+	input,
+	textarea,
+	select {
+		letter-spacing: 0;
+	}
 }
 
 @layer utilities {
 	.text-balance {
 		text-wrap: balance;
+	}
+}
+
+@layer components {
+	.studio-shell {
+		min-height: 100vh;
+		background: var(--studio-shell);
+		color: var(--studio-shell-foreground);
+		display: grid;
+		grid-template-columns: 3.75rem minmax(0, 1fr);
+		grid-template-rows: 3.5rem minmax(0, 1fr);
+	}
+
+	.studio-topbar {
+		position: sticky;
+		top: 0;
+		z-index: 30;
+		grid-column: 1 / -1;
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		border-bottom: 1px solid var(--studio-border);
+		background: color-mix(in oklab, var(--studio-panel) 92%, transparent);
+		padding: 0 1rem;
+		backdrop-filter: blur(12px);
+	}
+
+	.studio-brand {
+		display: inline-flex;
+		min-width: 15rem;
+		align-items: center;
+		gap: 0.65rem;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.studio-brand-mark {
+		display: grid;
+		height: 2rem;
+		width: 2rem;
+		place-items: center;
+		border-radius: 0.45rem;
+		background: var(--studio-accent);
+		color: var(--studio-accent-foreground);
+	}
+
+	.studio-brand-name,
+	.studio-context-title {
+		display: block;
+		font-size: 0.9rem;
+		font-weight: 650;
+		line-height: 1.15;
+	}
+
+	.studio-brand-subtitle,
+	.studio-topbar-context,
+	.studio-panel-description {
+		font-size: 0.75rem;
+		color: color-mix(in oklab, var(--studio-shell-foreground) 62%, transparent);
+	}
+
+	.studio-topbar-context {
+		display: flex;
+		flex: 1;
+		align-items: center;
+		gap: 0.65rem;
+		min-width: 0;
+	}
+
+	.studio-context-divider {
+		height: 1rem;
+		width: 1px;
+		background: var(--studio-border);
+	}
+
+	.studio-topbar-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.studio-rail {
+		grid-row: 2;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.35rem;
+		border-right: 1px solid color-mix(in oklab, var(--studio-border) 80%, transparent);
+		background: var(--studio-rail);
+		padding: 0.75rem 0.5rem;
+	}
+
+	.studio-rail-link {
+		display: grid;
+		height: 2.5rem;
+		width: 2.5rem;
+		place-items: center;
+		border-radius: 0.5rem;
+		color: color-mix(in oklab, var(--studio-rail-foreground) 72%, transparent);
+		transition:
+			background 120ms ease,
+			color 120ms ease;
+	}
+
+	.studio-rail-link:hover,
+	.studio-rail-link:focus-visible {
+		background: color-mix(in oklab, var(--studio-accent) 26%, transparent);
+		color: var(--studio-rail-foreground);
+		outline: 2px solid color-mix(in oklab, var(--studio-accent) 58%, transparent);
+		outline-offset: 2px;
+	}
+
+	.studio-context-panel {
+		display: none;
+		border-right: 1px solid var(--studio-border);
+		background: color-mix(in oklab, var(--studio-panel) 82%, var(--studio-shell));
+		padding: 1rem;
+	}
+
+	.studio-eyebrow,
+	.studio-panel-title {
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: color-mix(in oklab, var(--studio-shell-foreground) 58%, transparent);
+	}
+
+	.studio-context-nav {
+		margin-top: 1rem;
+		display: grid;
+		gap: 0.25rem;
+	}
+
+	.studio-context-nav a {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		border-radius: 0.45rem;
+		padding: 0.5rem 0.6rem;
+		font-size: 0.85rem;
+		color: color-mix(in oklab, var(--studio-shell-foreground) 82%, transparent);
+		text-decoration: none;
+	}
+
+	.studio-context-nav a:hover,
+	.studio-context-nav a:focus-visible {
+		background: var(--studio-panel-muted);
+		color: var(--studio-shell-foreground);
+		outline: 2px solid color-mix(in oklab, var(--studio-accent) 45%, transparent);
+	}
+
+	.studio-main {
+		grid-column: 2;
+		min-width: 0;
+		padding: 1rem;
+	}
+
+	.studio-panel {
+		border: 1px solid var(--studio-border);
+		border-radius: 0.5rem;
+		background: var(--studio-panel);
+	}
+
+	.studio-panel-header {
+		border-bottom: 1px solid color-mix(in oklab, var(--studio-border) 70%, transparent);
+		padding: 0.75rem 0.85rem;
+	}
+
+	.studio-panel-body {
+		padding: 0.85rem;
+	}
+
+	.studio-workbench {
+		display: grid;
+		gap: 0.75rem;
+	}
+
+	.studio-workbench-header {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.studio-workbench-header h1 {
+		font-size: 1.25rem;
+		font-weight: 650;
+		line-height: 1.2;
+	}
+
+	.studio-workbench-header p {
+		margin-top: 0.15rem;
+		font-size: 0.82rem;
+		color: color-mix(in oklab, var(--studio-shell-foreground) 62%, transparent);
+	}
+
+	.studio-workbench-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+	}
+
+	.studio-workbench-actions button {
+		border: 1px solid var(--studio-border);
+		border-radius: 0.375rem;
+		background: var(--studio-panel);
+		padding: 0.35rem 0.55rem;
+		font-size: 0.75rem;
+		color: color-mix(in oklab, var(--studio-shell-foreground) 76%, transparent);
+	}
+
+	.studio-workbench-actions button[aria-pressed='true'] {
+		border-color: color-mix(in oklab, var(--studio-accent) 54%, var(--studio-border));
+		color: var(--studio-shell-foreground);
+	}
+
+	.studio-workbench-grid {
+		display: grid;
+		min-height: calc(100vh - 6.25rem);
+		grid-template-columns: minmax(13rem, 17rem) minmax(22rem, 1fr) minmax(15rem, 20rem);
+		grid-template-rows: minmax(22rem, 1fr) minmax(12rem, 16rem);
+		gap: 0.75rem;
+	}
+
+	.studio-workbench-grid[data-left-open='false'] {
+		grid-template-columns: minmax(22rem, 1fr) minmax(15rem, 20rem);
+	}
+
+	.studio-workbench-grid[data-inspector-open='false'] {
+		grid-template-columns: minmax(13rem, 17rem) minmax(22rem, 1fr);
+	}
+
+	.studio-workbench-grid[data-left-open='false'][data-inspector-open='false'] {
+		grid-template-columns: minmax(22rem, 1fr);
+	}
+
+	.studio-workbench-left,
+	.studio-workbench-inspector,
+	.studio-workbench-dock,
+	.studio-workbench-viewport {
+		min-width: 0;
+		border: 1px solid var(--studio-border);
+		border-radius: 0.5rem;
+		background: var(--studio-panel);
+	}
+
+	.studio-workbench-left {
+		grid-row: 1 / span 2;
+		resize: horizontal;
+		overflow: auto;
+	}
+
+	.studio-workbench-viewport {
+		position: relative;
+		overflow: hidden;
+		background:
+			linear-gradient(
+				color-mix(in oklab, var(--studio-border) 45%, transparent) 1px,
+				transparent 1px
+			),
+			linear-gradient(
+				90deg,
+				color-mix(in oklab, var(--studio-border) 45%, transparent) 1px,
+				transparent 1px
+			),
+			var(--studio-panel-muted);
+		background-size: 32px 32px;
+	}
+
+	.studio-workbench-dock {
+		grid-column: 2 / span 2;
+		overflow: auto;
+		resize: vertical;
+	}
+
+	.studio-workbench-inspector {
+		resize: horizontal;
+		overflow: auto;
+	}
+
+	.studio-workbench-grid[data-left-open='false'] .studio-workbench-viewport {
+		grid-column: 1;
+	}
+
+	.studio-workbench-grid[data-left-open='false'] .studio-workbench-inspector {
+		grid-column: 2;
+	}
+
+	.studio-workbench-grid[data-left-open='false'] .studio-workbench-dock {
+		grid-column: 1 / span 2;
+	}
+
+	.studio-workbench-grid[data-inspector-open='false'] .studio-workbench-dock {
+		grid-column: 2;
+	}
+
+	.studio-workbench-grid[data-left-open='false'][data-inspector-open='false']
+		.studio-workbench-dock {
+		grid-column: 1;
+	}
+
+	.studio-viewport-empty {
+		display: grid;
+		min-height: 20rem;
+		place-items: center;
+		padding: 2rem;
+		text-align: center;
+	}
+
+	.studio-viewport-empty h2 {
+		font-size: 1.1rem;
+		font-weight: 650;
+	}
+
+	.studio-viewport-empty p {
+		margin-top: 0.25rem;
+		max-width: 32rem;
+		font-size: 0.86rem;
+		color: color-mix(in oklab, var(--studio-shell-foreground) 62%, transparent);
+	}
+
+	@media (min-width: 1180px) {
+		.studio-shell {
+			grid-template-columns: 3.75rem 17rem minmax(0, 1fr);
+		}
+
+		.studio-context-panel {
+			display: block;
+			grid-column: 2;
+			grid-row: 2;
+		}
+
+		.studio-main {
+			grid-column: 3;
+		}
+	}
+
+	@media (max-width: 980px) {
+		.studio-shell {
+			grid-template-columns: 1fr;
+			grid-template-rows: auto auto minmax(0, 1fr);
+		}
+
+		.studio-topbar {
+			position: static;
+			flex-wrap: wrap;
+			min-height: 3.5rem;
+			padding: 0.75rem;
+		}
+
+		.studio-rail {
+			grid-column: 1;
+			grid-row: 2;
+			flex-direction: row;
+			justify-content: flex-start;
+			overflow-x: auto;
+			border-right: 0;
+			border-bottom: 1px solid var(--studio-border);
+		}
+
+		.studio-main {
+			grid-column: 1;
+			grid-row: 3;
+			padding: 0.75rem;
+		}
+
+		.studio-workbench-grid {
+			grid-template-columns: 1fr;
+			grid-template-rows: auto minmax(20rem, auto) auto auto;
+		}
+
+		.studio-workbench-left,
+		.studio-workbench-inspector,
+		.studio-workbench-dock {
+			grid-column: 1;
+			grid-row: auto;
+		}
 	}
 }
