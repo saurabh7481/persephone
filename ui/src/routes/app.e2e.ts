@@ -976,13 +976,17 @@ test('shows a summary-first completed-run shell before deep analysis panels', as
 	await expect(page.getByRole('heading', { name: 'Explanation detail' })).toHaveCount(0);
 });
 
-test('hides explanation and debug-heavy sections until the user opens secondary tabs', async ({ page }) => {
+test('hides explanation and debug-heavy sections until the user opens secondary tabs', async ({
+	page
+}) => {
 	await page.goto('/runs/run-workflow');
 	await pausePlaybackIfNeeded(page);
 
 	await expect(page.getByRole('heading', { name: 'Explanation detail' })).toHaveCount(0);
 	await page.getByRole('tab', { name: 'Explain' }).click();
-	await expect(page.getByText('Delivery risk is clustering on the critical path').first()).toBeVisible();
+	await expect(
+		page.getByText('Delivery risk is clustering on the critical path').first()
+	).toBeVisible();
 });
 
 test('keeps inspector compact until a node is selected', async ({ page }) => {
@@ -994,7 +998,9 @@ test('keeps inspector compact until a node is selected', async ({ page }) => {
 	await expect(page.getByText('Select a node, relationship, or field cell')).toBeVisible();
 });
 
-test('keeps the summary, primary visualization, and primary metric visible before details on laptop widths', async ({ page }) => {
+test('keeps the summary, primary visualization, and primary metric visible before details on laptop widths', async ({
+	page
+}) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.goto('/runs/run-workflow');
 	await pausePlaybackIfNeeded(page);
@@ -1005,7 +1011,9 @@ test('keeps the summary, primary visualization, and primary metric visible befor
 
 	const layout = await page.evaluate(() => {
 		const lookup = (text: string) =>
-			Array.from(document.querySelectorAll('h2')).find((node) => node.textContent?.trim() === text)?.getBoundingClientRect().top ?? null;
+			Array.from(document.querySelectorAll('h2'))
+				.find((node) => node.textContent?.trim() === text)
+				?.getBoundingClientRect().top ?? null;
 		return {
 			viewportTop: lookup('Viewport'),
 			metricTop: lookup('Delivery risk index analysis'),

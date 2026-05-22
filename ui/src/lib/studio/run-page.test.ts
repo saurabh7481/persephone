@@ -16,7 +16,8 @@ describe('buildRunPageModel', () => {
 				eyebrow: 'What is happening now',
 				title: 'Pricing service is the current blocker hotspot',
 				summary: 'Risk reached 0.37 while backlog climbed to 5.3 review items.',
-				significance: 'The strongest recent shift is Pricing service pressure on the critical path.',
+				significance:
+					'The strongest recent shift is Pricing service pressure on the critical path.',
 				nextStep: 'Use Hierarchy to inspect Pricing service and connected relationships.'
 			},
 			focusedMetric: {

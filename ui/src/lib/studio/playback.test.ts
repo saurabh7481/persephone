@@ -1,6 +1,11 @@
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createPlaybackStore, type PlaybackSource } from './playback';
+
+beforeEach(() => {
+	vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => setTimeout(() => cb(performance.now()), 0));
+	vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id));
+});
 import type { SimulationFrame } from '$lib/api-client';
 
 const frameA: SimulationFrame = {

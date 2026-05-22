@@ -71,6 +71,50 @@ export function createPlaybackStore({
 }): PlaybackStore {
 	const state = writable<PlaybackState>(initialState);
 	let disconnectLive: (() => void) | null = null;
+	let rafHandle = 0;
+	let lastTickMs = 0;
+
+	function tickLoop(nowMs: number) {
+		const current = get(state);
+		if (current.status !== 'playing' || !current.frameBuffer.length) {
+			rafHandle = 0;
+			return;
+		}
+		const deltaMs = lastTickMs ? nowMs - lastTickMs : 0;
+		lastTickMs = nowMs;
+		const nextTime = current.currentTime + (deltaMs / 1000) * current.speed;
+		const lastFrame = current.frameBuffer.at(-1)!;
+		if (nextTime >= lastFrame.t) {
+			state.update((s) => ({
+				...s,
+				status: 'completed',
+				currentTime: lastFrame.t,
+				selectedFrameId: lastFrame.frame_id
+			}));
+			rafHandle = 0;
+			return;
+		}
+		const nearest = nearestFrame(current.frameBuffer, nextTime);
+		state.update((s) => ({
+			...s,
+			currentTime: nextTime,
+			selectedFrameId: nearest?.frame_id ?? s.selectedFrameId
+		}));
+		rafHandle = requestAnimationFrame(tickLoop);
+	}
+
+	function startLoop() {
+		if (rafHandle) return;
+		lastTickMs = 0;
+		rafHandle = requestAnimationFrame(tickLoop);
+	}
+
+	function stopLoop() {
+		if (rafHandle) {
+			cancelAnimationFrame(rafHandle);
+			rafHandle = 0;
+		}
+	}
 
 	function setFrames(frames: SimulationFrame[], mode: PlaybackMode) {
 		const ordered = orderFrames(frames);
@@ -148,14 +192,17 @@ export function createPlaybackStore({
 				...current,
 				status: current.frameBuffer.length ? 'playing' : 'buffering'
 			}));
+			startLoop();
 		},
 		pause() {
+			stopLoop();
 			state.update((current) => ({ ...current, status: 'paused' }));
 		},
 		setSpeed(speed: number) {
 			state.update((current) => ({ ...current, speed: clampSpeed(speed) }));
 		},
 		scrubTo(time: number) {
+			lastTickMs = 0;
 			state.update((current) => {
 				const selected = nearestFrame(current.frameBuffer, time);
 				return {
@@ -208,6 +255,7 @@ export function createPlaybackStore({
 			state.update((current) => ({ ...current, selectedObject: object }));
 		},
 		destroy() {
+			stopLoop();
 			disconnectLive?.();
 			disconnectLive = null;
 		}

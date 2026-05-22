@@ -14,6 +14,7 @@
 		type GraphRenderOptions,
 		type GraphRenderMode
 	} from '$lib/studio/renderers';
+	import { resolveViewportControls, resolveViewportSupport } from '$lib/studio/viewport';
 
 	type ViewKind =
 		| 'network'
@@ -75,6 +76,8 @@
 	let zoom = $state(1);
 	let panX = $state(0);
 	let panY = $state(0);
+	let helpOpen = $state(false);
+	let controlsOpen = $state(false);
 	let draggingGraph = $state(false);
 	let renderHandle = 0;
 	let pointerAnchorX = 0;
@@ -83,7 +86,6 @@
 	let pointerPanY = 0;
 	let movedDuringDrag = false;
 
-	const isFieldFrame = $derived(frame?.kind === 'field');
 	const isGraphFrame = $derived(frame?.kind === 'graph');
 	const paletteValue = $derived(
 		palette ||
@@ -105,7 +107,26 @@
 		panX,
 		panY
 	});
+	const viewportControls = $derived(resolveViewportControls(frame, viewKind));
+	const viewportSupport = $derived(resolveViewportSupport(frame, viewKind));
 	const viewLegend = $derived(viewLegendFor(viewKind, frame));
+	const graphInsights = $derived(
+		(() => {
+			if (frame?.kind !== 'graph') return null;
+			const viewport = normalizeViewport(width, height, globalThis.devicePixelRatio ?? 1);
+			const layout = graphLayout(frame, viewport, graphOptions);
+			return {
+				nodeCount: layout.nodes.length,
+				edgeCount: layout.edges.length,
+				hiddenEdgeCount: layout.hiddenEdgeCount,
+				highlightedNodes: layout.nodes.filter((node) => node.highlighted).length
+			};
+		})()
+	);
+
+	$effect(() => {
+		if (!viewportControls.hasControls) controlsOpen = false;
+	});
 
 	onMount(() => {
 		if (!viewportElement) return;
@@ -208,7 +229,7 @@
 	}
 
 	function handlePointerDown(event: PointerEvent) {
-		if (!isGraphFrame || !canvas) return;
+		if (!isGraphFrame || !canvas || !viewportControls.showGraphZoom) return;
 		draggingGraph = true;
 		movedDuringDrag = false;
 		pointerAnchorX = event.clientX;
@@ -242,13 +263,14 @@
 	}
 
 	function handleWheel(event: WheelEvent) {
-		if (!isGraphFrame) return;
+		if (!isGraphFrame || !viewportControls.showGraphZoom) return;
 		event.preventDefault();
 		const multiplier = event.deltaY < 0 ? 1.08 : 0.92;
 		zoom = clamp(zoom * multiplier, 0.6, 6);
 	}
 
 	function nudgeZoom(delta: number) {
+		if (!viewportControls.showGraphZoom) return;
 		zoom = clamp(zoom + delta, 0.6, 6);
 	}
 
@@ -314,7 +336,7 @@
 </script>
 
 <div bind:this={viewportElement} class="simulation-viewport" data-status={status}>
-	{#if frame}
+	{#if frame && viewportSupport.state === 'ready'}
 		<canvas
 			bind:this={canvas}
 			class="simulation-viewport-canvas"
@@ -339,8 +361,37 @@
 			{/if}
 		</div>
 
-		{#if viewLegend.length}
-			<div class="simulation-viewport-legend" aria-label="View guidance">
+		<div class="simulation-viewport-actions">
+			{#if viewLegend.length}
+				<button
+					type="button"
+					class="simulation-viewport-action-button"
+					aria-controls="viewport-guide"
+					aria-expanded={helpOpen}
+					onclick={() => (helpOpen = !helpOpen)}
+				>
+					View guide
+				</button>
+			{/if}
+			{#if viewportControls.hasControls}
+				<button
+					type="button"
+					class="simulation-viewport-action-button"
+					aria-controls="viewport-controls"
+					aria-expanded={controlsOpen}
+					onclick={() => (controlsOpen = !controlsOpen)}
+				>
+					View controls
+				</button>
+			{/if}
+		</div>
+
+		{#if helpOpen && viewLegend.length}
+			<div id="viewport-guide" class="simulation-viewport-legend" aria-label="View guidance">
+				<div>
+					<p class="studio-eyebrow">View guide</p>
+					<p>{viewHelp}</p>
+				</div>
 				{#each viewLegend as item (`${viewKind}:${item.label}`)}
 					<div>
 						<p class="studio-eyebrow">{item.label}</p>
@@ -350,64 +401,105 @@
 			</div>
 		{/if}
 
-		{#if isFieldFrame}
-			<div class="simulation-viewport-controls" aria-label="Field visualization controls">
-				<p class="simulation-viewport-controls-copy">{viewHelp}</p>
-				<label>
-					<span>Palette</span>
-					<select bind:value={palette}>
-						<option value="">Frame</option>
-						<option value="viridis">Viridis</option>
-						<option value="inferno">Inferno</option>
-						<option value="magma">Magma</option>
-						<option value="gray">Gray</option>
-					</select>
-				</label>
-				<label class="simulation-viewport-checkbox">
-					<input type="checkbox" bind:checked={autoscale} />
-					<span>Autoscale</span>
-				</label>
-				<label>
-					<span>Min</span>
-					<input bind:value={manualMin} type="number" step="any" disabled={autoscale} />
-				</label>
-				<label>
-					<span>Max</span>
-					<input bind:value={manualMax} type="number" step="any" disabled={autoscale} />
-				</label>
-				<label>
-					<span>Opacity</span>
-					<input bind:value={opacity} type="range" min="0.1" max="1" step="0.05" />
-				</label>
-			</div>
-		{/if}
+		{#if controlsOpen && viewportControls.hasControls}
+			<div
+				id="viewport-controls"
+				class="simulation-viewport-controls"
+				aria-label="Viewport controls"
+			>
+				<p class="simulation-viewport-controls-copy">
+					{viewHelp}
+					{#if graphInsights}
+						<span class="simulation-viewport-meta">
+							{graphInsights.nodeCount} nodes · {graphInsights.edgeCount} visible edges
+							{#if graphInsights.hiddenEdgeCount > 0}
+								· {graphInsights.hiddenEdgeCount} filtered
+							{/if}
+							{#if graphSearch.trim()}
+								· {graphInsights.highlightedNodes} matches
+							{/if}
+						</span>
+					{/if}
+				</p>
 
-		{#if isGraphFrame}
-			<div class="simulation-viewport-controls" aria-label="Graph visualization controls">
-				<p class="simulation-viewport-controls-copy">{viewHelp}</p>
-				<label class="min-w-[12rem]">
-					<span>Search and highlight</span>
-					<input bind:value={graphSearch} placeholder="node label, group, state" />
-				</label>
-				<label>
-					<span>Edge filter</span>
-					<input bind:value={edgeThreshold} type="range" min="0" max="1" step="0.05" />
-					<small
-						>{edgeThreshold === '' ? 'all edges' : `>= ${Number(edgeThreshold).toFixed(2)}`}</small
-					>
-				</label>
-				<label class="simulation-viewport-checkbox">
-					<input type="checkbox" bind:checked={aggregateGroups} />
-					<span>Cluster groups</span>
-				</label>
-				<div class="simulation-viewport-zoom">
-					<button type="button" onclick={() => nudgeZoom(-0.2)} aria-label="Zoom out">-</button>
-					<span>{zoom.toFixed(1)}x</span>
-					<button type="button" onclick={() => nudgeZoom(0.2)} aria-label="Zoom in">+</button>
-					<button type="button" onclick={resetGraphViewport}>Reset</button>
-				</div>
+				{#if viewportControls.showFieldPalette}
+					<label>
+						<span>Palette</span>
+						<select bind:value={palette}>
+							<option value="">Frame</option>
+							<option value="viridis">Viridis</option>
+							<option value="inferno">Inferno</option>
+							<option value="magma">Magma</option>
+							<option value="gray">Gray</option>
+						</select>
+					</label>
+				{/if}
+				{#if viewportControls.showFieldScale}
+					<label class="simulation-viewport-checkbox">
+						<input type="checkbox" bind:checked={autoscale} />
+						<span>Autoscale</span>
+					</label>
+					<label>
+						<span>Min</span>
+						<input bind:value={manualMin} type="number" step="any" disabled={autoscale} />
+					</label>
+					<label>
+						<span>Max</span>
+						<input bind:value={manualMax} type="number" step="any" disabled={autoscale} />
+					</label>
+				{/if}
+				{#if viewportControls.showFieldOpacity}
+					<label>
+						<span>Opacity</span>
+						<input bind:value={opacity} type="range" min="0.1" max="1" step="0.05" />
+					</label>
+				{/if}
+
+				{#if viewportControls.showGraphSearch}
+					<label class="min-w-[12rem]">
+						<span>Search and highlight</span>
+						<input bind:value={graphSearch} placeholder="node label, group, state" />
+					</label>
+				{/if}
+				{#if viewportControls.showGraphEdgeFilter}
+					<label>
+						<span>Edge filter</span>
+						<input bind:value={edgeThreshold} type="range" min="0" max="1" step="0.05" />
+						<small
+							>{edgeThreshold === ''
+								? 'all edges'
+								: `>= ${Number(edgeThreshold).toFixed(2)}`}</small
+						>
+					</label>
+				{/if}
+				{#if viewportControls.showGraphGrouping}
+					<label class="simulation-viewport-checkbox">
+						<input type="checkbox" bind:checked={aggregateGroups} />
+						<span>Cluster groups</span>
+					</label>
+				{/if}
+				{#if viewportControls.showGraphZoom}
+					<div class="simulation-viewport-zoom">
+						<button type="button" onclick={() => nudgeZoom(-0.2)} aria-label="Zoom out">-</button>
+						<span>{zoom.toFixed(1)}x</span>
+						<button type="button" onclick={() => nudgeZoom(0.2)} aria-label="Zoom in">+</button>
+						<button type="button" onclick={resetGraphViewport}>Reset</button>
+					</div>
+				{:else if viewportControls.showGraphSearch || viewportControls.showGraphEdgeFilter}
+					<div class="simulation-viewport-zoom">
+						<button type="button" onclick={resetGraphViewport}>Reset filters</button>
+					</div>
+				{/if}
 			</div>
 		{/if}
+	{:else if frame && viewportSupport.state === 'unsupported'}
+		<div class="studio-viewport-empty" role="status">
+			<div>
+				<p class="studio-eyebrow">{mode} · unsupported</p>
+				<h2>{viewportSupport.title}</h2>
+				<p>{viewportSupport.body}</p>
+			</div>
+		</div>
 	{:else if status === 'buffering'}
 		<div class="studio-viewport-empty">
 			<div>

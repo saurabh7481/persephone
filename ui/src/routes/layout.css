@@ -614,6 +614,35 @@
 		backdrop-filter: blur(10px);
 	}
 
+	.simulation-viewport-actions {
+		position: absolute;
+		top: 0.75rem;
+		right: 0.75rem;
+		z-index: 3;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 0.5rem;
+		max-width: min(16rem, calc(100% - 1.5rem));
+	}
+
+	.simulation-viewport-action-button {
+		border: 1px solid color-mix(in oklab, var(--studio-border) 78%, transparent);
+		border-radius: 999px;
+		background: color-mix(in oklab, var(--studio-panel) 90%, transparent);
+		padding: 0.35rem 0.75rem;
+		font-size: 0.72rem;
+		font-weight: 650;
+		color: var(--studio-shell-foreground);
+		box-shadow: 0 0.85rem 2rem rgba(16, 23, 34, 0.12);
+		backdrop-filter: blur(10px);
+	}
+
+	.simulation-viewport-action-button:focus-visible {
+		outline: 2px solid color-mix(in oklab, var(--studio-accent) 44%, transparent);
+		outline-offset: 2px;
+	}
+
 	.simulation-viewport-hud {
 		left: 0.75rem;
 		top: 0.75rem;
@@ -675,6 +704,13 @@
 		font-size: 0.72rem;
 		line-height: 1.45;
 		color: color-mix(in oklab, var(--studio-shell-foreground) 72%, transparent);
+	}
+
+	.simulation-viewport-meta {
+		display: block;
+		margin-top: 0.35rem;
+		font-size: 0.68rem;
+		color: color-mix(in oklab, var(--studio-shell-foreground) 62%, transparent);
 	}
 
 	.simulation-viewport-controls label {
@@ -915,6 +951,12 @@
 			right: 0.75rem;
 			top: 7.5rem;
 			bottom: auto;
+			max-width: none;
+		}
+
+		.simulation-viewport-actions {
+			left: 0.75rem;
+			right: 0.75rem;
 			max-width: none;
 		}
 

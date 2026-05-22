@@ -91,89 +91,89 @@
 <div class="grid gap-3" aria-label="Key metric cards">
 	{#if items.length}
 		{#each items as item (item.metric)}
-			<div
+			<article
 				class={`min-w-0 cursor-pointer rounded-2xl border p-4 transition ${
 					focusedMetric === item.metric
 						? 'border-primary/60 bg-primary/5 shadow-sm ring-1 ring-primary/20'
 						: 'border-border bg-background/80 hover:border-primary/30'
 				}`}
-				role="button"
-				tabindex="0"
-				onclick={() => onFocusMetric?.(item.metric)}
-				onkeydown={(event) => {
-					if (event.key === 'Enter' || event.key === ' ') {
-						event.preventDefault();
-						onFocusMetric?.(item.metric);
-					}
-				}}
+				aria-label={`${item.label} metric card`}
 			>
 				<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-					<div class="min-w-0 space-y-3">
-						<div class="flex flex-wrap items-start gap-2">
-							<div class="min-w-0 flex-1">
-								<div class="flex flex-wrap items-center gap-2">
-									<p class="min-w-0 text-sm font-semibold break-words">{item.label}</p>
-									{#if item.unit}
+					<button
+						type="button"
+						class="min-w-0 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+						aria-pressed={focusedMetric === item.metric}
+						aria-label={`Focus ${item.label} metric`}
+						onclick={() => onFocusMetric?.(item.metric)}
+					>
+						<div class="min-w-0 space-y-3">
+							<div class="flex flex-wrap items-start gap-2">
+								<div class="min-w-0 flex-1">
+									<div class="flex flex-wrap items-center gap-2">
+										<p class="min-w-0 text-sm font-semibold break-words">{item.label}</p>
+										{#if item.unit}
+											<span
+												class="rounded-full border border-border/80 px-2 py-0.5 text-[11px] text-muted-foreground"
+											>
+												{item.unit}
+											</span>
+										{/if}
+									</div>
+									<p class="mt-1 text-xs leading-5 text-muted-foreground">
+										{item.attentionSummary}
+									</p>
+								</div>
+								<span
+									class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${attentionTone(item.attention)}`}
+								>
+									{item.attentionLabel}
+								</span>
+							</div>
+
+							<div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+								<div class="min-w-0 space-y-2">
+									<p
+										class="text-3xl font-semibold tracking-tight break-all"
+										title={formatMetricValue(item.current.value, item.unit)}
+									>
+										{formatHeadlineValue(item)}
+									</p>
+									<div class="flex flex-wrap gap-2 text-[11px]">
 										<span
 											class="rounded-full border border-border/80 px-2 py-0.5 text-[11px] text-muted-foreground"
 										>
-											{item.unit}
+											{formatDeltaLabel(item)} since previous point
 										</span>
-									{/if}
+										{#if item.headline}
+											<span class="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">
+												Headline
+											</span>
+										{/if}
+										{#if item.pinned}
+											<span
+												class="rounded-full bg-sky-500/10 px-2 py-1 font-medium text-sky-700 dark:text-sky-300"
+											>
+												Pinned
+											</span>
+										{/if}
+									</div>
 								</div>
-								<p class="mt-1 text-xs leading-5 text-muted-foreground">
-									{item.attentionSummary}
-								</p>
-							</div>
-							<span
-								class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${attentionTone(item.attention)}`}
-							>
-								{item.attentionLabel}
-							</span>
-						</div>
-
-						<div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-							<div class="min-w-0 space-y-2">
-								<p
-									class="text-3xl font-semibold tracking-tight break-all"
-									title={formatMetricValue(item.current.value, item.unit)}
-								>
-									{formatHeadlineValue(item)}
-								</p>
-								<div class="flex flex-wrap gap-2 text-[11px]">
-									<span
-										class="rounded-full border border-border/80 px-2 py-1 text-muted-foreground"
-									>
-										{formatDeltaLabel(item)} since previous point
-									</span>
-									{#if item.headline}
-										<span class="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">
-											Headline
-										</span>
-									{/if}
-									{#if item.pinned}
-										<span
-											class="rounded-full bg-sky-500/10 px-2 py-1 font-medium text-sky-700 dark:text-sky-300"
-										>
-											Pinned
-										</span>
-									{/if}
+								<div class="grid gap-1 md:justify-items-end">
+									<svg viewBox="0 0 84 28" class="h-10 w-full max-w-28 shrink-0" aria-hidden="true">
+										<path
+											d={sparklinePath(item.points.map((point) => point.value))}
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											class="text-primary"
+										/>
+									</svg>
+									<p class="text-[11px] text-muted-foreground">{item.attentionLabel}</p>
 								</div>
 							</div>
-							<div class="grid gap-1 md:justify-items-end">
-								<svg viewBox="0 0 84 28" class="h-10 w-full max-w-28 shrink-0" aria-hidden="true">
-									<path
-										d={sparklinePath(item.points.map((point) => point.value))}
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										class="text-primary"
-									/>
-								</svg>
-								<p class="text-[11px] text-muted-foreground">{item.attentionLabel}</p>
-							</div>
 						</div>
-					</div>
+					</button>
 
 					<div class="flex shrink-0 items-start gap-1">
 						<button
@@ -195,7 +195,7 @@
 						<button
 							type="button"
 							class="rounded-md border border-border p-1.5 text-muted-foreground hover:text-foreground"
-							aria-label={`Expand ${item.label}`}
+							aria-label={`${expandedMetrics.includes(item.metric) ? 'Collapse' : 'Expand'} ${item.label}`}
 							aria-pressed={expandedMetrics.includes(item.metric)}
 							onclick={(event) => {
 								stop(event);
@@ -239,7 +239,7 @@
 						{/if}
 					</div>
 				{/if}
-			</div>
+			</article>
 		{/each}
 	{:else}
 		<div class="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">

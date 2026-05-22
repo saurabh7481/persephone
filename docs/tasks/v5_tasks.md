@@ -355,34 +355,34 @@ Implementation agents should inspect these first:
 
 ### Checkpoint 8 — Tighten viewport controls and view-specific polish
 
-- [ ] Reduce control clutter inside the viewport surface.
-- [ ] Make view-specific controls appear only when relevant.
-- [ ] Improve graph-specific affordances for search, density filtering, pan/zoom reset, and overlays.
-- [ ] Ensure field, graph, matrix, and hierarchy states each have clear empty and unsupported messages.
-- [ ] Preserve usability when the viewport is narrower or embedded beside heavy inspector content.
+- [x] Reduce control clutter inside the viewport surface.
+- [x] Make view-specific controls appear only when relevant.
+- [x] Improve graph-specific affordances for search, density filtering, pan/zoom reset, and overlays.
+- [x] Ensure field, graph, matrix, and hierarchy states each have clear empty and unsupported messages.
+- [x] Preserve usability when the viewport is narrower or embedded beside heavy inspector content.
 - [ ] Commit: `feat: refine viewport interaction surfaces`
 
 ### Checkpoint 9 — Accessibility and keyboard-flow refinement
 
-- [ ] Audit tab order, focus visibility, and keyboard behavior across the workbench.
-- [ ] Ensure interactive cards, view switchers, and drill-in controls expose clear labels and states.
-- [ ] Re-check full-screen and focus modes after the layout refactor.
-- [ ] Improve screen-reader clarity for summary, metrics, and explanation sections where possible.
+- [x] Audit tab order, focus visibility, and keyboard behavior across the workbench.
+- [x] Ensure interactive cards, view switchers, and drill-in controls expose clear labels and states.
+- [x] Re-check full-screen and focus modes after the layout refactor.
+- [x] Improve screen-reader clarity for summary, metrics, and explanation sections where possible.
 - [ ] Commit: `feat: improve analysis workspace accessibility`
 
 ### Checkpoint 10 — End-to-end responsive QA and release hardening
 
-- [ ] Run `cd ui && bun run check && bun run lint && bun run test:unit && bun run build`.
-- [ ] Run Playwright or equivalent responsive checks covering:
-  - [ ] no horizontal overflow at supported widths
-  - [ ] metric card readability
-  - [ ] explanation-first reading flow
-  - [ ] view switching across richer standard views
-  - [ ] inspector readability
-  - [ ] full-screen/focus state persistence
-- [ ] Verify both light and dark themes across the same responsive coverage set.
-- [ ] Verify the example runs from the v4 cross-domain fixtures still render correctly in the v5 UI.
-- [ ] Re-verify Docker-served UI behavior for the run page.
+- [x] Run `cd ui && bun run check && bun run lint && bun run test:unit && bun run build`.
+- [x] Run Playwright or equivalent responsive checks covering:
+  - [x] no horizontal overflow at supported widths
+  - [x] metric card readability
+  - [x] explanation-first reading flow
+  - [x] view switching across richer standard views
+  - [x] inspector readability
+  - [x] full-screen/focus state persistence
+- [x] Verify both light and dark themes across the same responsive coverage set.
+- [x] Verify the example runs from the v4 cross-domain fixtures still render correctly in the v5 UI.
+- [x] Re-verify Docker-served UI behavior for the run page.
 - [ ] Commit: `chore: harden v5 analysis presentation`
 
 ## 9. Priority Notes

@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { onMount, tick } from 'svelte';
-	import { AlertCircle, CirclePause, CirclePlay, Maximize2, Minimize2 } from '@lucide/svelte';
+	import {
+		AlertCircle,
+		CirclePause,
+		CirclePlay,
+		Maximize2,
+		Minimize2,
+		SkipBack,
+		SkipForward
+	} from '@lucide/svelte';
 
 	import {
 		PersephoneApi,
@@ -611,6 +619,15 @@
 						<Button
 							variant="outline"
 							size="icon-sm"
+							aria-label="Previous frame"
+							disabled={!$playback.frameBuffer.length}
+							onclick={() => { playback.pause(); playback.stepFrame(-1); }}
+						>
+							<SkipBack size={15} />
+						</Button>
+						<Button
+							variant="outline"
+							size="icon-sm"
 							aria-label={$playback.status === 'playing' ? 'Pause playback' : 'Play playback'}
 							onclick={togglePlayback}
 						>
@@ -619,6 +636,15 @@
 							{:else}
 								<CirclePlay size={15} />
 							{/if}
+						</Button>
+						<Button
+							variant="outline"
+							size="icon-sm"
+							aria-label="Next frame"
+							disabled={!$playback.frameBuffer.length}
+							onclick={() => { playback.pause(); playback.stepFrame(1); }}
+						>
+							<SkipForward size={15} />
 						</Button>
 						<label class="flex items-center gap-2 text-xs text-muted-foreground">
 							<span>View</span>
@@ -646,6 +672,34 @@
 						{/if}
 					</div>
 				</div>
+				{#if $playback.frameBuffer.length > 1}
+					{@const firstT = $playback.frameBuffer[0].t}
+					{@const lastT = $playback.frameBuffer.at(-1)!.t}
+					<div class="mb-3 flex items-center gap-3">
+						<input
+							type="range"
+							class="h-1.5 flex-1 cursor-pointer accent-primary"
+							min={firstT}
+							max={lastT}
+							step="any"
+							value={$playback.currentTime}
+							oninput={(e) => { playback.pause(); playback.scrubTo(Number(e.currentTarget.value)); }}
+						/>
+						<label class="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+							<span>Speed</span>
+							<input
+								type="range"
+								class="w-20 accent-primary"
+								min="0.25"
+								max="4"
+								step="0.25"
+								value={$playback.speed}
+								oninput={(e) => playback.setSpeed(Number(e.currentTarget.value))}
+							/>
+							<span class="w-6 text-right">{$playback.speed}x</span>
+						</label>
+					</div>
+				{/if}
 				<div class="relative min-h-[26rem] overflow-hidden rounded-xl border bg-muted/30">
 					{#if currentView.surface === 'viewport'}
 						<SimulationViewport
