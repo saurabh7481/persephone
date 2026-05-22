@@ -933,8 +933,7 @@ test('renders SIR graph replay frames and supports node inspection', async ({ pa
 test('adapts the shared run page across market and workflow semantic domains', async ({ page }) => {
 	await page.goto('/runs/run-market');
 
-	await expect(page.getByText('What is happening now')).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'View guide' })).toBeVisible();
+	await expect(page.getByText('Analysis summary')).toBeVisible();
 	await expect(page.locator('option[value="matrix"]')).toHaveText('Matrix');
 	await expect(page.getByText('Market stress remains clustered').first()).toBeVisible();
 	await page.getByRole('combobox').selectOption('table');
@@ -960,7 +959,7 @@ test('prioritizes the run story, key metrics, and next step before technical det
 	await page.goto('/runs/run-workflow');
 	await pausePlaybackIfNeeded(page);
 
-	await expect(page.getByText('What is happening now')).toBeVisible();
+	await expect(page.getByText('Analysis summary')).toBeVisible();
 	await expect(page.getByText('Why it matters')).toBeVisible();
 	await expect(page.getByText('What to inspect next')).toBeVisible();
 	await expect(page.getByText('Key metrics')).toBeVisible();
@@ -993,6 +992,38 @@ test('keeps inspector compact until a node is selected', async ({ page }) => {
 	await expect(page.getByText('Select a node, relationship, or field cell')).toHaveCount(0);
 	await page.getByRole('tab', { name: 'Inspect' }).click();
 	await expect(page.getByText('Select a node, relationship, or field cell')).toBeVisible();
+});
+
+test('keeps the summary, primary visualization, and primary metric visible before details on laptop widths', async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.goto('/runs/run-workflow');
+	await pausePlaybackIfNeeded(page);
+
+	await expect(page.getByText('Analysis summary')).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Viewport' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Delivery risk index analysis' })).toBeVisible();
+
+	const layout = await page.evaluate(() => {
+		const lookup = (text: string) =>
+			Array.from(document.querySelectorAll('h2')).find((node) => node.textContent?.trim() === text)?.getBoundingClientRect().top ?? null;
+		return {
+			viewportTop: lookup('Viewport'),
+			metricTop: lookup('Delivery risk index analysis'),
+			detailsTop: lookup('Details')
+		};
+	});
+
+	expect(layout.viewportTop).toBeLessThan(layout.detailsTop!);
+	expect(layout.metricTop).toBeLessThan(layout.detailsTop!);
+});
+
+test('keeps runtime and manifest detail inside the debug tab only', async ({ page }) => {
+	await page.goto('/runs/run-a');
+	await pausePlaybackIfNeeded(page);
+
+	await expect(page.getByText('metric stream')).toHaveCount(0);
+	await page.getByRole('tab', { name: 'Debug' }).click();
+	await expect(page.getByText('metric stream')).toBeVisible();
 });
 
 test('keeps metric cards readable with long labels and large values at tablet widths', async ({
