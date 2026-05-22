@@ -26,8 +26,18 @@ export function buildRunPageModel(input: {
 		significance: string;
 		nextStep: string;
 	};
-	focusedMetric: { metric: string; label: string; headline?: boolean; unit?: string | null; current: { t: number; value: number } } | null;
-	explanationCards: Array<{ sourceLabel: string; primaryStatement: string; supportingDetail: string }>;
+	focusedMetric: {
+		metric: string;
+		label: string;
+		headline?: boolean;
+		unit?: string | null;
+		current: { t: number; value: number };
+	} | null;
+	explanationCards: Array<{
+		sourceLabel: string;
+		primaryStatement: string;
+		supportingDetail: string;
+	}>;
 	recentChanges: Array<{ label: string; summary: string }>;
 	inspectorKind: 'empty' | 'field-cell' | 'graph-node' | 'graph-edge';
 	hasSelection: boolean;
@@ -47,7 +57,8 @@ export function buildRunPageModel(input: {
 	const secondaryTabs: RunPageModel['secondaryTabs'] = [];
 	if (meaningfulExplain) secondaryTabs.push('explain');
 	secondaryTabs.push('inspect');
-	if (meaningfulRecentChanges || input.currentView.surface === 'metrics') secondaryTabs.push('timeline');
+	if (meaningfulRecentChanges || input.currentView.surface === 'metrics')
+		secondaryTabs.push('timeline');
 	secondaryTabs.push('artifacts', 'debug');
 
 	return {

@@ -1,30 +1,24 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { onMount, tick } from 'svelte';
-	import {
-		AlertCircle,
-		CirclePause,
-		CirclePlay,
-		Maximize2,
-		Minimize2,
-		Rewind,
-		SkipBack,
-		SkipForward
-	} from '@lucide/svelte';
+	import { AlertCircle, CirclePause, CirclePlay, Maximize2, Minimize2 } from '@lucide/svelte';
 
 	import {
 		PersephoneApi,
-		compareMetricSummary,
 		type EventRecord,
 		type ExplanationResponse,
-		type FieldArtifactSummary,
 		type MetricRecord,
 		type PluginSemantics,
 		type RunSummary
 	} from '$lib/api';
 	import MetricTimeline from '$lib/components/MetricTimeline.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import { MetricDeck, RunSummaryHero, RunSecondaryTabs, SimulationViewport, StudioPanel } from '$lib/components/studio';
+	import {
+		MetricDeck,
+		RunSummaryHero,
+		RunSecondaryTabs,
+		SimulationViewport,
+		StudioPanel
+	} from '$lib/components/studio';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
@@ -36,7 +30,6 @@
 		fieldCellInspection,
 		graphEdgeInspection,
 		graphNodeInspection,
-		inspectorPreview,
 		runInspection
 	} from '$lib/studio/inspector';
 	import { buildMetricDeck, togglePinnedMetric, type MetricDeckItem } from '$lib/studio/metrics';
@@ -56,7 +49,6 @@
 	import { buildRunPageModel } from '$lib/studio/run-page';
 	import {
 		formatMetricValue as formatDisplayMetricValue,
-		formatNumber,
 		formatTimeLabel,
 		humanizeIdentifier
 	} from '$lib/studio/format';
@@ -64,7 +56,6 @@
 		availableViews,
 		chooseDefaultView,
 		standardViews,
-		viewNarrative,
 		type StandardViewKind
 	} from '$lib/studio/views';
 
@@ -75,12 +66,10 @@
 	let run = $state<RunSummary | null>(null);
 	let metrics = $state<MetricRecord[]>([]);
 	let events = $state<EventRecord[]>([]);
-	let fieldArtifacts = $state<FieldArtifactSummary[]>([]);
 	let error = $state('');
 	let streamState = $state<'idle' | 'connected' | 'closed'>('idle');
 	let selectedView = $state<StandardViewKind | null>(null);
 	let selectedViewLocked = $state(false);
-	let activeDockTab = $state('metrics');
 	let activeSecondaryTab = $state('artifacts');
 	let focusSurface = $state<FocusSurface>('none');
 	let pinnedMetrics = $state<string[]>([]);
@@ -97,7 +86,6 @@
 	let viewportDialogCloseButton = $state<HTMLButtonElement | null>(null);
 	let metricDialogCloseButton = $state<HTMLButtonElement | null>(null);
 
-	const summary = $derived(compareMetricSummary(metrics));
 	const selectedFrame = $derived(
 		$playback.frameBuffer.find((frame) => frame.frame_id === $playback.selectedFrameId) ?? null
 	);
@@ -118,13 +106,6 @@
 		viewOptions.find((view) => view.kind === selectedView) ??
 			standardViews.find((view) => view.kind === recommendedView.kind) ??
 			recommendedView
-	);
-	const currentViewNarrative = $derived(
-		viewNarrative({
-			current: currentView,
-			recommended: recommendedView,
-			locked: selectedViewLocked
-		})
 	);
 	const selectedObject = $derived($playback.selectedObject);
 	const runDetails = $derived(runInspection(run));
@@ -177,11 +158,6 @@
 	);
 	const focusedMetricRecords = $derived(
 		focusedMetric ? metrics.filter((record) => record.metric === focusedMetric.metric) : []
-	);
-	const recentEvents = $derived(
-		[...events]
-			.sort((left, right) => Number(right.t ?? -Infinity) - Number(left.t ?? -Infinity))
-			.slice(0, 6)
 	);
 	const recentChangeItems = $derived(
 		recentChangeCards({
@@ -268,7 +244,6 @@
 			: false;
 		if (!selectedViewLocked || !selectedStillAvailable) {
 			selectedView = recommendedView.kind;
-			activeDockTab = defaultDockTab(recommendedView.kind);
 		}
 	});
 
@@ -359,11 +334,6 @@
 				run = runResult;
 				metrics = metricResult;
 				events = eventResult;
-				try {
-					fieldArtifacts = await api.listFields(data.runId);
-				} catch {
-					fieldArtifacts = [];
-				}
 				await loadRunExplanation(runResult.run_id);
 				if (runResult.status === 'completed' || runResult.status === 'failed') {
 					await playback.loadReplay(data.runId);
@@ -435,7 +405,6 @@
 	function handleViewChange(value: string) {
 		selectedView = value as StandardViewKind;
 		selectedViewLocked = true;
-		activeDockTab = defaultDockTab(selectedView);
 	}
 
 	function togglePlayback() {
@@ -482,14 +451,6 @@
 		}
 	}
 
-	function defaultDockTab(view: StandardViewKind | null): string {
-		if (!view) return 'metrics';
-		const surface = standardViews.find((candidate) => candidate.kind === view)?.surface;
-		if (surface === 'table') return 'frames';
-		if (surface === 'metrics') return 'metrics';
-		return 'metrics';
-	}
-
 	function toggleMetricPin(metric: string) {
 		pinnedMetrics = [...togglePinnedMetric(new Set(pinnedMetrics), metric)];
 	}
@@ -502,7 +463,6 @@
 
 	function focusMetric(metric: string) {
 		focusedMetricId = metric;
-		activeDockTab = 'metrics';
 	}
 
 	function openMetricFullscreen(metric: string) {
@@ -624,116 +584,30 @@
 		</Alert.Alert>
 	{/if}
 
-	<div class="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.95fr)]">
-		<StudioPanel title={narrativeLead.eyebrow}>
-			<RunSummaryHero
-				status={run?.status ?? 'loading'}
-				viewLabel={currentView.label}
-				title={pageModel.summary.title}
-				summary={pageModel.summary.summary}
-				significance={pageModel.summary.significance}
-				nextStep={pageModel.summary.nextStep}
-				currentFrame={pageModel.summary.currentFrame}
-				metricLabel={focusedMetric?.label ?? 'No primary metric'}
-				metricValue={focusedMetric ? formatMetricValue(focusedMetric) : '-'}
-			/>
-		</StudioPanel>
-
-		<StudioPanel title="View guide" description={currentViewNarrative.summary}>
-			<div class="grid gap-3 text-sm">
-				<label class="grid gap-1 text-xs text-muted-foreground">
-					Active standard view
-					<select
-						class="rounded-md border bg-background px-2 py-1 text-sm text-foreground"
-						value={selectedView ?? recommendedView.kind}
-						onchange={(event) => handleViewChange(event.currentTarget.value)}
-					>
-						{#each viewOptions as view (view.kind)}
-							<option value={view.kind}>{view.label}</option>
-						{/each}
-					</select>
-				</label>
-				<div class="rounded-xl border bg-muted/25 p-3">
-					<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-						Best when
-					</p>
-					<p class="mt-2 leading-6">{currentView.bestFit}</p>
-				</div>
-				<div class="rounded-xl border bg-muted/25 p-3">
-					<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-						Fallback
-					</p>
-					<p class="mt-2 leading-6">{currentView.fallback}</p>
-				</div>
-				<p class="text-xs leading-5 text-muted-foreground">{currentViewNarrative.nextStep}</p>
-			</div>
-		</StudioPanel>
-	</div>
-
-	<StudioPanel
-		title="Key metrics"
-		description="Showing the highest-priority metrics first so the run story stays visible before deeper inspection."
-	>
-		<div
-			class="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"
-		>
-			<p>
-				Top headline, pinned, and attention-ranked metrics stay grouped beside the main narrative.
-			</p>
-			<p>
-				Showing {keyMetrics.length} of {metricDeck.length}
-			</p>
-		</div>
-		<MetricDeck
-			items={keyMetrics}
-			focusedMetric={focusedMetric?.metric ?? null}
-			{expandedMetrics}
-			onFocusMetric={focusMetric}
-			onToggleExpanded={toggleMetricExpanded}
-			onTogglePin={toggleMetricPin}
-			onOpenFullscreen={openMetricFullscreen}
-		/>
-	</StudioPanel>
-
-	<div
-		class="grid gap-4 xl:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)]"
-	>
+	<div class="grid gap-4 2xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
+		<!-- Left column: Analysis summary + Viewport -->
 		<div class="grid min-w-0 content-start gap-4">
-			<StudioPanel title="Run status and playback controls">
-				<div class="grid gap-4">
-					<div class="grid gap-2 text-sm">
-						<div class="flex items-center justify-between gap-2">
-							<span class="text-muted-foreground">Status</span>
-							{#if run}
-								<StatusBadge status={run.status} />
-							{:else}
-								<span>Loading</span>
-							{/if}
-						</div>
-						<div class="flex items-center justify-between gap-2">
-							<span class="text-muted-foreground">Metrics</span>
-							<span>{metrics.length}</span>
-						</div>
-						<div class="flex items-center justify-between gap-2">
-							<span class="text-muted-foreground">Events</span>
-							<span>{events.length}</span>
-						</div>
-						<div class="flex items-center justify-between gap-2">
-							<span class="text-muted-foreground">Selected object</span>
-							<span class="max-w-[11rem] truncate text-right">
-								{selectedObject ? selectedObject.id : 'none'}
-							</span>
-						</div>
+			<StudioPanel title="Analysis summary">
+				<RunSummaryHero
+					status={run?.status ?? 'loading'}
+					viewLabel={currentView.label}
+					title={pageModel.summary.title}
+					summary={pageModel.summary.summary}
+					significance={pageModel.summary.significance}
+					nextStep={pageModel.summary.nextStep}
+					currentFrame={pageModel.summary.currentFrame}
+					metricLabel={focusedMetric?.label ?? 'No primary metric'}
+					metricValue={focusedMetric ? formatMetricValue(focusedMetric) : '-'}
+				/>
+			</StudioPanel>
+
+			<StudioPanel title="Viewport">
+				<div class="mb-3 flex items-center justify-between gap-3">
+					<div class="min-w-0">
+						<p class="text-sm font-medium">{currentView.label}</p>
+						<p class="mt-1 text-xs text-muted-foreground">{currentView.purpose}</p>
 					</div>
-					<div class="flex flex-wrap gap-2">
-						<Button
-							variant="outline"
-							size="icon-sm"
-							aria-label="Jump to start"
-							onclick={() => playback.jumpToStart()}
-						>
-							<SkipBack size={15} />
-						</Button>
+					<div class="flex items-center gap-2">
 						<Button
 							variant="outline"
 							size="icon-sm"
@@ -746,95 +620,31 @@
 								<CirclePlay size={15} />
 							{/if}
 						</Button>
-						<Button
-							variant="outline"
-							size="icon-sm"
-							aria-label="Previous frame"
-							onclick={() => {
-								playback.pause();
-								playback.stepFrame(-1);
-							}}
-						>
-							<SkipBack size={15} />
-						</Button>
-						<Button
-							variant="outline"
-							size="icon-sm"
-							aria-label="Next frame"
-							onclick={() => {
-								playback.pause();
-								playback.stepFrame(1);
-							}}
-						>
-							<SkipForward size={15} />
-						</Button>
-						<Button
-							variant="outline"
-							size="icon-sm"
-							aria-label="Jump to end"
-							onclick={() => playback.jumpToEnd()}
-						>
-							<SkipForward size={15} />
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							aria-label="Reset speed"
-							onclick={() => playback.setSpeed(1)}
-						>
-							<Rewind size={15} />
-						</Button>
-					</div>
-					<label class="grid gap-1 text-xs text-muted-foreground">
-						Playback speed
-						<input
-							type="range"
-							min="0.25"
-							max="4"
-							step="0.25"
-							value={$playback.speed}
-							oninput={(event) => playback.setSpeed(Number(event.currentTarget.value))}
-						/>
-					</label>
-				</div>
-			</StudioPanel>
-
-			<StudioPanel title="Playback and view controls">
-				<div class="grid gap-3 text-sm">
-					<div>
-						<p class="text-xs text-muted-foreground">Why this view is showing now</p>
-						<p class="font-medium">{currentViewNarrative.title}</p>
-						<p class="mt-1 text-xs text-muted-foreground">{recommendedView.reason}</p>
-					</div>
-					<div class="rounded-xl border bg-muted/25 p-3">
-						<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-							View help
-						</p>
-						<p class="mt-2 text-xs leading-5 text-muted-foreground">{currentView.help}</p>
-					</div>
-				</div>
-			</StudioPanel>
-		</div>
-
-		<div class="grid min-w-0 content-start gap-4">
-			<StudioPanel title="Viewport">
-				<div class="mb-3 flex items-center justify-between gap-3">
-					<div class="min-w-0">
-						<p class="text-sm font-medium">{currentView.label}</p>
-						<p class="mt-1 text-xs text-muted-foreground">{currentView.purpose}</p>
-					</div>
-					{#if currentView.surface === 'viewport'}
-						<Button variant="outline" size="sm" onclick={toggleViewportFullscreen}>
-							{#if focusSurface === 'viewport'}
-								<Minimize2 size={15} />
-							{:else}
-								<Maximize2 size={15} />
-							{/if}
-							<span class="ml-2"
-								>{focusSurface === 'viewport' ? 'Exit full-screen' : 'Full-screen'}</span
+						<label class="flex items-center gap-2 text-xs text-muted-foreground">
+							<span>View</span>
+							<select
+								class="rounded-md border bg-background px-2 py-1 text-xs text-foreground"
+								value={selectedView ?? recommendedView.kind}
+								onchange={(event) => handleViewChange(event.currentTarget.value)}
 							>
-						</Button>
-					{/if}
+								{#each viewOptions as view (view.kind)}
+									<option value={view.kind}>{view.label}</option>
+								{/each}
+							</select>
+						</label>
+						{#if currentView.surface === 'viewport'}
+							<Button variant="outline" size="sm" onclick={toggleViewportFullscreen}>
+								{#if focusSurface === 'viewport'}
+									<Minimize2 size={15} />
+								{:else}
+									<Maximize2 size={15} />
+								{/if}
+								<span class="ml-2"
+									>{focusSurface === 'viewport' ? 'Exit full-screen' : 'Full-screen'}</span
+								>
+							</Button>
+						{/if}
+					</div>
 				</div>
 				<div class="relative min-h-[26rem] overflow-hidden rounded-xl border bg-muted/30">
 					{#if currentView.surface === 'viewport'}
@@ -885,9 +695,9 @@
 								</div>
 								<div class="rounded-xl border bg-background/80 p-3">
 									<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-										Selection
+										Fallback
 									</p>
-									<p class="mt-2 text-sm leading-6">{currentView.help}</p>
+									<p class="mt-2 text-sm leading-6">{currentView.fallback}</p>
 								</div>
 							</div>
 							{#if entityBrowser.mode === 'grouped' && entityBrowser.groups.length}
@@ -963,6 +773,35 @@
 					{/if}
 				</div>
 			</StudioPanel>
+		</div>
+
+		<!-- Right column: Key metrics + Metric analysis -->
+		<div class="grid min-w-0 content-start gap-4">
+			<StudioPanel
+				title="Key metrics"
+				description="Showing the highest-priority metrics first so the run story stays visible before deeper inspection."
+			>
+				<div
+					class="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"
+				>
+					<p>
+						Top headline, pinned, and attention-ranked metrics stay grouped beside the main
+						narrative.
+					</p>
+					<p>
+						Showing {keyMetrics.length} of {metricDeck.length}
+					</p>
+				</div>
+				<MetricDeck
+					items={keyMetrics}
+					focusedMetric={focusedMetric?.metric ?? null}
+					{expandedMetrics}
+					onFocusMetric={focusMetric}
+					onToggleExpanded={toggleMetricExpanded}
+					onTogglePin={toggleMetricPin}
+					onOpenFullscreen={openMetricFullscreen}
+				/>
+			</StudioPanel>
 
 			<StudioPanel
 				title={focusedMetric ? `${focusedMetric.label} analysis` : 'Metric analysis'}
@@ -1009,7 +848,6 @@
 				/>
 			</StudioPanel>
 		</div>
-
 	</div>
 
 	<StudioPanel title="Details">
@@ -1027,12 +865,16 @@
 								</div>
 								<p class="mt-3 text-sm leading-6">{card.primaryStatement}</p>
 								{#if card.supportingDetail}
-									<p class="mt-2 text-xs leading-5 text-muted-foreground">{card.supportingDetail}</p>
+									<p class="mt-2 text-xs leading-5 text-muted-foreground">
+										{card.supportingDetail}
+									</p>
 								{/if}
 								{#if card.evidence?.length}
 									<div class="mt-3 flex flex-wrap gap-2">
 										{#each card.evidence as ev (`evidence:${ev.label}`)}
-											<span class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+											<span
+												class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+											>
 												{ev.label}: {ev.value}
 											</span>
 										{/each}
@@ -1067,7 +909,9 @@
 							<div class="grid gap-3 sm:grid-cols-2">
 								{#each inspectorPanel.highlights as item (`inspector-highlight:${item.label}`)}
 									<div class="rounded-xl border bg-muted/20 p-3">
-										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+										<p
+											class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+										>
 											{item.label}
 										</p>
 										<p class="mt-2 text-sm font-medium break-words">{item.value}</p>
@@ -1085,19 +929,25 @@
 									<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
 										<p class="text-sm font-semibold">{section.title}</p>
 										{#if section.description}
-											<p class="mt-1 text-xs leading-5 text-muted-foreground">{section.description}</p>
+											<p class="mt-1 text-xs leading-5 text-muted-foreground">
+												{section.description}
+											</p>
 										{/if}
 										<div class="mt-3 grid gap-2">
 											{#each section.items as item (`${section.title}:${item.label}:${item.value}`)}
 												<div class="rounded-xl border bg-muted/15 p-3">
 													<div class="flex items-start justify-between gap-3">
-														<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+														<p
+															class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+														>
 															{item.label}
 														</p>
 														<p class="text-right text-sm font-medium break-words">{item.value}</p>
 													</div>
 													{#if item.description}
-														<p class="mt-2 text-xs leading-5 text-muted-foreground">{item.description}</p>
+														<p class="mt-2 text-xs leading-5 text-muted-foreground">
+															{item.description}
+														</p>
 													{/if}
 												</div>
 											{/each}
@@ -1116,7 +966,9 @@
 							<div class="mt-4 grid gap-3 text-xs">
 								{#each inspectorPanel.technical as item (`inspector-tech:${item.label}`)}
 									<div class="rounded-xl border bg-muted/15 p-3">
-										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+										<p
+											class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+										>
 											{item.label}
 										</p>
 										<p class="mt-2 font-mono break-all">{item.value}</p>
@@ -1124,19 +976,25 @@
 								{/each}
 								{#if runDetails}
 									<div class="rounded-xl border bg-muted/15 p-3">
-										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+										<p
+											class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+										>
 											Plugins
 										</p>
 										<p class="mt-2 break-words">{runDetails.plugins}</p>
 									</div>
 									<div class="rounded-xl border bg-muted/15 p-3">
-										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+										<p
+											class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+										>
 											Config
 										</p>
 										<p class="mt-2 font-mono break-all">{runDetails.configHash}</p>
 									</div>
 									<div class="rounded-xl border bg-muted/15 p-3">
-										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+										<p
+											class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+										>
 											Artifacts
 										</p>
 										<p class="mt-2 font-mono break-all">{runDetails.artifactPath}</p>
@@ -1175,7 +1033,8 @@
 								<div class="min-w-0">
 									<p class="text-sm font-semibold">Milestone timeline</p>
 									<p class="mt-1 text-xs text-muted-foreground">
-										Peaks, threshold crossings, anomalies, and event bursts can jump playback directly.
+										Peaks, threshold crossings, anomalies, and event bursts can jump playback
+										directly.
 									</p>
 								</div>
 								<span class="rounded-full border px-2 py-0.5 text-[11px] font-medium">
@@ -1198,7 +1057,9 @@
 														{milestone.kind.replace('_', ' ')}
 													</span>
 													{#if milestone.metric}
-														<span class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+														<span
+															class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+														>
 															{humanizeIdentifier(milestone.metric)}
 														</span>
 													{/if}
@@ -1208,7 +1069,9 @@
 												</span>
 											</div>
 											<p class="mt-3 font-medium">{milestone.title}</p>
-											<p class="mt-2 text-xs leading-5 text-muted-foreground">{milestone.summary}</p>
+											<p class="mt-2 text-xs leading-5 text-muted-foreground">
+												{milestone.summary}
+											</p>
 											<div class="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
 												<span class="inline-flex rounded-full border px-2 py-0.5 font-medium">
 													Jump in replay
@@ -1228,10 +1091,15 @@
 					<div class="grid gap-3 text-sm">
 						<div class="grid gap-2">
 							<!-- eslint-disable svelte/no-navigation-without-resolve -->
-							<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'csv')}>CSV export</a>
-							<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'parquet')}>Parquet export</a>
+							<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'csv')}>CSV export</a
+							>
+							<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'parquet')}
+								>Parquet export</a
+							>
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
-							<a class="studio-action-link" href={resolve(`/compare?runA=${data.runId}`)}>Compare this run</a>
+							<a class="studio-action-link" href={resolve(`/compare?runA=${data.runId}`)}
+								>Compare this run</a
+							>
 						</div>
 						<Table.Table>
 							<Table.TableHeader>
@@ -1248,7 +1116,9 @@
 										<Table.TableCell>{artifact.count}</Table.TableCell>
 										<Table.TableCell>
 											<!-- eslint-disable svelte/no-navigation-without-resolve -->
-											<a class="font-medium text-primary hover:underline" href={artifact.href}>Open</a>
+											<a class="font-medium text-primary hover:underline" href={artifact.href}
+												>Open</a
+											>
 											<!-- eslint-enable svelte/no-navigation-without-resolve -->
 										</Table.TableCell>
 									</Table.TableRow>
@@ -1279,14 +1149,20 @@
 									<Table.TableRow>
 										<Table.TableCell>metric stream</Table.TableCell>
 										<Table.TableCell>{streamState}</Table.TableCell>
-										<Table.TableCell class="font-mono text-xs">{metrics.length} metric records</Table.TableCell>
+										<Table.TableCell class="font-mono text-xs"
+											>{metrics.length} metric records</Table.TableCell
+										>
 									</Table.TableRow>
 								</Table.TableBody>
 							</Table.Table>
 						</div>
 						<div>
 							<p class="mb-3 text-sm font-semibold">Run manifest</p>
-							<pre class="overflow-auto rounded-md bg-muted p-4 text-xs">{JSON.stringify(run, null, 2)}</pre>
+							<pre class="overflow-auto rounded-md bg-muted p-4 text-xs">{JSON.stringify(
+									run,
+									null,
+									2
+								)}</pre>
 						</div>
 					</div>
 				{/if}
