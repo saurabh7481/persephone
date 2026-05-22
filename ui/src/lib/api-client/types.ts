@@ -20,6 +20,74 @@ export type PluginSummary = {
 	trust_level?: string;
 };
 
+export type EntityField = {
+	name: string;
+	type: 'string' | 'integer' | 'number' | 'boolean' | 'categorical' | 'enum' | 'json';
+	label?: string | null;
+	description?: string | null;
+	unit?: string | null;
+	required?: boolean;
+};
+
+export type StateDefinition = {
+	name: string;
+	kind: 'categorical' | 'continuous' | 'ordinal' | 'boolean';
+	label?: string | null;
+	description?: string | null;
+	unit?: string | null;
+	values?: string[];
+};
+
+export type MetricDefinition = {
+	name: string;
+	label?: string | null;
+	kind?: 'scalar' | 'ratio' | 'delta' | 'index';
+	description?: string | null;
+	unit?: string | null;
+	headline?: boolean;
+};
+
+export type EventDefinition = {
+	name: string;
+	label?: string | null;
+	description?: string | null;
+	related_entity?: string | null;
+};
+
+export type ViewCapability = {
+	kind:
+		| 'network'
+		| 'positioned_graph'
+		| 'map_network'
+		| 'matrix'
+		| 'table'
+		| 'timeline'
+		| 'heatmap'
+		| 'hierarchy';
+	label?: string | null;
+	description?: string | null;
+	default?: boolean;
+	requires_coordinates?: boolean;
+};
+
+export type ExplanationCapability = {
+	scope: 'run' | 'frame' | 'selection';
+	label?: string | null;
+	description?: string | null;
+	fact_kinds?: string[];
+};
+
+export type SemanticManifest = {
+	entity_schemas?: Record<string, EntityField[]>;
+	state_schema?: Record<string, StateDefinition>;
+	metric_schema?: Record<string, MetricDefinition>;
+	event_schema?: Record<string, EventDefinition>;
+	view_capabilities?: ViewCapability[];
+	explanation_capabilities?: ExplanationCapability[];
+	default_entity_type?: string | null;
+	preferred_view?: string | null;
+};
+
 export type FieldArtifactSummary = {
 	field_id?: string;
 	id?: string;
@@ -174,9 +242,38 @@ export type SimulationFrame =
 	  } & Omit<FrameListEntry, 'payload_ref'>)
 	| ({
 			kind: 'graph';
-			nodes: Array<Record<string, unknown> & { id: string }>;
-			edges: Array<Record<string, unknown> & { source: string; target: string }>;
-			visualization: Record<string, unknown>;
+			nodes: Array<
+				Record<string, unknown> & {
+					id: string;
+					x?: number | null;
+					y?: number | null;
+					state?: string | null;
+					label?: string | null;
+					group?: string | null;
+					lat?: number | null;
+					lon?: number | null;
+					metrics?: Record<string, number> | null;
+					attrs?: Record<string, unknown> | null;
+				}
+			>;
+			edges: Array<
+				Record<string, unknown> & {
+					source: string;
+					target: string;
+					weight?: number | null;
+					kind?: string | null;
+					directed?: boolean | null;
+					attrs?: Record<string, unknown> | null;
+				}
+			>;
+			visualization: Record<string, unknown> & {
+				layout_hint?: string | null;
+				coordinate_system?: string | null;
+				preferred_view?: string | null;
+				legend?: Record<string, unknown> | null;
+				selection_schema?: Record<string, unknown> | null;
+				density_hint?: string | null;
+			};
 	  } & Omit<FrameListEntry, 'payload_ref'>);
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;

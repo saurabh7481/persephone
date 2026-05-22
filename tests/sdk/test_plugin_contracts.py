@@ -5,7 +5,17 @@ from typing import Any
 
 import numpy as np
 import pytest
-from persephone_sdk.plugin import Observer, PluginManifest, Renderer, Solver, World
+from persephone_heat_diffusion import HeatDiffusionPlugin
+from persephone_sdk.plugin import (
+    ExplanationCapability,
+    Observer,
+    PluginManifest,
+    Renderer,
+    SemanticManifest,
+    Solver,
+    ViewCapability,
+    World,
+)
 from persephone_sdk.testing import PluginTestHarness
 
 
@@ -167,3 +177,115 @@ class BadReadPlugin:
 def test_plugin_harness_rejects_undeclared_bus_reads() -> None:
     with pytest.raises(AssertionError, match="undeclared_input"):
         PluginTestHarness(BadReadPlugin).run_all()
+
+
+def test_manifest_normalizes_nested_semantic_contracts() -> None:
+    manifest = PluginManifest(
+        name="semantic-demo",
+        version="0.1.0",
+        paradigm="graph",
+        world=DemoWorld,
+        solver=DemoSolver,
+        observer=DemoObserver,
+        renderer=DemoRenderer,
+        bus_reads=[],
+        bus_writes=["population"],
+        metrics_schema={"population_sum": {"type": "number"}},
+        semantics=SemanticManifest(
+            entity_schemas={
+                "node": [
+                    {
+                        "name": "population",
+                        "type": "number",
+                        "label": "Population",
+                        "required": True,
+                    }
+                ]
+            },
+            state_schema={
+                "population": {
+                    "name": "population",
+                    "kind": "continuous",
+                    "label": "Population",
+                }
+            },
+            metric_schema={
+                "population_sum": {
+                    "name": "population_sum",
+                    "label": "Population sum",
+                    "unit": "people",
+                }
+            },
+            event_schema={
+                "population_changed": {
+                    "name": "population_changed",
+                    "label": "Population changed",
+                }
+            },
+            view_capabilities=[
+                {"kind": "network", "label": "Network", "default": True},
+                {"kind": "table", "label": "Table"},
+            ],
+            explanation_capabilities=[
+                {
+                    "scope": "run",
+                    "label": "Run summary",
+                    "fact_kinds": ["trend", "milestone"],
+                }
+            ],
+            preferred_view="network",
+        ),
+        sdk_min_version="0.1.0",
+    )
+
+    assert manifest.semantics.entity_schemas["node"][0].name == "population"
+    assert manifest.semantics.metric_schema["population_sum"].unit == "people"
+    assert manifest.semantics.view_capabilities[0] == ViewCapability(
+        kind="network",
+        label="Network",
+        default=True,
+    )
+    assert manifest.semantics.explanation_capabilities[0] == ExplanationCapability(
+        scope="run",
+        label="Run summary",
+        fact_kinds=["trend", "milestone"],
+    )
+
+
+def test_manifest_derives_minimal_metric_semantics_from_existing_metrics_schema() -> None:
+    manifest = demo_manifest()
+
+    assert manifest.semantics.metric_schema["population_sum"].name == "population_sum"
+    assert manifest.semantics.metric_schema["population_sum"].kind == "scalar"
+
+
+def test_manifest_rejects_invalid_semantic_capabilities() -> None:
+    with pytest.raises(ValueError, match="preferred_view"):
+        PluginManifest(
+            name="bad-semantics",
+            version="0.1.0",
+            paradigm="graph",
+            world=DemoWorld,
+            solver=DemoSolver,
+            observer=DemoObserver,
+            renderer=DemoRenderer,
+            bus_reads=[],
+            bus_writes=["population"],
+            metrics_schema={"population_sum": {"type": "number"}},
+            semantics=SemanticManifest(
+                view_capabilities=[{"kind": "network"}],
+                preferred_view="heatmap",
+            ),
+            sdk_min_version="0.1.0",
+        )
+
+
+def test_heat_diffusion_plugin_demonstrates_non_spatial_semantics() -> None:
+    manifest = HeatDiffusionPlugin.manifest()
+
+    assert manifest.semantics.preferred_view == "heatmap"
+    assert manifest.semantics.state_schema["temperature"].kind == "continuous"
+    assert [capability.kind for capability in manifest.semantics.view_capabilities] == [
+        "heatmap",
+        "table",
+    ]

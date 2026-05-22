@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from persephone.config.models import ExperimentConfig
 from persephone.frames import FrameListResponse
@@ -24,6 +24,89 @@ class HealthResponse(BaseModel):
 class RunCreateRequest(BaseModel):
     config: ExperimentConfig
     run_id: str | None = None
+
+
+class EntityField(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    type: Literal["string", "integer", "number", "boolean", "categorical", "enum", "json"]
+    label: str | None = None
+    description: str | None = None
+    unit: str | None = None
+    required: bool = False
+
+
+class StateDefinition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    kind: Literal["categorical", "continuous", "ordinal", "boolean"]
+    label: str | None = None
+    description: str | None = None
+    unit: str | None = None
+    values: list[str] = Field(default_factory=list)
+
+
+class MetricDefinition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    label: str | None = None
+    kind: Literal["scalar", "ratio", "delta", "index"] = "scalar"
+    description: str | None = None
+    unit: str | None = None
+    headline: bool = False
+
+
+class EventDefinition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    label: str | None = None
+    description: str | None = None
+    related_entity: str | None = None
+
+
+class ViewCapability(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal[
+        "network",
+        "positioned_graph",
+        "map_network",
+        "matrix",
+        "table",
+        "timeline",
+        "heatmap",
+        "hierarchy",
+    ]
+    label: str | None = None
+    description: str | None = None
+    default: bool = False
+    requires_coordinates: bool = False
+
+
+class ExplanationCapability(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    scope: Literal["run", "frame", "selection"]
+    label: str | None = None
+    description: str | None = None
+    fact_kinds: list[str] = Field(default_factory=list)
+
+
+class SemanticManifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    entity_schemas: dict[str, list[EntityField]] = Field(default_factory=dict)
+    state_schema: dict[str, StateDefinition] = Field(default_factory=dict)
+    metric_schema: dict[str, MetricDefinition] = Field(default_factory=dict)
+    event_schema: dict[str, EventDefinition] = Field(default_factory=dict)
+    view_capabilities: list[ViewCapability] = Field(default_factory=list)
+    explanation_capabilities: list[ExplanationCapability] = Field(default_factory=list)
+    default_entity_type: str | None = None
+    preferred_view: str | None = None
 
 
 class RunSummaryResponse(BaseModel):
@@ -99,14 +182,21 @@ class SweepCreateRequest(BaseModel):
 
 __all__ = [
     "ApiError",
+    "EntityField",
     "EventRecordResponse",
+    "EventDefinition",
     "ExampleConfigResponse",
     "ExampleSummaryResponse",
+    "ExplanationCapability",
     "FrameListResponse",
     "HealthResponse",
+    "MetricDefinition",
     "MetricRecordResponse",
     "PluginSummaryResponse",
     "RunCreateRequest",
     "RunSummaryResponse",
+    "SemanticManifest",
+    "StateDefinition",
     "SweepCreateRequest",
+    "ViewCapability",
 ]

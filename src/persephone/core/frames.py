@@ -63,6 +63,12 @@ class GraphNode(BaseModel):
     x: float | None = None
     y: float | None = None
     state: str | None = None
+    label: str | None = None
+    group: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    metrics: dict[str, float] | None = None
+    attrs: dict[str, Any] | None = None
 
 
 class GraphEdge(BaseModel):
@@ -71,13 +77,27 @@ class GraphEdge(BaseModel):
     source: str = Field(min_length=1)
     target: str = Field(min_length=1)
     weight: float | None = None
+    kind: str | None = None
+    directed: bool | None = None
+    attrs: dict[str, Any] | None = None
+
+
+class GraphVisualization(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    layout_hint: str | None = None
+    coordinate_system: str | None = None
+    preferred_view: str | None = None
+    legend: dict[str, Any] | None = None
+    selection_schema: dict[str, Any] | None = None
+    density_hint: str | None = None
 
 
 class GraphFrame(BaseFrame):
     kind: Literal["graph"] = "graph"
     nodes: list[GraphNode]
     edges: list[GraphEdge] = Field(default_factory=list)
-    visualization: dict[str, Any] = Field(default_factory=dict)
+    visualization: GraphVisualization = Field(default_factory=GraphVisualization)
 
 
 SimulationFrame = Annotated[FieldFrame | GraphFrame, Field(discriminator="kind")]
@@ -117,6 +137,7 @@ __all__ = [
     "GraphEdge",
     "GraphFrame",
     "GraphNode",
+    "GraphVisualization",
     "SimulationFrame",
     "validate_frame",
 ]

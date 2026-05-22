@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 
 from persephone.core.run import RunContext
 from persephone.storage.errors import StorageError, UnsupportedStateValueError
+from persephone.storage.explanations import JsonlExplanationSink
 from persephone.storage.frames import JsonlFrameSink
 from persephone.storage.sinks import JsonlEventSink, JsonlMetricSink, write_state_npz
 
@@ -27,6 +28,7 @@ class ArtifactStore:
         (run_dir / "metrics.jsonl").touch()
         (run_dir / "events.jsonl").touch()
         (run_dir / "frames").mkdir()
+        (run_dir / "explanations").mkdir()
         return run_dir
 
     def run_dir(self, run_id: str) -> Path:
@@ -68,6 +70,11 @@ class ArtifactStore:
             frames,
             inline_frame_max_values=inline_max,
         )
+
+    def write_explanations(self, run_id: str, packets: list[dict[str, Any]]) -> None:
+        if not packets:
+            return
+        JsonlExplanationSink(self.run_dir(run_id) / "explanations" / "facts.jsonl").write(packets)
 
     def write_final_state(self, run_id: str, state: Mapping[str, object]) -> None:
         run_dir = self.run_dir(run_id)

@@ -67,12 +67,30 @@ class GraphNode(TypedDict, total=False):
     x: float | None
     y: float | None
     state: str | None
+    label: str | None
+    group: str | None
+    lat: float | None
+    lon: float | None
+    metrics: dict[str, float]
+    attrs: dict[str, Any]
 
 
 class GraphEdge(TypedDict, total=False):
     source: str
     target: str
     weight: float | None
+    kind: str | None
+    directed: bool | None
+    attrs: dict[str, Any]
+
+
+class GraphVisualization(TypedDict, total=False):
+    layout_hint: str | None
+    coordinate_system: str | None
+    preferred_view: str | None
+    legend: dict[str, Any]
+    selection_schema: dict[str, Any]
+    density_hint: str | None
 
 
 class GraphFrame(TypedDict, total=False):
@@ -86,7 +104,7 @@ class GraphFrame(TypedDict, total=False):
     schema_version: int
     nodes: list[GraphNode]
     edges: list[GraphEdge]
-    visualization: dict[str, Any]
+    visualization: GraphVisualization
 
 
 SimulationFrame: TypeAlias = FieldFrame | GraphFrame

@@ -66,6 +66,56 @@ def test_graph_frame_validates_nodes_and_edges() -> None:
     assert frame.nodes[0].id == "0"
 
 
+def test_graph_frame_accepts_rich_metadata_and_visualization_hints() -> None:
+    frame = validate_frame(
+        {
+            "kind": "graph",
+            "run_id": "run-rich",
+            "frame_id": "graph-rich-001",
+            "t": 2.0,
+            "tick": 2,
+            "solver_id": "solver#0",
+            "source": "live",
+            "nodes": [
+                {
+                    "id": "alpha",
+                    "label": "Alpha region",
+                    "group": "west",
+                    "lat": 34.05,
+                    "lon": -118.24,
+                    "metrics": {"load": 0.82},
+                    "attrs": {"priority": "high"},
+                    "state": "active",
+                }
+            ],
+            "edges": [
+                {
+                    "source": "alpha",
+                    "target": "beta",
+                    "weight": 0.7,
+                    "kind": "dependency",
+                    "directed": True,
+                    "attrs": {"mode": "critical"},
+                }
+            ],
+            "visualization": {
+                "layout_hint": "geographic",
+                "coordinate_system": "geo",
+                "preferred_view": "map_network",
+                "legend": {"active": "#ff6600"},
+                "selection_schema": {"type": "node"},
+                "density_hint": "sparse",
+            },
+        }
+    )
+
+    assert isinstance(frame, GraphFrame)
+    assert frame.nodes[0].label == "Alpha region"
+    assert frame.nodes[0].metrics == {"load": 0.82}
+    assert frame.edges[0].directed is True
+    assert frame.visualization.preferred_view == "map_network"
+
+
 def test_frame_schema_export_contains_frame_models() -> None:
     schemas = core_record_json_schemas()
 

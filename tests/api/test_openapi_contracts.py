@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from pydantic import TypeAdapter
 
 from persephone.api.app import create_app
-from persephone.api.schemas import ApiError, FrameListResponse, RunSummaryResponse
+from persephone.api.schemas import ApiError, FrameListResponse, RunSummaryResponse, SemanticManifest
 
 
 def test_openapi_exposes_hardened_frame_contracts(tmp_path: Path) -> None:
@@ -65,5 +65,42 @@ def test_schema_compatibility_for_critical_response_models() -> None:
                     "payload_ref": {"uri": "frames/frames.jsonl", "format": "jsonl"},
                 }
             ],
+        }
+    )
+    SemanticManifest.model_validate(
+        {
+            "entity_schemas": {
+                "node": [
+                    {
+                        "name": "population",
+                        "type": "number",
+                        "label": "Population",
+                        "required": True,
+                    }
+                ]
+            },
+            "state_schema": {
+                "population": {
+                    "name": "population",
+                    "kind": "continuous",
+                    "label": "Population",
+                }
+            },
+            "metric_schema": {
+                "population_sum": {
+                    "name": "population_sum",
+                    "kind": "scalar",
+                    "label": "Population sum",
+                }
+            },
+            "event_schema": {
+                "population_changed": {
+                    "name": "population_changed",
+                    "label": "Population changed",
+                }
+            },
+            "view_capabilities": [{"kind": "network", "default": True}],
+            "explanation_capabilities": [{"scope": "run", "label": "Run summary"}],
+            "preferred_view": "network",
         }
     )

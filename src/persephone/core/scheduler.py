@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from time import perf_counter, sleep
 from typing import Any, cast
 
@@ -11,6 +11,7 @@ from persephone_sdk.plugin import Observer, Renderer, Solver
 from persephone_sdk.types import StateDict
 
 from persephone.core.bus import BusCommitSummary, InMemoryDataBus
+from persephone.core.explanations import summarize_explanation_packet, validate_explanation_packet
 from persephone.core.frames import validate_frame
 from persephone.core.records import SchedulerTelemetry
 from persephone.core.run import RunContext
@@ -33,6 +34,12 @@ class SchedulerResult:
     tick_count: int
     t_current: float
     error_message: str | None = None
+
+
+@dataclass(frozen=True)
+class ObservationBatch:
+    metrics: list[dict[str, Any]] = field(default_factory=list)
+    events: list[dict[str, Any]] = field(default_factory=list)
 
 
 class Scheduler:
@@ -91,7 +98,7 @@ class Scheduler:
                 elapsed_interval = self._validated_elapsed_interval(dt, elapsed_values)
                 t += elapsed_interval
                 commit_summary = self.bus.commit(tick=tick, logical_time=t)
-                self._observe(t, tick=tick)
+                observations = self._observe(t, tick=tick)
                 self._emit_scheduler_telemetry(
                     tick=tick,
                     logical_time=t,
@@ -100,7 +107,13 @@ class Scheduler:
                     solver_step_times=solver_step_times,
                     commit_summary=commit_summary,
                 )
-                self._emit_frames(t, tick=tick)
+                frames_by_solver = self._emit_frames(t, tick=tick)
+                self._emit_explanations(
+                    t,
+                    tick=tick,
+                    observations=observations,
+                    frames_by_solver=frames_by_solver,
+                )
                 self._checkpoint_if_needed(tick=tick, logical_time=t)
                 self._delay_demo_tick()
 
@@ -141,12 +154,13 @@ class Scheduler:
         scheduler = cast(Mapping[str, object], self.run_context.config_snapshot["scheduler"])
         return float(cast(int | float | str, scheduler["t_end"]))
 
-    def _observe(self, t: float, tick: int) -> None:
+    def _observe(self, t: float, tick: int) -> dict[str, ObservationBatch]:
+        batches = {runtime.solver_id: ObservationBatch() for runtime in self.runtimes}
         emit_every = self._emit_every()
         if t + 1e-9 < emit_every and t + 1e-9 < self._t_end():
-            return
+            return batches
         if not _is_cadence_time(t, emit_every) and t + 1e-9 < self._t_end():
-            return
+            return batches
 
         for runtime in self.runtimes:
             metrics = runtime.observer.observe(runtime.state, t=t, run_id=self.run_context.run_id)
@@ -168,6 +182,11 @@ class Scheduler:
             event_records = list(events)
             self.artifact_store.write_events(self.run_context.run_id, event_records)
             self._emit_records("event", event_records)
+            batches[runtime.solver_id] = ObservationBatch(
+                metrics=metric_records,
+                events=event_records,
+            )
+        return batches
 
     def _emit_scheduler_telemetry(
         self,
@@ -215,12 +234,13 @@ class Scheduler:
         except Exception:
             pass
 
-    def _emit_frames(self, t: float, *, tick: int) -> None:
+    def _emit_frames(self, t: float, *, tick: int) -> dict[str, list[dict[str, Any]]]:
+        frames_by_solver = {runtime.solver_id: [] for runtime in self.runtimes}
         emit_every = self._visualization_emit_every()
         if t + 1e-9 < emit_every:
-            return
+            return frames_by_solver
         if not _is_cadence_time(t, emit_every):
-            return
+            return frames_by_solver
 
         frames: list[dict[str, Any]] = []
         for runtime in self.runtimes:
@@ -233,9 +253,48 @@ class Scheduler:
                 source="live",
             )
             for frame in raw_frames:
-                frames.append(validate_frame(cast(dict[str, Any], frame)).model_dump(mode="json"))
+                validated = validate_frame(cast(dict[str, Any], frame)).model_dump(mode="json")
+                frames.append(validated)
+                frames_by_solver[runtime.solver_id].append(validated)
         self.artifact_store.write_frames(self.run_context.run_id, frames)
         self._emit_records("frame", frames)
+        return frames_by_solver
+
+    def _emit_explanations(
+        self,
+        t: float,
+        *,
+        tick: int,
+        observations: dict[str, ObservationBatch],
+        frames_by_solver: dict[str, list[dict[str, Any]]],
+    ) -> None:
+        packets: list[dict[str, Any]] = []
+        for runtime in self.runtimes:
+            batch = observations.get(runtime.solver_id, ObservationBatch())
+            raw_packets = runtime.observer.explain(
+                runtime.state,
+                t=t,
+                tick=tick,
+                run_id=self.run_context.run_id,
+                solver_id=runtime.solver_id,
+                metrics=cast(Any, batch.metrics),
+                events=cast(Any, batch.events),
+                frames=cast(Any, frames_by_solver.get(runtime.solver_id, [])),
+            )
+            for raw_packet in raw_packets:
+                packet = validate_explanation_packet(
+                    {
+                        "run_id": self.run_context.run_id,
+                        "solver_id": runtime.solver_id,
+                        "t": t,
+                        "tick": tick,
+                        **raw_packet,
+                    }
+                )
+                packet.summary = summarize_explanation_packet(packet)
+                packets.append(packet.model_dump(mode="json"))
+        self.artifact_store.write_explanations(self.run_context.run_id, packets)
+        self._emit_records("explanation", packets)
 
     def _checkpoint_if_needed(self, *, tick: int, logical_time: float) -> None:
         checkpoint_every = self._checkpoint_every()

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from persephone.config.models import ExperimentConfig
+from persephone.core.explanations import ExplanationPacket, ExplanationSummary, TrendFact
 from persephone.core.frames import FieldFrame, FrameIndex, FramePayloadRef, GraphFrame
 from persephone.core.records import EventRecord, MetricRecord, RunManifest, SchedulerTelemetry
 
@@ -23,4 +24,7 @@ def core_record_json_schemas() -> dict[str, dict[str, Any]]:
         "GraphFrame": GraphFrame.model_json_schema(),
         "FrameIndex": FrameIndex.model_json_schema(),
         "FramePayloadRef": FramePayloadRef.model_json_schema(),
+        "ExplanationPacket": ExplanationPacket.model_json_schema(),
+        "ExplanationSummary": ExplanationSummary.model_json_schema(),
+        "TrendFact": TrendFact.model_json_schema(),
     }
