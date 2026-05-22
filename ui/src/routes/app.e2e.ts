@@ -971,6 +971,16 @@ test('prioritizes the run story, key metrics, and next step before technical det
 	await expect(page.getByText('Technical details')).toBeVisible();
 });
 
+test('shows a summary-first completed-run shell before deep analysis panels', async ({ page }) => {
+	await page.goto('/runs/run-workflow');
+	await pausePlaybackIfNeeded(page);
+
+	await expect(page.getByText('Why it matters')).toBeVisible();
+	await expect(page.getByText('What to inspect next')).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Viewport' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Explanation detail' })).toHaveCount(0);
+});
+
 test('keeps metric cards readable with long labels and large values at tablet widths', async ({
 	page
 }) => {
@@ -990,6 +1000,23 @@ test('keeps metric cards readable with long labels and large values at tablet wi
 	);
 });
 
+test('shows only view-relevant viewport controls and keeps them optional', async ({ page }) => {
+	await page.goto('/runs/run-market');
+	await pausePlaybackIfNeeded(page);
+
+	await expect(page.getByRole('button', { name: 'View controls' })).toBeVisible();
+	await expect(page.getByText('Search and highlight')).not.toBeVisible();
+
+	await page.getByRole('button', { name: 'View controls' }).click();
+	await expect(page.getByText('Search and highlight')).toBeVisible();
+	await expect(page.getByText('Edge filter')).toBeVisible();
+	await expect(page.getByText('Cluster groups')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Zoom in' })).not.toBeVisible();
+
+	await page.getByRole('combobox').selectOption('table');
+	await expect(page.getByRole('button', { name: 'View controls' })).toHaveCount(0);
+});
+
 test('keeps the analysis workspace free of horizontal overflow across supported widths', async ({
 	page
 }) => {
@@ -998,20 +1025,22 @@ test('keeps the analysis workspace free of horizontal overflow across supported 
 		{ name: 'laptop', width: 1280, height: 900 },
 		{ name: 'tablet', width: 1024, height: 1366 }
 	]) {
-		await page.setViewportSize({ width: viewport.width, height: viewport.height });
-		await page.goto('/runs/run-workflow');
-		await pausePlaybackIfNeeded(page);
-		await ensureTheme(page, 'light');
-		await expect
-			.poll(
-				() =>
-					page.evaluate(() => ({
-						scrollWidth: document.documentElement.scrollWidth,
-						clientWidth: document.documentElement.clientWidth
-					})),
-				{ message: `${viewport.name} viewport should not overflow horizontally` }
-			)
-			.toEqual({ scrollWidth: viewport.width, clientWidth: viewport.width });
+		for (const theme of ['light', 'dark'] as const) {
+			await page.setViewportSize({ width: viewport.width, height: viewport.height });
+			await page.goto('/runs/run-workflow');
+			await pausePlaybackIfNeeded(page);
+			await ensureTheme(page, theme);
+			await expect
+				.poll(
+					() =>
+						page.evaluate(() => ({
+							scrollWidth: document.documentElement.scrollWidth,
+							clientWidth: document.documentElement.clientWidth
+						})),
+					{ message: `${viewport.name} ${theme} viewport should not overflow horizontally` }
+				)
+				.toEqual({ scrollWidth: viewport.width, clientWidth: viewport.width });
+		}
 	}
 });
 
@@ -1025,6 +1054,23 @@ test('supports theme switching for the analysis workspace', async ({ page }) => 
 	await expect(page.locator('html')).toHaveClass(/dark/);
 	await page.getByRole('button', { name: 'Switch to light mode' }).click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);
+});
+
+test('keeps fullscreen focus modes keyboard-accessible', async ({ page }) => {
+	await page.goto('/runs/run-a');
+	await pausePlaybackIfNeeded(page);
+
+	await page.keyboard.press('f');
+	await expect(page.getByRole('dialog', { name: /full-screen/i })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Close full-screen view' })).toBeFocused();
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('dialog', { name: /full-screen/i })).toHaveCount(0);
+
+	await page.keyboard.press('m');
+	await expect(page.getByRole('dialog', { name: /full-screen analysis/i })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Close full-screen view' })).toBeFocused();
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('dialog', { name: /full-screen analysis/i })).toHaveCount(0);
 });
 
 test('captures representative run-page visual baselines in light and dark themes', async ({

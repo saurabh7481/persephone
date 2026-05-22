@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import {
 		AlertCircle,
 		CirclePause,
@@ -24,7 +24,7 @@
 	} from '$lib/api';
 	import MetricTimeline from '$lib/components/MetricTimeline.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import { MetricDeck, SimulationViewport, StudioPanel } from '$lib/components/studio';
+	import { MetricDeck, RunSummaryHero, SimulationViewport, StudioPanel } from '$lib/components/studio';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
@@ -53,6 +53,7 @@
 		toggleFocusSurface,
 		type FocusSurface
 	} from '$lib/studio/run-focus';
+	import { buildRunPageModel } from '$lib/studio/run-page';
 	import {
 		formatMetricValue as formatDisplayMetricValue,
 		formatNumber,
@@ -92,6 +93,8 @@
 	let selectionExplanationLoading = $state(false);
 	let loadedFrameExplanationKey = $state('');
 	let loadedSelectionExplanationKey = $state('');
+	let viewportDialogCloseButton = $state<HTMLButtonElement | null>(null);
+	let metricDialogCloseButton = $state<HTMLButtonElement | null>(null);
 
 	const summary = $derived(compareMetricSummary(metrics));
 	const selectedFrame = $derived(
@@ -239,6 +242,22 @@
 		}
 	]);
 	const explanationCards = $derived(buildExplanationPanelCards(explanationSections));
+	const pageModel = $derived(
+		buildRunPageModel({
+			runStatus: run?.status ?? 'loading',
+			currentView,
+			narrativeLead,
+			focusedMetric,
+			explanationCards,
+			recentChanges: recentChangeItems,
+			inspectorKind: inspectorPanel.kind,
+			hasSelection: selectedObject !== null,
+			pluginSupportsExplanation: pluginSemantics.some(
+				(s) => (s.semantics.explanation_capabilities ?? []).length > 0
+			),
+			currentFrameId: selectedFrame?.frame_id ?? null
+		})
+	);
 
 	$effect(() => {
 		const options = viewOptions;
@@ -259,6 +278,15 @@
 		}
 		if (!focusedMetricId || !metricDeck.some((item) => item.metric === focusedMetricId)) {
 			focusedMetricId = metricDeck[0]?.metric ?? null;
+		}
+	});
+
+	$effect(() => {
+		if (focusSurface === 'viewport') {
+			void tick().then(() => viewportDialogCloseButton?.focus());
+		}
+		if (focusSurface === 'metrics') {
+			void tick().then(() => metricDialogCloseButton?.focus());
 		}
 	});
 
@@ -586,6 +614,21 @@
 
 	<div class="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.95fr)]">
 		<StudioPanel title={narrativeLead.eyebrow}>
+			<RunSummaryHero
+				status={run?.status ?? 'loading'}
+				viewLabel={currentView.label}
+				title={pageModel.summary.title}
+				summary={pageModel.summary.summary}
+				significance={pageModel.summary.significance}
+				nextStep={pageModel.summary.nextStep}
+				currentFrame={pageModel.summary.currentFrame}
+				metricLabel={focusedMetric?.label ?? 'No primary metric'}
+				metricValue={focusedMetric ? formatMetricValue(focusedMetric) : '-'}
+			/>
+		</StudioPanel>
+
+		<!-- NOTE: keeping the old metric stat cards hidden here as a reference until Task 3 moves them to tabs -->
+		{#if false}
 			<div class="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(16rem,0.9fr)]">
 				<div class="min-w-0 space-y-4">
 					<div class="flex flex-wrap items-center gap-2 text-xs">
@@ -655,7 +698,7 @@
 					</div>
 				</div>
 			</div>
-		</StudioPanel>
+		{/if}
 
 		<StudioPanel title="View guide" description={currentViewNarrative.summary}>
 			<div class="grid gap-3 text-sm">
@@ -1029,78 +1072,6 @@
 		</div>
 
 		<div class="grid min-w-0 content-start gap-4 xl:col-span-2 2xl:col-span-1">
-			<StudioPanel
-				title="Explanation detail"
-				description="Plain-language summaries stay first; evidence and deterministic facts sit behind a secondary reveal."
-			>
-				<div class="grid gap-3">
-					{#each explanationCards as card (card.key)}
-						<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
-							<div class="flex flex-wrap items-start justify-between gap-3">
-								<div class="min-w-0">
-									<p class="text-sm font-semibold">{card.label}</p>
-									<p class="mt-1 text-xs leading-5 text-muted-foreground">{card.description}</p>
-								</div>
-								<span class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium">
-									{card.sourceLabel}
-								</span>
-							</div>
-							{#if card.loading}
-								<p class="mt-3 text-sm text-muted-foreground">Loading interpretation…</p>
-							{:else}
-								<div class="mt-4 space-y-4">
-									<div class="space-y-2">
-										<p class="text-base font-semibold">{card.primaryStatement}</p>
-										<p class="text-sm leading-6 text-muted-foreground">{card.supportingDetail}</p>
-									</div>
-									{#if card.evidence.length}
-										<div class="rounded-xl border bg-muted/20 p-3">
-											<p
-												class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-											>
-												Evidence
-											</p>
-											<div class="mt-3 grid gap-2">
-												{#each card.evidence as evidence (`${card.key}:${evidence.label}`)}
-													<div class="flex items-start justify-between gap-3 text-sm">
-														<span class="text-muted-foreground">{evidence.label}</span>
-														<span class="text-right font-medium">{evidence.value}</span>
-													</div>
-												{/each}
-											</div>
-										</div>
-									{/if}
-									{#if card.facts.length}
-										<div class="grid gap-2 sm:grid-cols-2">
-											{#each card.facts as fact (`${card.key}:${fact.title}:${fact.time}`)}
-												<button
-													type="button"
-													class="min-w-0 rounded-xl border bg-background/80 p-3 text-left transition hover:bg-muted/35"
-													onclick={() => openExplanationMoment(fact.time)}
-												>
-													<div class="flex items-center justify-between gap-2">
-														<p class="text-sm font-medium">{fact.title}</p>
-														<span
-															class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(fact.severity)}`}
-														>
-															{fact.timeLabel}
-														</span>
-													</div>
-													<p class="mt-2 text-xs leading-5 text-muted-foreground">{fact.summary}</p>
-												</button>
-											{/each}
-										</div>
-									{/if}
-									<div class="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-										<span class="rounded-full border px-2 py-0.5">{card.footer}</span>
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			</StudioPanel>
-
 			<StudioPanel
 				title="What changed recently"
 				description="Recent deterministic deltas and clickable milestones stay tied to replay time."
@@ -1548,15 +1519,30 @@
 
 {#if focusSurface === 'viewport' && currentView.surface === 'viewport'}
 	<div class="fixed inset-0 z-50 bg-background/85 p-4 backdrop-blur-sm">
-		<div class="flex h-full flex-col gap-4 rounded-2xl border bg-background p-4 shadow-2xl">
+		<div
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="viewport-fullscreen-title"
+			aria-describedby="viewport-fullscreen-description"
+			class="flex h-full flex-col gap-4 rounded-2xl border bg-background p-4 shadow-2xl"
+		>
 			<div class="flex items-center justify-between gap-3">
 				<div>
-					<p class="text-sm font-semibold">{currentView.label} full-screen</p>
-					<p class="text-xs text-muted-foreground">
+					<p id="viewport-fullscreen-title" class="text-sm font-semibold">
+						{currentView.label} full-screen
+					</p>
+					<p id="viewport-fullscreen-description" class="text-xs text-muted-foreground">
 						Playback and selection remain live while this overlay is open.
 					</p>
 				</div>
-				<Button variant="outline" size="sm" onclick={() => (focusSurface = 'none')}>
+				<Button
+					bind:ref={viewportDialogCloseButton}
+					variant="outline"
+					size="sm"
+					autofocus
+					aria-label="Close full-screen view"
+					onclick={() => (focusSurface = 'none')}
+				>
 					<Minimize2 size={15} />
 					<span class="ml-2">Close</span>
 				</Button>
@@ -1586,15 +1572,30 @@
 
 {#if focusSurface === 'metrics' && focusedMetric}
 	<div class="fixed inset-0 z-50 bg-background/85 p-4 backdrop-blur-sm">
-		<div class="flex h-full flex-col gap-4 rounded-2xl border bg-background p-4 shadow-2xl">
+		<div
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="metric-fullscreen-title"
+			aria-describedby="metric-fullscreen-description"
+			class="flex h-full flex-col gap-4 rounded-2xl border bg-background p-4 shadow-2xl"
+		>
 			<div class="flex items-center justify-between gap-3">
 				<div>
-					<p class="text-sm font-semibold">{focusedMetric.label} full-screen analysis</p>
-					<p class="text-xs text-muted-foreground">
+					<p id="metric-fullscreen-title" class="text-sm font-semibold">
+						{focusedMetric.label} full-screen analysis
+					</p>
+					<p id="metric-fullscreen-description" class="text-xs text-muted-foreground">
 						Focused metric view keeps threshold markers, events, and frame scrubbing in one place.
 					</p>
 				</div>
-				<Button variant="outline" size="sm" onclick={() => (focusSurface = 'none')}>
+				<Button
+					bind:ref={metricDialogCloseButton}
+					variant="outline"
+					size="sm"
+					autofocus
+					aria-label="Close full-screen view"
+					onclick={() => (focusSurface = 'none')}
+				>
 					<Minimize2 size={15} />
 					<span class="ml-2">Close</span>
 				</Button>
