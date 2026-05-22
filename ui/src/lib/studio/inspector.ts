@@ -312,6 +312,27 @@ export function runInspection(run: RunSummary | null): RunInspection | null {
 	};
 }
 
+export type InspectorPreview = {
+	title: string;
+	summary: string;
+	hasMeaningfulSelection: boolean;
+};
+
+export function inspectorPreview(model: InspectorPanelModel): InspectorPreview {
+	if (model.kind === 'empty') {
+		return {
+			title: 'Inspector ready',
+			summary: 'Select a node, relationship, or field cell to inspect why it matters.',
+			hasMeaningfulSelection: false
+		};
+	}
+	return {
+		title: model.title,
+		summary: model.summary,
+		hasMeaningfulSelection: true
+	};
+}
+
 export function artifactSummaries(
 	run: RunSummary | null,
 	metrics: unknown[],

@@ -4,3 +4,4 @@ export { default as StudioWorkbench } from './StudioWorkbench.svelte';
 export { default as SimulationViewport } from './SimulationViewport.svelte';
 export { default as MetricDeck } from './MetricDeck.svelte';
 export { default as RunSummaryHero } from './RunSummaryHero.svelte';
+export { default as RunSecondaryTabs } from './RunSecondaryTabs.svelte';

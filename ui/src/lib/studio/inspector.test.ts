@@ -7,8 +7,10 @@ import {
 	fieldCellInspection,
 	graphEdgeInspection,
 	graphNodeInspection,
+	inspectorPreview,
 	runInspection
 } from './inspector';
+import type { InspectorPanelModel } from './inspector';
 import type {
 	EventRecord,
 	ExplanationResponse,
@@ -150,6 +152,38 @@ const selectionExplanation: ExplanationResponse = {
 		}
 	}
 };
+
+describe('inspectorPreview', () => {
+	test('returns empty preview for empty inspector', () => {
+		const model: InspectorPanelModel = {
+			kind: 'empty',
+			eyebrow: 'Entity inspector',
+			title: 'Select a node, relationship, or field cell',
+			summary: 'Click something.',
+			highlights: [],
+			sections: [],
+			technical: []
+		};
+		const preview = inspectorPreview(model);
+		expect(preview.hasMeaningfulSelection).toBe(false);
+		expect(preview.summary).toContain('Select a node');
+	});
+
+	test('returns meaningful preview when selection exists', () => {
+		const model: InspectorPanelModel = {
+			kind: 'graph-node',
+			eyebrow: 'Entity inspector',
+			title: 'Rules engine',
+			summary: 'Carrying the most blocker pressure.',
+			highlights: [],
+			sections: [],
+			technical: []
+		};
+		const preview = inspectorPreview(model);
+		expect(preview.hasMeaningfulSelection).toBe(true);
+		expect(preview.title).toBe('Rules engine');
+	});
+});
 
 describe('studio inspector helpers', () => {
 	test('inspects selected field cells with frame metadata', () => {

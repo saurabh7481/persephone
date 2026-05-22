@@ -24,7 +24,7 @@
 	} from '$lib/api';
 	import MetricTimeline from '$lib/components/MetricTimeline.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
-	import { MetricDeck, RunSummaryHero, SimulationViewport, StudioPanel } from '$lib/components/studio';
+	import { MetricDeck, RunSummaryHero, RunSecondaryTabs, SimulationViewport, StudioPanel } from '$lib/components/studio';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
@@ -37,6 +37,7 @@
 		fieldCellInspection,
 		graphEdgeInspection,
 		graphNodeInspection,
+		inspectorPreview,
 		runInspection
 	} from '$lib/studio/inspector';
 	import { buildMetricDeck, togglePinnedMetric, type MetricDeckItem } from '$lib/studio/metrics';
@@ -81,6 +82,7 @@
 	let selectedView = $state<StandardViewKind | null>(null);
 	let selectedViewLocked = $state(false);
 	let activeDockTab = $state('metrics');
+	let activeSecondaryTab = $state('artifacts');
 	let focusSurface = $state<FocusSurface>('none');
 	let pinnedMetrics = $state<string[]>([]);
 	let expandedMetrics = $state<string[]>([]);
@@ -161,6 +163,7 @@
 			run: runDetails
 		})
 	);
+	const inspectorPreviewModel = $derived(inspectorPreview(inspectorPanel));
 	const artifacts = $derived(artifactSummaries(run, metrics, events, $playback.frameBuffer));
 	const entityBrowser = $derived(browseFrameEntities(selectedFrame, pluginSemantics));
 	const metricDeck = $derived(
@@ -570,6 +573,17 @@
 		if (target.frameId) playback.selectFrame(target.frameId);
 	}
 
+	function secondaryTabLabel(value: string): string {
+		const labels: Record<string, string> = {
+			explain: 'Explain',
+			inspect: 'Inspect',
+			timeline: 'Timeline',
+			artifacts: 'Artifacts',
+			debug: 'Debug'
+		};
+		return labels[value] ?? value;
+	}
+
 	function openExplanationMoment(time: number) {
 		const frame = $playback.frameBuffer.reduce<import('$lib/api-client').SimulationFrame | null>(
 			(nearest, candidate) => {
@@ -626,79 +640,6 @@
 				metricValue={focusedMetric ? formatMetricValue(focusedMetric) : '-'}
 			/>
 		</StudioPanel>
-
-		<!-- NOTE: keeping the old metric stat cards hidden here as a reference until Task 3 moves them to tabs -->
-		{#if false}
-			<div class="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(16rem,0.9fr)]">
-				<div class="min-w-0 space-y-4">
-					<div class="flex flex-wrap items-center gap-2 text-xs">
-						{#if run}
-							<StatusBadge status={run.status} />
-						{/if}
-						<span class="rounded-full border px-2 py-1 text-muted-foreground">
-							Metric stream {streamState}
-						</span>
-						<span class="rounded-full border px-2 py-1 text-muted-foreground">
-							Frame {selectedFrame?.frame_id ?? 'none'}
-						</span>
-						<span class="rounded-full border px-2 py-1 text-muted-foreground">
-							{currentView.label}
-						</span>
-					</div>
-					<div class="space-y-2">
-						<h2 class="text-2xl font-semibold tracking-tight text-balance">
-							{narrativeLead.title}
-						</h2>
-						<p class="max-w-3xl text-sm leading-6 text-muted-foreground">
-							{narrativeLead.summary}
-						</p>
-					</div>
-					<div class="grid gap-2 sm:grid-cols-3">
-						<div class="rounded-xl border bg-muted/25 p-3">
-							<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-								Selected time
-							</p>
-							<p class="mt-2 text-lg font-semibold">{formatNumber($playback.currentTime)}</p>
-							<p class="mt-1 text-xs text-muted-foreground">{$playback.status}</p>
-						</div>
-						<div class="rounded-xl border bg-muted/25 p-3">
-							<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-								Focused metric
-							</p>
-							<p class="mt-2 text-sm font-semibold break-words">
-								{focusedMetric?.label ?? humanizeIdentifier(summary.primaryMetric)}
-							</p>
-							<p class="mt-1 text-xs text-muted-foreground">
-								{focusedMetric
-									? formatMetricValue(focusedMetric)
-									: `Peak ${formatNumber(summary.peakValue)}`}
-							</p>
-						</div>
-						<div class="rounded-xl border bg-muted/25 p-3">
-							<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-								Frames buffered
-							</p>
-							<p class="mt-2 text-lg font-semibold">{$playback.frameBuffer.length}</p>
-							<p class="mt-1 text-xs text-muted-foreground">{metrics.length} metric records</p>
-						</div>
-					</div>
-				</div>
-				<div class="grid content-start gap-3">
-					<div class="rounded-xl border bg-background/70 p-3">
-						<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-							Why it matters
-						</p>
-						<p class="mt-2 text-sm leading-6">{narrativeLead.significance}</p>
-					</div>
-					<div class="rounded-xl border bg-background/70 p-3">
-						<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-							What to inspect next
-						</p>
-						<p class="mt-2 text-sm leading-6">{narrativeLead.nextStep}</p>
-					</div>
-				</div>
-			</div>
-		{/if}
 
 		<StudioPanel title="View guide" description={currentViewNarrative.summary}>
 			<div class="grid gap-3 text-sm">
@@ -757,7 +698,7 @@
 	</StudioPanel>
 
 	<div
-		class="grid gap-4 xl:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(15rem,17rem)_minmax(0,1.25fr)_minmax(18rem,22rem)]"
+		class="grid gap-4 xl:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)]"
 	>
 		<div class="grid min-w-0 content-start gap-4">
 			<StudioPanel title="Run status and playback controls">
@@ -1071,449 +1012,288 @@
 			</StudioPanel>
 		</div>
 
-		<div class="grid min-w-0 content-start gap-4 xl:col-span-2 2xl:col-span-1">
-			<StudioPanel
-				title="What changed recently"
-				description="Recent deterministic deltas and clickable milestones stay tied to replay time."
-			>
-				<div class="grid gap-3">
-					{#if recentChangeItems.length}
-						{#each recentChangeItems as item (`change:${item.label}`)}
+	</div>
+
+	<StudioPanel title="Details">
+		<RunSecondaryTabs
+			tabs={pageModel.secondaryTabs.map((value) => ({ value, label: secondaryTabLabel(value) }))}
+			bind:activeTab={activeSecondaryTab}
+		>
+			{#snippet children(tabValue)}
+				{#if tabValue === 'explain'}
+					<div class="grid gap-3">
+						{#each explanationCards as card (card.key)}
 							<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
 								<div class="flex items-center justify-between gap-3">
-									<p class="text-sm font-semibold">{item.label}</p>
-									<span
-										class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(item.severity)}`}
-									>
-										{item.severity}
-									</span>
+									<p class="text-sm font-semibold">{card.sourceLabel}</p>
 								</div>
-								<p class="mt-3 text-sm leading-6">{item.summary}</p>
-								{#if item.detail}
-									<p class="mt-2 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+								<p class="mt-3 text-sm leading-6">{card.primaryStatement}</p>
+								{#if card.supportingDetail}
+									<p class="mt-2 text-xs leading-5 text-muted-foreground">{card.supportingDetail}</p>
+								{/if}
+								{#if card.evidence?.length}
+									<div class="mt-3 flex flex-wrap gap-2">
+										{#each card.evidence as ev (`evidence:${ev.label}`)}
+											<span class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+												{ev.label}: {ev.value}
+											</span>
+										{/each}
+									</div>
+								{/if}
+								{#if card.facts?.length}
+									<div class="mt-3 grid gap-2">
+										{#each card.facts as fact (`fact:${fact.title}`)}
+											<button
+												type="button"
+												class="rounded-xl border bg-muted/15 p-3 text-left hover:bg-muted/25"
+												onclick={() => openExplanationMoment(fact.time ?? 0)}
+											>
+												<p class="text-xs font-semibold">{fact.title}</p>
+												<p class="mt-1 text-xs leading-5 text-muted-foreground">{fact.summary}</p>
+											</button>
+										{/each}
+									</div>
 								{/if}
 							</div>
 						{/each}
-					{:else}
-						<p class="text-sm text-muted-foreground">
-							Pause playback or load more metrics to surface recent changes.
-						</p>
-					{/if}
-
-					<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
-						<div class="flex flex-wrap items-center justify-between gap-3">
-							<div class="min-w-0">
-								<p class="text-sm font-semibold">Milestone timeline</p>
-								<p class="mt-1 text-xs text-muted-foreground">
-									Peaks, threshold crossings, anomalies, and event bursts can jump playback
-									directly.
-								</p>
-							</div>
-							<span class="rounded-full border px-2 py-0.5 text-[11px] font-medium">
-								{milestones.length} markers
-							</span>
+					</div>
+				{:else if tabValue === 'inspect'}
+					<div class="grid gap-4 text-sm">
+						<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
+							<p class="studio-eyebrow">{inspectorPanel.eyebrow}</p>
+							<h3 class="mt-2 text-lg font-semibold">{inspectorPanel.title}</h3>
+							<p class="mt-2 text-sm leading-6 text-muted-foreground">{inspectorPanel.summary}</p>
 						</div>
-						{#if milestones.length}
-							<div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-								{#each milestones as milestone (milestone.id)}
-									<button
-										type="button"
-										class="min-w-0 rounded-2xl border bg-background/80 p-4 text-left transition hover:bg-muted/35"
-										onclick={() => openMilestone(milestone)}
-									>
-										<div class="flex flex-wrap items-center justify-between gap-2">
-											<div class="flex flex-wrap items-center gap-2">
-												<span
-													class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(milestone.severity)}`}
-												>
-													{milestone.kind.replace('_', ' ')}
-												</span>
-												{#if milestone.metric}
-													<span
-														class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-													>
-														{humanizeIdentifier(milestone.metric)}
-													</span>
-												{/if}
-											</div>
-											<span class="text-[11px] text-muted-foreground">
-												{formatTimeLabel(milestone.t)}
-											</span>
-										</div>
-										<p class="mt-3 font-medium">{milestone.title}</p>
-										<p class="mt-2 text-xs leading-5 text-muted-foreground">{milestone.summary}</p>
-										<div class="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-											<span class="inline-flex rounded-full border px-2 py-0.5 font-medium">
-												Jump in replay
-											</span>
-										</div>
-									</button>
+
+						{#if inspectorPanel.highlights.length}
+							<div class="grid gap-3 sm:grid-cols-2">
+								{#each inspectorPanel.highlights as item (`inspector-highlight:${item.label}`)}
+									<div class="rounded-xl border bg-muted/20 p-3">
+										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+											{item.label}
+										</p>
+										<p class="mt-2 text-sm font-medium break-words">{item.value}</p>
+										{#if item.description}
+											<p class="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p>
+										{/if}
+									</div>
 								{/each}
 							</div>
-						{:else}
-							<p class="mt-3 text-sm text-muted-foreground">
-								No milestones have been extracted from the current replay yet.
+						{/if}
+
+						{#if inspectorPanel.sections.length}
+							<div class="grid gap-3">
+								{#each inspectorPanel.sections as section (`inspector-section:${section.title}`)}
+									<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
+										<p class="text-sm font-semibold">{section.title}</p>
+										{#if section.description}
+											<p class="mt-1 text-xs leading-5 text-muted-foreground">{section.description}</p>
+										{/if}
+										<div class="mt-3 grid gap-2">
+											{#each section.items as item (`${section.title}:${item.label}:${item.value}`)}
+												<div class="rounded-xl border bg-muted/15 p-3">
+													<div class="flex items-start justify-between gap-3">
+														<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+															{item.label}
+														</p>
+														<p class="text-right text-sm font-medium break-words">{item.value}</p>
+													</div>
+													{#if item.description}
+														<p class="mt-2 text-xs leading-5 text-muted-foreground">{item.description}</p>
+													{/if}
+												</div>
+											{/each}
+										</div>
+									</div>
+								{/each}
+							</div>
+						{:else if inspectorPanel.kind !== 'empty'}
+							<p class="text-sm text-muted-foreground">
+								This selection does not have additional local metrics or related events yet.
 							</p>
 						{/if}
-					</div>
-				</div>
-			</StudioPanel>
 
-			<StudioPanel title="Entity inspector">
-				<div class="grid gap-4 text-sm">
-					<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
-						<p class="studio-eyebrow">{inspectorPanel.eyebrow}</p>
-						<h3 class="mt-2 text-lg font-semibold">{inspectorPanel.title}</h3>
-						<p class="mt-2 text-sm leading-6 text-muted-foreground">{inspectorPanel.summary}</p>
-					</div>
-
-					{#if inspectorPanel.highlights.length}
-						<div class="grid gap-3 sm:grid-cols-2">
-							{#each inspectorPanel.highlights as item (`inspector-highlight:${item.label}`)}
-								<div class="rounded-xl border bg-muted/20 p-3">
-									<p
-										class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-									>
-										{item.label}
-									</p>
-									<p class="mt-2 text-sm font-medium break-words">{item.value}</p>
-									{#if item.description}
-										<p class="mt-1 text-xs leading-5 text-muted-foreground">{item.description}</p>
-									{/if}
-								</div>
-							{/each}
-						</div>
-					{/if}
-
-					{#if inspectorPanel.sections.length}
-						<div class="grid gap-3">
-							{#each inspectorPanel.sections as section (`inspector-section:${section.title}`)}
-								<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
-									<p class="text-sm font-semibold">{section.title}</p>
-									{#if section.description}
-										<p class="mt-1 text-xs leading-5 text-muted-foreground">
-											{section.description}
+						<details class="rounded-2xl border bg-background/90 p-4 shadow-sm">
+							<summary class="cursor-pointer text-sm font-medium">Technical details</summary>
+							<div class="mt-4 grid gap-3 text-xs">
+								{#each inspectorPanel.technical as item (`inspector-tech:${item.label}`)}
+									<div class="rounded-xl border bg-muted/15 p-3">
+										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+											{item.label}
 										</p>
-									{/if}
-									<div class="mt-3 grid gap-2">
-										{#each section.items as item (`${section.title}:${item.label}:${item.value}`)}
-											<div class="rounded-xl border bg-muted/15 p-3">
-												<div class="flex items-start justify-between gap-3">
-													<p
-														class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-													>
-														{item.label}
-													</p>
-													<p class="text-right text-sm font-medium break-words">{item.value}</p>
-												</div>
-												{#if item.description}
-													<p class="mt-2 text-xs leading-5 text-muted-foreground">
-														{item.description}
-													</p>
-												{/if}
-											</div>
-										{/each}
+										<p class="mt-2 font-mono break-all">{item.value}</p>
 									</div>
+								{/each}
+								{#if runDetails}
+									<div class="rounded-xl border bg-muted/15 p-3">
+										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+											Plugins
+										</p>
+										<p class="mt-2 break-words">{runDetails.plugins}</p>
+									</div>
+									<div class="rounded-xl border bg-muted/15 p-3">
+										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+											Config
+										</p>
+										<p class="mt-2 font-mono break-all">{runDetails.configHash}</p>
+									</div>
+									<div class="rounded-xl border bg-muted/15 p-3">
+										<p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+											Artifacts
+										</p>
+										<p class="mt-2 font-mono break-all">{runDetails.artifactPath}</p>
+									</div>
+								{/if}
+							</div>
+						</details>
+					</div>
+				{:else if tabValue === 'timeline'}
+					<div class="grid gap-3">
+						{#if recentChangeItems.length}
+							{#each recentChangeItems as item (`change:${item.label}`)}
+								<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
+									<div class="flex items-center justify-between gap-3">
+										<p class="text-sm font-semibold">{item.label}</p>
+										<span
+											class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(item.severity)}`}
+										>
+											{item.severity}
+										</span>
+									</div>
+									<p class="mt-3 text-sm leading-6">{item.summary}</p>
+									{#if item.detail}
+										<p class="mt-2 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+									{/if}
 								</div>
 							{/each}
-						</div>
-					{:else if inspectorPanel.kind !== 'empty'}
-						<p class="text-sm text-muted-foreground">
-							This selection does not have additional local metrics or related events yet.
-						</p>
-					{/if}
+						{:else}
+							<p class="text-sm text-muted-foreground">
+								Pause playback or load more metrics to surface recent changes.
+							</p>
+						{/if}
 
-					<details class="rounded-2xl border bg-background/90 p-4 shadow-sm">
-						<summary class="cursor-pointer text-sm font-medium">Technical details</summary>
-						<div class="mt-4 grid gap-3 text-xs">
-							{#each inspectorPanel.technical as item (`inspector-tech:${item.label}`)}
-								<div class="rounded-xl border bg-muted/15 p-3">
-									<p
-										class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-									>
-										{item.label}
+						<div class="rounded-2xl border bg-background/90 p-4 shadow-sm">
+							<div class="flex flex-wrap items-center justify-between gap-3">
+								<div class="min-w-0">
+									<p class="text-sm font-semibold">Milestone timeline</p>
+									<p class="mt-1 text-xs text-muted-foreground">
+										Peaks, threshold crossings, anomalies, and event bursts can jump playback directly.
 									</p>
-									<p class="mt-2 font-mono break-all">{item.value}</p>
 								</div>
-							{/each}
-							{#if runDetails}
-								<div class="rounded-xl border bg-muted/15 p-3">
-									<p
-										class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-									>
-										Plugins
-									</p>
-									<p class="mt-2 break-words">{runDetails.plugins}</p>
-								</div>
-								<div class="rounded-xl border bg-muted/15 p-3">
-									<p
-										class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-									>
-										Config
-									</p>
-									<p class="mt-2 font-mono break-all">{runDetails.configHash}</p>
-								</div>
-								<div class="rounded-xl border bg-muted/15 p-3">
-									<p
-										class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-									>
-										Artifacts
-									</p>
-									<p class="mt-2 font-mono break-all">{runDetails.artifactPath}</p>
-								</div>
-							{/if}
-						</div>
-					</details>
-				</div>
-			</StudioPanel>
-		</div>
-	</div>
-
-	<div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
-		<StudioPanel title="Events">
-			<div class="grid gap-3">
-				{#if recentEvents.length}
-					{#each recentEvents as event, index (`recent:${index}`)}
-						<div class="rounded-lg border p-3">
-							<div class="flex items-center justify-between gap-3">
-								<p class="font-medium">
-									{event.event_type ?? event.event ?? event.type ?? 'event'}
-								</p>
-								<span class="text-xs text-muted-foreground">
-									{formatTimeLabel(typeof event.t === 'number' ? event.t : null)}
+								<span class="rounded-full border px-2 py-0.5 text-[11px] font-medium">
+									{milestones.length} markers
 								</span>
 							</div>
-							<p class="mt-2 truncate font-mono text-xs text-muted-foreground">
-								{JSON.stringify(event)}
-							</p>
+							{#if milestones.length}
+								<div class="mt-4 grid gap-3 md:grid-cols-2">
+									{#each milestones as milestone (milestone.id)}
+										<button
+											type="button"
+											class="min-w-0 rounded-2xl border bg-background/80 p-4 text-left transition hover:bg-muted/35"
+											onclick={() => openMilestone(milestone)}
+										>
+											<div class="flex flex-wrap items-center justify-between gap-2">
+												<div class="flex flex-wrap items-center gap-2">
+													<span
+														class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(milestone.severity)}`}
+													>
+														{milestone.kind.replace('_', ' ')}
+													</span>
+													{#if milestone.metric}
+														<span class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+															{humanizeIdentifier(milestone.metric)}
+														</span>
+													{/if}
+												</div>
+												<span class="text-[11px] text-muted-foreground">
+													{formatTimeLabel(milestone.t)}
+												</span>
+											</div>
+											<p class="mt-3 font-medium">{milestone.title}</p>
+											<p class="mt-2 text-xs leading-5 text-muted-foreground">{milestone.summary}</p>
+											<div class="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+												<span class="inline-flex rounded-full border px-2 py-0.5 font-medium">
+													Jump in replay
+												</span>
+											</div>
+										</button>
+									{/each}
+								</div>
+							{:else}
+								<p class="mt-3 text-sm text-muted-foreground">
+									No milestones have been extracted from the current replay yet.
+								</p>
+							{/if}
 						</div>
-					{/each}
-				{:else}
-					<p class="text-sm text-muted-foreground">No events have been emitted yet.</p>
-				{/if}
-			</div>
-		</StudioPanel>
-
-		<StudioPanel title="Artifacts">
-			<div class="grid gap-3 text-sm">
-				<div class="grid gap-2">
-					<!-- eslint-disable svelte/no-navigation-without-resolve -->
-					<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'csv')}>CSV export</a>
-					<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'parquet')}>
-						Parquet export
-					</a>
-					<!-- eslint-enable svelte/no-navigation-without-resolve -->
-					<a class="studio-action-link" href={resolve(`/compare?runA=${data.runId}`)}>
-						Compare this run
-					</a>
-				</div>
-				<div class="grid gap-2">
-					{#each artifacts as artifact (artifact.kind)}
-						<div class="flex items-center justify-between gap-3 rounded-lg border p-2">
-							<div>
-								<p class="font-medium">{artifact.label}</p>
-								<p class="text-xs text-muted-foreground">{artifact.count} available</p>
-							</div>
+					</div>
+				{:else if tabValue === 'artifacts'}
+					<div class="grid gap-3 text-sm">
+						<div class="grid gap-2">
 							<!-- eslint-disable svelte/no-navigation-without-resolve -->
-							<a class="text-sm font-medium text-primary hover:underline" href={artifact.href}
-								>Open</a
-							>
+							<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'csv')}>CSV export</a>
+							<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'parquet')}>Parquet export</a>
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
+							<a class="studio-action-link" href={resolve(`/compare?runA=${data.runId}`)}>Compare this run</a>
 						</div>
-					{/each}
-				</div>
-			</div>
-		</StudioPanel>
-	</div>
-
-	<StudioPanel title="Detailed analysis">
-		<Tabs.Tabs bind:value={activeDockTab} class="space-y-4">
-			<Tabs.TabsList>
-				<Tabs.TabsTrigger value="metrics">Metrics</Tabs.TabsTrigger>
-				<Tabs.TabsTrigger value="events">Events</Tabs.TabsTrigger>
-				<Tabs.TabsTrigger value="frames">Frames</Tabs.TabsTrigger>
-				<Tabs.TabsTrigger value="artifacts">Artifacts</Tabs.TabsTrigger>
-				<Tabs.TabsTrigger value="logs">Logs</Tabs.TabsTrigger>
-				<Tabs.TabsTrigger value="manifest">Manifest</Tabs.TabsTrigger>
-			</Tabs.TabsList>
-
-			<Tabs.TabsContent value="metrics">
-				<div class="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-					<StudioPanel title="Selected time">
-						<p class="text-2xl font-semibold">{formatNumber($playback.currentTime)}</p>
-					</StudioPanel>
-					<StudioPanel title="Current frame">
-						<p class="truncate text-2xl font-semibold">{selectedFrame?.frame_id ?? '-'}</p>
-					</StudioPanel>
-					<StudioPanel title="Peak value">
-						<p class="text-2xl font-semibold">{formatNumber(summary.peakValue)}</p>
-					</StudioPanel>
-					<StudioPanel title="Final value">
-						<p class="text-2xl font-semibold">{formatNumber(summary.finalValue)}</p>
-					</StudioPanel>
-					<StudioPanel title="Elapsed time">
-						<p class="text-2xl font-semibold">{formatNumber(summary.duration)}</p>
-					</StudioPanel>
-				</div>
-				<MetricTimeline
-					records={metrics}
-					{events}
-					frames={$playback.frameBuffer}
-					selectedTime={$playback.currentTime}
-					onSelectTime={(time) => {
-						playback.pause();
-						playback.scrubTo(time);
-					}}
-				/>
-			</Tabs.TabsContent>
-
-			<Tabs.TabsContent value="events">
-				<Table.Table>
-					<Table.TableHeader>
-						<Table.TableRow>
-							<Table.TableHead>t</Table.TableHead>
-							<Table.TableHead>event</Table.TableHead>
-							<Table.TableHead>payload</Table.TableHead>
-						</Table.TableRow>
-					</Table.TableHeader>
-					<Table.TableBody>
-						{#each events as event, index (index)}
-							<Table.TableRow>
-								<Table.TableCell>
-									{typeof event.t === 'number' ? formatNumber(event.t) : '-'}
-								</Table.TableCell>
-								<Table.TableCell>{event.event_type ?? event.type ?? '-'}</Table.TableCell>
-								<Table.TableCell class="font-mono text-xs">{JSON.stringify(event)}</Table.TableCell>
-							</Table.TableRow>
-						{/each}
-					</Table.TableBody>
-				</Table.Table>
-			</Tabs.TabsContent>
-
-			<Tabs.TabsContent value="frames">
-				<Table.Table>
-					<Table.TableHeader>
-						<Table.TableRow>
-							<Table.TableHead>frame</Table.TableHead>
-							<Table.TableHead>kind</Table.TableHead>
-							<Table.TableHead>t</Table.TableHead>
-						</Table.TableRow>
-					</Table.TableHeader>
-					<Table.TableBody>
-						{#each $playback.frameBuffer as frame (frame.frame_id)}
-							<Table.TableRow>
-								<Table.TableCell class="font-mono text-xs">{frame.frame_id}</Table.TableCell>
-								<Table.TableCell>{frame.kind}</Table.TableCell>
-								<Table.TableCell>{formatNumber(frame.t)}</Table.TableCell>
-							</Table.TableRow>
-						{/each}
-					</Table.TableBody>
-				</Table.Table>
-			</Tabs.TabsContent>
-
-			<Tabs.TabsContent value="artifacts">
-				<div class="mb-3 flex flex-wrap gap-2">
-					<!-- eslint-disable svelte/no-navigation-without-resolve -->
-					<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'csv')}>CSV export</a>
-					<a class="studio-action-link" href={api.exportRunUrl(data.runId, 'parquet')}>
-						Parquet export
-					</a>
-					<!-- eslint-enable svelte/no-navigation-without-resolve -->
-					<a class="studio-action-link" href={resolve(`/compare?runA=${data.runId}`)}>
-						Compare this run
-					</a>
-					{#if selectedFrame}
-						<!-- eslint-disable svelte/no-navigation-without-resolve -->
-						<a class="studio-action-link" href={api.frameUrl(data.runId, selectedFrame.frame_id)}>
-							Frame payload
-						</a>
-						<!-- eslint-enable svelte/no-navigation-without-resolve -->
-					{/if}
-				</div>
-				<Table.Table>
-					<Table.TableHeader>
-						<Table.TableRow>
-							<Table.TableHead>artifact</Table.TableHead>
-							<Table.TableHead>count</Table.TableHead>
-							<Table.TableHead>open</Table.TableHead>
-						</Table.TableRow>
-					</Table.TableHeader>
-					<Table.TableBody>
-						{#each artifacts as artifact (artifact.kind)}
-							<Table.TableRow>
-								<Table.TableCell>{artifact.label}</Table.TableCell>
-								<Table.TableCell>{artifact.count}</Table.TableCell>
-								<Table.TableCell>
-									<!-- eslint-disable svelte/no-navigation-without-resolve -->
-									<a class="font-medium text-primary hover:underline" href={artifact.href}>Open</a>
-									<!-- eslint-enable svelte/no-navigation-without-resolve -->
-								</Table.TableCell>
-							</Table.TableRow>
-						{/each}
-						{#each fieldArtifacts as field, index (field.field_id ?? field.id ?? index)}
-							<Table.TableRow>
-								<Table.TableCell
-									>{field.name ?? field.field_id ?? field.id ?? 'field'}</Table.TableCell
-								>
-								<Table.TableCell
-									>{Array.isArray(field.shape) ? field.shape.join('x') : '-'}</Table.TableCell
-								>
-								<Table.TableCell>
-									<!-- eslint-disable svelte/no-navigation-without-resolve -->
-									<a
-										class="font-medium text-primary hover:underline"
-										href={api.fieldUrl(
-											data.runId,
-											String(field.field_id ?? field.id ?? field.name ?? index),
-											'csv'
-										)}
-									>
-										CSV
-									</a>
-									<!-- eslint-enable svelte/no-navigation-without-resolve -->
-								</Table.TableCell>
-							</Table.TableRow>
-						{/each}
-					</Table.TableBody>
-				</Table.Table>
-			</Tabs.TabsContent>
-
-			<Tabs.TabsContent value="logs">
-				<Table.Table>
-					<Table.TableHeader>
-						<Table.TableRow>
-							<Table.TableHead>source</Table.TableHead>
-							<Table.TableHead>status</Table.TableHead>
-							<Table.TableHead>detail</Table.TableHead>
-						</Table.TableRow>
-					</Table.TableHeader>
-					<Table.TableBody>
-						<Table.TableRow>
-							<Table.TableCell>frame stream</Table.TableCell>
-							<Table.TableCell>{$playback.status}</Table.TableCell>
-							<Table.TableCell class="font-mono text-xs">
-								{$playback.error ?? `${$playback.frameBuffer.length} buffered frames`}
-							</Table.TableCell>
-						</Table.TableRow>
-						<Table.TableRow>
-							<Table.TableCell>metric stream</Table.TableCell>
-							<Table.TableCell>{streamState}</Table.TableCell>
-							<Table.TableCell class="font-mono text-xs"
-								>{metrics.length} metric records</Table.TableCell
-							>
-						</Table.TableRow>
-					</Table.TableBody>
-				</Table.Table>
-			</Tabs.TabsContent>
-
-			<Tabs.TabsContent value="manifest">
-				<pre class="overflow-auto rounded-md bg-muted p-4 text-xs">{JSON.stringify(
-						run,
-						null,
-						2
-					)}</pre>
-			</Tabs.TabsContent>
-		</Tabs.Tabs>
+						<Table.Table>
+							<Table.TableHeader>
+								<Table.TableRow>
+									<Table.TableHead>artifact</Table.TableHead>
+									<Table.TableHead>count</Table.TableHead>
+									<Table.TableHead>open</Table.TableHead>
+								</Table.TableRow>
+							</Table.TableHeader>
+							<Table.TableBody>
+								{#each artifacts as artifact (artifact.kind)}
+									<Table.TableRow>
+										<Table.TableCell>{artifact.label}</Table.TableCell>
+										<Table.TableCell>{artifact.count}</Table.TableCell>
+										<Table.TableCell>
+											<!-- eslint-disable svelte/no-navigation-without-resolve -->
+											<a class="font-medium text-primary hover:underline" href={artifact.href}>Open</a>
+											<!-- eslint-enable svelte/no-navigation-without-resolve -->
+										</Table.TableCell>
+									</Table.TableRow>
+								{/each}
+							</Table.TableBody>
+						</Table.Table>
+					</div>
+				{:else if tabValue === 'debug'}
+					<div class="grid gap-4">
+						<div>
+							<p class="mb-3 text-sm font-semibold">Runtime streams</p>
+							<Table.Table>
+								<Table.TableHeader>
+									<Table.TableRow>
+										<Table.TableHead>source</Table.TableHead>
+										<Table.TableHead>status</Table.TableHead>
+										<Table.TableHead>detail</Table.TableHead>
+									</Table.TableRow>
+								</Table.TableHeader>
+								<Table.TableBody>
+									<Table.TableRow>
+										<Table.TableCell>frame stream</Table.TableCell>
+										<Table.TableCell>{$playback.status}</Table.TableCell>
+										<Table.TableCell class="font-mono text-xs">
+											{$playback.error ?? `${$playback.frameBuffer.length} buffered frames`}
+										</Table.TableCell>
+									</Table.TableRow>
+									<Table.TableRow>
+										<Table.TableCell>metric stream</Table.TableCell>
+										<Table.TableCell>{streamState}</Table.TableCell>
+										<Table.TableCell class="font-mono text-xs">{metrics.length} metric records</Table.TableCell>
+									</Table.TableRow>
+								</Table.TableBody>
+							</Table.Table>
+						</div>
+						<div>
+							<p class="mb-3 text-sm font-semibold">Run manifest</p>
+							<pre class="overflow-auto rounded-md bg-muted p-4 text-xs">{JSON.stringify(run, null, 2)}</pre>
+						</div>
+					</div>
+				{/if}
+			{/snippet}
+		</RunSecondaryTabs>
 	</StudioPanel>
 </div>
 

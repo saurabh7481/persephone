@@ -34,7 +34,7 @@ describe('buildRunPageModel', () => {
 		});
 
 		expect(model.primarySections).toEqual(['summary', 'view', 'metric']);
-		expect(model.secondaryTabs).toEqual(['artifacts', 'debug']);
+		expect(model.secondaryTabs).toEqual(['inspect', 'artifacts', 'debug']);
 		expect(model.summary.title).toBe('Pricing service is the current blocker hotspot');
 	});
 });

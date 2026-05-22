@@ -46,7 +46,7 @@ export function buildRunPageModel(input: {
 
 	const secondaryTabs: RunPageModel['secondaryTabs'] = [];
 	if (meaningfulExplain) secondaryTabs.push('explain');
-	if (input.hasSelection || input.inspectorKind !== 'empty') secondaryTabs.push('inspect');
+	secondaryTabs.push('inspect');
 	if (meaningfulRecentChanges || input.currentView.surface === 'metrics') secondaryTabs.push('timeline');
 	secondaryTabs.push('artifacts', 'debug');
 
@@ -63,7 +63,7 @@ export function buildRunPageModel(input: {
 		primarySections: ['summary', 'view', 'metric'],
 		secondaryTabs,
 		showExplainTab: meaningfulExplain,
-		showInspectorPreview: input.hasSelection || input.inspectorKind !== 'empty',
+		showInspectorPreview: true,
 		showRecentChanges: meaningfulRecentChanges,
 		showDebugTab: true
 	};

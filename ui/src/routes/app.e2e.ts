@@ -903,8 +903,6 @@ test('renders run detail metrics and events', async ({ page }) => {
 	expect(canvasSize.width).toBeGreaterThan(100);
 	expect(canvasSize.height).toBeGreaterThan(100);
 	await expect(page.getByLabel('Key metric cards').getByText('Infected count')).toBeVisible();
-	await expect(page.getByText('Peak value')).toBeVisible();
-	await expect(page.getByText('Final value')).toBeVisible();
 	await expect(page.getByLabel('Metric timeline').first()).toBeVisible();
 	await page.getByRole('tab', { name: 'Artifacts' }).click();
 	await expect(page.getByRole('link', { name: 'CSV export' }).first()).toHaveAttribute(
@@ -913,9 +911,7 @@ test('renders run detail metrics and events', async ({ page }) => {
 	);
 	await expect(page.getByRole('link', { name: 'Parquet export' }).first()).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Compare this run' }).first()).toBeVisible();
-	await page.getByRole('tab', { name: 'Events' }).click();
-	await expect(page.getByRole('cell', { name: 'infection', exact: true })).toBeVisible();
-	await page.getByRole('tab', { name: 'Logs' }).click();
+	await page.getByRole('tab', { name: 'Debug' }).click();
 	await expect(page.getByRole('cell', { name: 'metric stream' })).toBeVisible();
 });
 
@@ -968,7 +964,7 @@ test('prioritizes the run story, key metrics, and next step before technical det
 	await expect(page.getByText('Why it matters')).toBeVisible();
 	await expect(page.getByText('What to inspect next')).toBeVisible();
 	await expect(page.getByText('Key metrics')).toBeVisible();
-	await expect(page.getByText('Technical details')).toBeVisible();
+	await expect(page.getByText('Details')).toBeVisible();
 });
 
 test('shows a summary-first completed-run shell before deep analysis panels', async ({ page }) => {
@@ -979,6 +975,24 @@ test('shows a summary-first completed-run shell before deep analysis panels', as
 	await expect(page.getByText('What to inspect next')).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Viewport' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Explanation detail' })).toHaveCount(0);
+});
+
+test('hides explanation and debug-heavy sections until the user opens secondary tabs', async ({ page }) => {
+	await page.goto('/runs/run-workflow');
+	await pausePlaybackIfNeeded(page);
+
+	await expect(page.getByRole('heading', { name: 'Explanation detail' })).toHaveCount(0);
+	await page.getByRole('tab', { name: 'Explain' }).click();
+	await expect(page.getByText('Delivery risk is clustering on the critical path').first()).toBeVisible();
+});
+
+test('keeps inspector compact until a node is selected', async ({ page }) => {
+	await page.goto('/runs/run-workflow');
+	await pausePlaybackIfNeeded(page);
+
+	await expect(page.getByText('Select a node, relationship, or field cell')).toHaveCount(0);
+	await page.getByRole('tab', { name: 'Inspect' }).click();
+	await expect(page.getByText('Select a node, relationship, or field cell')).toBeVisible();
 });
 
 test('keeps metric cards readable with long labels and large values at tablet widths', async ({
