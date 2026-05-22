@@ -4,6 +4,7 @@ import {
 	buildExplanationPanelCards,
 	buildNarrativeLead,
 	extractMilestones,
+	isInfrastructureOnlyRecentChange,
 	milestonePlaybackTarget,
 	recentChangeCards
 } from './narrative';
@@ -204,5 +205,17 @@ describe('narrative helpers', () => {
 				'The strongest recent shift is Infected count: Climbed by 10 to 28 at the selected time.',
 			nextStep: 'Use Matrix to compare the densest relationships without relying on node positions.'
 		});
+	});
+});
+
+describe('isInfrastructureOnlyRecentChange', () => {
+	test('returns true for scheduler-prefixed labels', () => {
+		expect(isInfrastructureOnlyRecentChange('Scheduler wall time ms')).toBe(true);
+		expect(isInfrastructureOnlyRecentChange('scheduler overhead')).toBe(true);
+	});
+
+	test('returns false for domain-level labels', () => {
+		expect(isInfrastructureOnlyRecentChange('Delivery risk index')).toBe(false);
+		expect(isInfrastructureOnlyRecentChange('Portfolio stress index')).toBe(false);
 	});
 });

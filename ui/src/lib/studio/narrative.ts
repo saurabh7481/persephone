@@ -448,3 +448,7 @@ function formatUnknownEvidence(value: unknown, unit: string | null): string {
 	if (typeof value === 'boolean') return value ? 'Yes' : 'No';
 	return unit ? `${String(value)} ${unit}` : String(value);
 }
+
+export function isInfrastructureOnlyRecentChange(label: string): boolean {
+	return label.toLowerCase().startsWith('scheduler ');
+}
