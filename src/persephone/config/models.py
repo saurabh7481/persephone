@@ -10,6 +10,7 @@ from persephone.core.coupling import coupling_registry
 Paradigm = Literal["ode", "pde", "abm", "graph", "sde", "hybrid"]
 SyncInterval = float | Literal["auto"]
 SplittingOrder = Literal["first_order", "strang"]
+InterpretationMode = Literal["off", "rules_only", "minimal_ai"]
 
 
 class StrictModel(BaseModel):
@@ -82,6 +83,16 @@ class VisualizationConfig(StrictModel):
     inline_frame_max_values: int = Field(default=4096, gt=0)
 
 
+class InterpretationConfig(StrictModel):
+    mode: InterpretationMode = "off"
+    every_n_ticks: int = Field(default=1, ge=1)
+    on_milestone: bool = True
+    on_complete: bool = True
+    max_input_facts: int = Field(default=8, ge=1)
+    max_output_tokens: int = Field(default=120, ge=1)
+    store_records: bool = False
+
+
 class ExperimentConfig(StrictModel):
     name: str = Field(min_length=1)
     seed: int
@@ -91,4 +102,5 @@ class ExperimentConfig(StrictModel):
     storage: StorageConfig = Field(default_factory=StorageConfig)
     coupling: CouplingConfig = Field(default_factory=CouplingConfig)
     visualization: VisualizationConfig = Field(default_factory=VisualizationConfig)
+    interpretation: InterpretationConfig = Field(default_factory=InterpretationConfig)
     description: str | None = None

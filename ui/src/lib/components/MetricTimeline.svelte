@@ -19,12 +19,16 @@
 		events = [],
 		frames = [],
 		selectedTime = 0,
+		showCards = true,
+		thresholds,
 		onSelectTime
 	}: {
 		records: MetricRecord[];
 		events?: EventRecord[];
 		frames?: SimulationFrame[];
 		selectedTime?: number;
+		showCards?: boolean;
+		thresholds?: { warning?: number; critical?: number; target?: number };
 		onSelectTime?: (time: number) => void;
 	} = $props();
 
@@ -113,15 +117,17 @@
 </script>
 
 <div class="metric-timeline">
-	<div class="metric-timeline-cards" aria-label="Current metric cards">
-		{#each cards as card (card.metric)}
-			<div class="metric-timeline-card">
-				<p class="studio-eyebrow">{card.metric}</p>
-				<p>{card.value}</p>
-				<span>t={card.t}</span>
-			</div>
-		{/each}
-	</div>
+	{#if showCards}
+		<div class="metric-timeline-cards" aria-label="Current metric cards">
+			{#each cards as card (card.metric)}
+				<div class="metric-timeline-card">
+					<p class="studio-eyebrow">{card.metric}</p>
+					<p>{card.value}</p>
+					<span>t={card.t}</span>
+				</div>
+			{/each}
+		</div>
+	{/if}
 
 	<div class="metric-timeline-chart">
 		{#if records.length}
@@ -210,6 +216,40 @@
 							vector-effect="non-scaling-stroke"
 						/>
 					{/each}
+
+					{#if typeof thresholds?.target === 'number'}
+						<line
+							x1={margin.left}
+							x2={margin.left + plotWidth}
+							y1={margin.top + y(thresholds.target)}
+							y2={margin.top + y(thresholds.target)}
+							stroke="#2f9d68"
+							stroke-width="1.5"
+							stroke-dasharray="4 4"
+						/>
+					{/if}
+					{#if typeof thresholds?.warning === 'number'}
+						<line
+							x1={margin.left}
+							x2={margin.left + plotWidth}
+							y1={margin.top + y(thresholds.warning)}
+							y2={margin.top + y(thresholds.warning)}
+							stroke="#c78a1c"
+							stroke-width="1.5"
+							stroke-dasharray="6 5"
+						/>
+					{/if}
+					{#if typeof thresholds?.critical === 'number'}
+						<line
+							x1={margin.left}
+							x2={margin.left + plotWidth}
+							y1={margin.top + y(thresholds.critical)}
+							y2={margin.top + y(thresholds.critical)}
+							stroke="#d44f42"
+							stroke-width="1.5"
+							stroke-dasharray="8 5"
+						/>
+					{/if}
 
 					<line
 						x1={selectedX}

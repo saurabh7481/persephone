@@ -27,6 +27,14 @@ const frameB: SimulationFrame = {
 	values: [0.8]
 };
 
+const frameC: SimulationFrame = {
+	...frameA,
+	frame_id: 'frame-c',
+	t: 3,
+	tick: 3,
+	values: [1.1]
+};
+
 function current(store: ReturnType<typeof createPlaybackStore>) {
 	let value = store.snapshot();
 	const unsubscribe = store.subscribe((state) => {
@@ -105,5 +113,35 @@ describe('playback store', () => {
 		expect(current(store).currentTime).toBe(2);
 		store.jumpToStart();
 		expect(current(store).currentTime).toBe(1);
+	});
+
+	test('steps through adjacent frames for keyboard navigation', async () => {
+		const store = createPlaybackStore({
+			source: {
+				loadReplayFrames: async () => [frameA, frameB, frameC]
+			}
+		});
+
+		await store.loadReplay('run-a');
+		store.stepFrame(1);
+		expect(current(store)).toMatchObject({
+			currentTime: 2,
+			selectedFrameId: 'frame-b'
+		});
+		store.stepFrame(1);
+		expect(current(store)).toMatchObject({
+			currentTime: 3,
+			selectedFrameId: 'frame-c'
+		});
+		store.stepFrame(1);
+		expect(current(store)).toMatchObject({
+			currentTime: 3,
+			selectedFrameId: 'frame-c'
+		});
+		store.stepFrame(-1);
+		expect(current(store)).toMatchObject({
+			currentTime: 2,
+			selectedFrameId: 'frame-b'
+		});
 	});
 });

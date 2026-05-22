@@ -11,6 +11,8 @@ from uuid import uuid4
 
 from persephone.config.models import ExperimentConfig
 from persephone.core.engine import PersephoneEngine, RunResult
+from persephone.core.explanations import ExplanationPacket, validate_explanation_packet
+from persephone.core.run import RunContext
 from persephone.frames import get_frame, list_frames
 from persephone.storage.catalog import RunCatalog, RunNotFoundError, RunSummary
 
@@ -26,6 +28,8 @@ class ManagedRun:
     artifact_path: Path | None = None
     final_time: float = 0.0
     error_message: str | None = None
+    plugins: list[str] = field(default_factory=list)
+    config_hash: str = ""
     metric_events: list[dict[str, Any]] = field(default_factory=list)
     data_events: list[dict[str, Any]] = field(default_factory=list)
     frame_events: list[tuple[int, dict[str, Any]]] = field(default_factory=list)
@@ -44,7 +48,12 @@ class RunManager:
 
     def start(self, config: ExperimentConfig, run_id: str | None = None) -> ManagedRun:
         requested_id = run_id or str(uuid4())
-        managed = ManagedRun(run_id=requested_id)
+        managed = ManagedRun(
+            run_id=requested_id,
+            artifact_path=self.artifact_root / requested_id,
+            plugins=[solver.plugin for solver in config.solvers],
+            config_hash=RunContext.create(config, {}, run_id=requested_id).config_hash,
+        )
         with self._lock:
             self._runs[requested_id] = managed
 
@@ -92,6 +101,14 @@ class RunManager:
 
     def event_records(self, run_id: str) -> list[dict[str, Any]]:
         return _read_jsonl(_run_path(self.get(run_id)) / "events.jsonl")
+
+    def explanation_packets(self, run_id: str) -> list[ExplanationPacket]:
+        records = _read_jsonl(_run_path(self.get(run_id)) / "explanations" / "facts.jsonl")
+        return [validate_explanation_packet(record) for record in records]
+
+    def run_context(self, run_id: str) -> RunContext:
+        manifest = _read_json(_run_path(self.get(run_id)) / "manifest.json")
+        return RunContext(**manifest)
 
     def request_cancel(self, run_id: str) -> ManagedRun:
         with self._lock:
@@ -231,7 +248,8 @@ def serialize_run(run: RunSummary | ManagedRun) -> dict[str, Any]:
         "started_at": "",
         "final_time": run.final_time,
         "plugins": [],
-        "config_hash": "",
+        "plugins": run.plugins,
+        "config_hash": run.config_hash,
         "artifact_path": str(run.artifact_path) if run.artifact_path else None,
         "error_message": run.error_message,
         "cancel_requested": run.cancel_requested,
@@ -254,6 +272,12 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        raise RunNotFoundError(f"Run metadata is not ready yet: {path}")
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
 def _to_sse(event: str, data: dict[str, Any], event_id: int | None = None) -> str:

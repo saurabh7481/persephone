@@ -42,6 +42,7 @@ export type PlaybackStore = Readable<PlaybackState> & {
 	pause: () => void;
 	setSpeed: (speed: number) => void;
 	scrubTo: (time: number) => void;
+	stepFrame: (offset: number) => void;
 	jumpToStart: () => void;
 	jumpToEnd: () => void;
 	selectFrame: (frameId: string | null) => void;
@@ -164,6 +165,26 @@ export function createPlaybackStore({
 				};
 			});
 		},
+		stepFrame(offset: number) {
+			state.update((current) => {
+				if (!current.frameBuffer.length || offset === 0) return current;
+				const currentIndex = current.selectedFrameId
+					? current.frameBuffer.findIndex((frame) => frame.frame_id === current.selectedFrameId)
+					: -1;
+				const fallbackIndex =
+					currentIndex >= 0
+						? currentIndex
+						: nearestFrameIndex(current.frameBuffer, current.currentTime);
+				const nextIndex = clampFrameIndex(fallbackIndex + offset, current.frameBuffer.length);
+				const nextFrame = current.frameBuffer[nextIndex];
+				if (!nextFrame) return current;
+				return {
+					...current,
+					currentTime: nextFrame.t,
+					selectedFrameId: nextFrame.frame_id
+				};
+			});
+		},
 		jumpToStart() {
 			const firstFrame = get(state).frameBuffer[0];
 			if (firstFrame) this.scrubTo(firstFrame.t);
@@ -239,6 +260,23 @@ function nearestFrame(frames: SimulationFrame[], time: number): SimulationFrame 
 		if (!nearest) return frame;
 		return Math.abs(frame.t - time) < Math.abs(nearest.t - time) ? frame : nearest;
 	}, undefined);
+}
+
+function nearestFrameIndex(frames: SimulationFrame[], time: number): number {
+	let nearestIndex = 0;
+	let nearestDistance = Number.POSITIVE_INFINITY;
+	for (const [index, frame] of frames.entries()) {
+		const distance = Math.abs(frame.t - time);
+		if (distance < nearestDistance) {
+			nearestIndex = index;
+			nearestDistance = distance;
+		}
+	}
+	return nearestIndex;
+}
+
+function clampFrameIndex(index: number, frameCount: number): number {
+	return Math.max(0, Math.min(frameCount - 1, index));
 }
 
 function clampSpeed(speed: number): number {

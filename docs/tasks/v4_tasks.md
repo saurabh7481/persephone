@@ -380,117 +380,135 @@ This delivers most of the user-facing value even if the optional AI layer ships 
 
 ### Checkpoint 4 — Add optional AI interpretation layer
 
-- [ ] Add new config section, e.g. `interpretation`.
-- [ ] Support modes:
-  - [ ] `off`
-  - [ ] `rules_only`
-  - [ ] `minimal_ai`
-- [ ] Add budget controls:
-  - [ ] `every_n_ticks`
-  - [ ] `on_milestone`
-  - [ ] `on_complete`
-  - [ ] `max_input_facts`
-  - [ ] `max_output_tokens`
-- [ ] Implement compact prompt packet generation from deterministic facts.
-- [ ] Keep prompts small and domain-agnostic.
-- [ ] Add cache keys based on:
-  - [ ] run id
-  - [ ] frame tick
-  - [ ] selection id
-  - [ ] plugin version
-  - [ ] interpretation mode
-- [ ] Store prompt inputs and outputs for replay/debugging when enabled.
-- [ ] Add explicit output labeling so the UI can distinguish deterministic vs AI-produced summaries.
-- [ ] Add tests for:
-  - [ ] disabled mode
-  - [ ] rules-only mode
-  - [ ] cached minimal AI mode
-  - [ ] token-budget enforcement
+- [x] Add new config section, e.g. `interpretation`.
+- [x] Support modes:
+  - [x] `off`
+  - [x] `rules_only`
+  - [x] `minimal_ai`
+- [x] Add budget controls:
+  - [x] `every_n_ticks`
+  - [x] `on_milestone`
+  - [x] `on_complete`
+  - [x] `max_input_facts`
+  - [x] `max_output_tokens`
+- [x] Implement compact prompt packet generation from deterministic facts.
+- [x] Keep prompts small and domain-agnostic.
+- [x] Add cache keys based on:
+  - [x] run id
+  - [x] frame tick
+  - [x] selection id
+  - [x] plugin version
+  - [x] interpretation mode
+- [x] Store prompt inputs and outputs for replay/debugging when enabled.
+- [x] Add explicit output labeling so the UI can distinguish deterministic vs AI-produced summaries.
+- [x] Add tests for:
+  - [x] disabled mode
+  - [x] rules-only mode
+  - [x] cached minimal AI mode
+  - [x] token-budget enforcement
 - [ ] Commit: `feat: add optional low-token interpretation layer`.
 
 ### Checkpoint 5 — Expose semantic and explanation APIs
 
-- [ ] Add API routes for:
-  - [ ] plugin semantic metadata
-  - [ ] run explanation summaries
-  - [ ] frame explanation summaries
-  - [ ] selected-entity explanation summaries
-- [ ] Extend run payloads with semantic/view capability references.
-- [ ] Add API response models and OpenAPI coverage for all new contracts.
-- [ ] Ensure explanation routes work for both completed replay runs and live runs.
-- [ ] Add API tests for:
-  - [ ] explanation retrieval
-  - [ ] explanation cache hits
-  - [ ] missing explanation support
-  - [ ] disabled AI mode
+- [x] Add API routes for:
+  - [x] plugin semantic metadata
+  - [x] run explanation summaries
+  - [x] frame explanation summaries
+  - [x] selected-entity explanation summaries
+- [x] Extend run payloads with semantic/view capability references.
+- [x] Add API response models and OpenAPI coverage for all new contracts.
+- [x] Ensure explanation routes work for both completed replay runs and live runs.
+- [x] Add API tests for:
+  - [x] explanation retrieval
+  - [x] explanation cache hits
+  - [x] missing explanation support
+  - [x] disabled AI mode
 - [ ] Commit: `feat: expose semantics and explanation APIs`.
 
 ### Checkpoint 6 — Build capability-driven standard views
 
-- [ ] Define the standard view registry for v4:
-  - [ ] network
-  - [ ] positioned graph
-  - [ ] map-network
-  - [ ] matrix
-  - [ ] table
-  - [ ] timeline
-  - [ ] heatmap
-  - [ ] hierarchy
-- [ ] Add a view selection layer that chooses defaults from plugin capability metadata.
-- [ ] Define per-view requirements and fallbacks:
-  - [ ] if coordinates exist, prefer spatial or positioned views
-  - [ ] if graph is too dense, prefer matrix or clustered views
-  - [ ] if no graph semantics exist, keep charts/tables primary
-- [ ] Add tests for capability-driven view selection.
+- [x] Define the standard view registry for v4:
+  - [x] network
+  - [x] positioned graph
+  - [x] map-network
+  - [x] matrix
+  - [x] table
+  - [x] timeline
+  - [x] heatmap
+  - [x] hierarchy
+- [x] Add a view selection layer that chooses defaults from plugin capability metadata.
+- [x] Define per-view requirements and fallbacks:
+  - [x] if coordinates exist, prefer spatial or positioned views
+  - [x] if graph is too dense, prefer matrix or clustered views
+  - [x] if no graph semantics exist, keep charts/tables primary
+- [x] Add tests for capability-driven view selection.
 - [ ] Commit: `feat: add capability-driven view registry`.
+
+### Checkpoint 6B — Build richer standard view implementations (B-scope follow-up)
+
+- [ ] Add distinct first-pass implementations for deferred v4 standard views:
+  - [ ] positioned graph viewport behavior beyond default graph rendering
+  - [ ] map-network rendering
+  - [ ] adjacency matrix rendering for dense graphs
+  - [ ] hierarchy rendering
+  - [ ] richer table mode for schema-driven entity inspection
+  - [ ] dedicated timeline/heatmap view switching polish
+- [ ] Add per-view interaction affordances where applicable:
+  - [ ] legends
+  - [ ] density controls
+  - [ ] coordinate-aware overlays
+  - [ ] view-specific empty and fallback states
+- [ ] Connect the richer view implementations to the existing capability-driven registry from Checkpoint 6.
+- [ ] Add focused UI tests for each newly implemented standard view surface.
+- [ ] Commit: `feat: add richer standard view implementations`.
 
 ### Checkpoint 7 — Overhaul `/runs/{run_id}` page information architecture
 
-- [ ] Redesign the run page into a balanced workbench where no critical information is hidden below the fold by default.
-- [ ] Promote summary cards, selected metrics, and explanation panels above or beside the main viewport.
-- [ ] Add persistent sections for:
-  - [ ] run status and playback controls
-  - [ ] key metrics at current time
-  - [ ] “what’s happening” explanation panel
-  - [ ] viewport/view switcher
-  - [ ] entity inspector
-  - [ ] events and artifacts
-- [ ] Ensure the default desktop layout keeps viewport, key metrics, and explanation summary visible together.
-- [ ] Ensure laptop and tablet layouts degrade gracefully.
-- [ ] Add wireframe screenshots or design references for the intended layout states.
+- [x] Redesign the run page into a balanced workbench where no critical information is hidden below the fold by default.
+- [x] Promote summary cards, selected metrics, and explanation panels above or beside the main viewport.
+- [x] Add persistent sections for:
+  - [x] run status and playback controls
+  - [x] key metrics at current time
+  - [x] “what’s happening” explanation panel
+  - [x] viewport/view switcher
+  - [x] entity inspector
+  - [x] events and artifacts
+- [x] Ensure the default desktop layout keeps viewport, key metrics, and explanation summary visible together.
+- [x] Ensure laptop and tablet layouts degrade gracefully.
+- [x] Add wireframe screenshots or design references for the intended layout states.
 - [ ] Commit: `feat: redesign run analysis workspace`.
 
 ### Checkpoint 8 — Full-screen and focus modes
 
-- [ ] Add full-screen mode for the main viewport.
-- [ ] Add full-screen mode for metric analysis panels/charts.
-- [ ] Preserve playback state and selection when toggling full-screen.
-- [ ] Add keyboard shortcuts for:
-  - [ ] toggle viewport full-screen
-  - [ ] toggle chart full-screen
-  - [ ] next/previous frame
-  - [ ] play/pause
-- [ ] Add tests for full-screen and focus state transitions.
+- [x] Add full-screen mode for the main viewport.
+- [x] Add full-screen mode for metric analysis panels/charts.
+- [x] Preserve playback state and selection when toggling full-screen.
+- [x] Add keyboard shortcuts for:
+  - [x] toggle viewport full-screen
+  - [x] toggle chart full-screen
+  - [x] next/previous frame
+  - [x] play/pause
+- [x] Add tests for full-screen and focus state transitions.
 - [ ] Commit: `feat: add analysis full-screen modes`.
 
 ### Checkpoint 9 — Metric readability and attention system
 
-- [ ] Replace the current “metrics tucked below the viewport” presentation with a first-class metric deck.
-- [ ] Add metric cards that support:
-  - [ ] pinned metrics
-  - [ ] compact vs expanded states
-  - [ ] sparkline or delta context
-  - [ ] severity highlighting
-  - [ ] threshold markers
-  - [ ] current-value emphasis
-- [ ] Let plugins or semantic metadata declare recommended “headline metrics”.
-- [ ] Add metric attention states:
-  - [ ] stable
-  - [ ] rising concern
-  - [ ] critical
-  - [ ] improving
-- [ ] Add the ability to focus one metric at a time in a larger chart panel.
-- [ ] Add tests for metric ranking, pinning, and attention rendering.
+- [x] Replace the current “metrics tucked below the viewport” presentation with a first-class metric deck.
+- [x] Add metric cards that support:
+  - [x] pinned metrics
+  - [x] compact vs expanded states
+  - [x] sparkline or delta context
+  - [x] severity highlighting
+  - [x] threshold markers
+  - [x] current-value emphasis
+- [x] Let plugins or semantic metadata declare recommended “headline metrics”.
+- [x] Add metric attention states:
+  - [x] stable
+  - [x] rising concern
+  - [x] critical
+  - [x] improving
+- [x] Add the ability to focus one metric at a time in a larger chart panel.
+- [x] Add tests for metric ranking, pinning, and attention rendering.
 - [ ] Commit: `feat: improve metric readability and attention states`.
 
 ### Checkpoint 10 — Rich graph rendering and density handling

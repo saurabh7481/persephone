@@ -14,6 +14,8 @@ from persephone.api.routes import health as health_routes
 from persephone.api.routes import plugins as plugins_routes
 from persephone.api.routes import runs as runs_routes
 from persephone.api.routes import sweeps as sweeps_routes
+from persephone.core.interpretation import InterpretationService
+from persephone.registry.registry import PluginRegistry
 
 
 def create_app(artifact_root: str | Path = "runs") -> FastAPI:
@@ -30,6 +32,8 @@ def create_app(artifact_root: str | Path = "runs") -> FastAPI:
     )
     app.state.run_manager = RunManager(artifact_root=artifact_root)
     app.state.artifact_root = Path(artifact_root)
+    app.state.plugin_registry = PluginRegistry()
+    app.state.interpretation_service = InterpretationService(artifact_root=artifact_root)
     app.include_router(health_routes.router)
     app.include_router(examples_routes.router)
     app.include_router(plugins_routes.router)

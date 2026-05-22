@@ -14,11 +14,17 @@ def test_openapi_exposes_hardened_frame_contracts(tmp_path: Path) -> None:
 
     openapi = client.get("/openapi.json").json()
 
+    assert "/plugins/{plugin_name}/semantics" in openapi["paths"]
     assert "/runs/{run_id}/frames" in openapi["paths"]
     assert "/runs/{run_id}/frames/{frame_id}" in openapi["paths"]
     assert "/runs/{run_id}/frames/stream" in openapi["paths"]
+    assert "/runs/{run_id}/explanations/run" in openapi["paths"]
+    assert "/runs/{run_id}/frames/{frame_id}/explanation" in openapi["paths"]
+    assert "/runs/{run_id}/selections/{selection_id}/explanation" in openapi["paths"]
     assert "ApiError" in openapi["components"]["schemas"]
+    assert "ExplanationResponse" in openapi["components"]["schemas"]
     assert "FrameListResponse" in openapi["components"]["schemas"]
+    assert "PluginSemanticsResponse" in openapi["components"]["schemas"]
     assert "RunSummaryResponse" in openapi["components"]["schemas"]
 
 

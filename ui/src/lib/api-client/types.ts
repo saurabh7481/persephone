@@ -1,4 +1,6 @@
 export type RunStatus = 'pending' | 'running' | 'cancelling' | 'cancelled' | 'completed' | 'failed';
+export type InterpretationMode = 'off' | 'rules_only' | 'minimal_ai';
+export type ExplanationSeverity = 'info' | 'notice' | 'warning' | 'critical';
 
 export type RunSummary = {
 	run_id: string;
@@ -11,6 +13,7 @@ export type RunSummary = {
 	artifact_path: string | null;
 	error_message: string | null;
 	cancel_requested?: boolean;
+	plugin_semantics?: PluginSemantics[];
 };
 
 export type PluginSummary = {
@@ -86,6 +89,63 @@ export type SemanticManifest = {
 	explanation_capabilities?: ExplanationCapability[];
 	default_entity_type?: string | null;
 	preferred_view?: string | null;
+};
+
+export type PluginSemantics = {
+	name: string;
+	version: string;
+	semantics: SemanticManifest;
+};
+
+export type FactEvidence = {
+	label: string;
+	value?: string | number | boolean | null;
+	metric?: string | null;
+	unit?: string | null;
+	source?: string | null;
+};
+
+export type ExplanationFact = {
+	kind: 'trend' | 'milestone' | 'anomaly' | 'hotspot' | 'selection';
+	title: string;
+	summary: string;
+	severity: ExplanationSeverity;
+	evidence?: FactEvidence[];
+	related_ids?: string[];
+	t: number;
+};
+
+export type ExplanationSummary = {
+	title: string;
+	summary: string;
+	severity: ExplanationSeverity;
+	evidence?: FactEvidence[];
+	fact_count: number;
+};
+
+export type InterpretationResult = {
+	run_id: string;
+	scope: 'run' | 'frame' | 'selection';
+	t: number;
+	tick: number;
+	frame_id?: string | null;
+	selection_id?: string | null;
+	mode_requested: InterpretationMode;
+	mode_applied: InterpretationMode;
+	label: string;
+	cached: boolean;
+	facts: ExplanationFact[];
+	summary?: ExplanationSummary | null;
+};
+
+export type ExplanationResponse = {
+	run_id: string;
+	scope: 'run' | 'frame' | 'selection';
+	frame_id?: string | null;
+	selection_id?: string | null;
+	available: boolean;
+	reason?: string | null;
+	interpretation?: InterpretationResult | null;
 };
 
 export type FieldArtifactSummary = {
@@ -187,6 +247,15 @@ export type ExperimentConfig = {
 	visualization?: {
 		emit_every: number;
 		inline_frame_max_values?: number;
+	};
+	interpretation?: {
+		mode?: InterpretationMode;
+		every_n_ticks?: number;
+		on_milestone?: boolean;
+		on_complete?: boolean;
+		max_input_facts?: number;
+		max_output_tokens?: number;
+		store_records?: boolean;
 	};
 };
 

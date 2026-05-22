@@ -1,6 +1,11 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { PersephoneApiClient, type FrameListResponse } from './index';
+import {
+	PersephoneApiClient,
+	type ExplanationResponse,
+	type FrameListResponse,
+	type PluginSemantics
+} from './index';
 
 describe('PersephoneApiClient frame contracts', () => {
 	test('loads replay frames through typed client methods', async () => {
@@ -39,5 +44,64 @@ describe('PersephoneApiClient frame contracts', () => {
 			'http://api.local/runs/run-a/export?format=parquet'
 		);
 		expect(api.frameUrl('run-a', 'frame-a')).toBe('http://api.local/runs/run-a/frames/frame-a');
+	});
+
+	test('loads plugin semantics and explanation summaries through typed client methods', async () => {
+		const fetcher = vi
+			.fn()
+			.mockImplementationOnce(
+				async () =>
+					new Response(
+						JSON.stringify({
+							name: 'demo',
+							version: '0.1.0',
+							semantics: {
+								view_capabilities: [{ kind: 'table', default: true }],
+								preferred_view: 'table'
+							}
+						} satisfies PluginSemantics)
+					)
+			)
+			.mockImplementationOnce(
+				async () =>
+					new Response(
+						JSON.stringify({
+							run_id: 'run-a',
+							scope: 'run',
+							available: true,
+							interpretation: {
+								run_id: 'run-a',
+								scope: 'run',
+								t: 1,
+								tick: 1,
+								mode_requested: 'rules_only',
+								mode_applied: 'rules_only',
+								label: 'Deterministic interpretation',
+								cached: false,
+								facts: [],
+								summary: {
+									title: 'Population is rising',
+									summary: 'Population increased above baseline.',
+									severity: 'warning',
+									evidence: [],
+									fact_count: 1
+								}
+							}
+						} satisfies ExplanationResponse)
+					)
+			);
+		const api = new PersephoneApiClient('http://api.local', fetcher);
+
+		const semantics = await api.getPluginSemantics('demo');
+		const explanation = await api.getRunExplanation('run-a');
+
+		expect(fetcher).toHaveBeenNthCalledWith(1, 'http://api.local/plugins/demo/semantics', {
+			headers: { accept: 'application/json' }
+		});
+		expect(fetcher).toHaveBeenNthCalledWith(2, 'http://api.local/runs/run-a/explanations/run', {
+			headers: { accept: 'application/json' }
+		});
+		expect(semantics.semantics.preferred_view).toBe('table');
+		expect(explanation.interpretation?.mode_applied).toBe('rules_only');
 	});
 });

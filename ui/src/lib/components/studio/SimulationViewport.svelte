@@ -18,6 +18,7 @@
 		status = 'idle',
 		speed = 1,
 		bufferedFrames = 0,
+		viewLabel = 'Viewport',
 		selectedObject = null,
 		onSelect
 	}: {
@@ -26,6 +27,7 @@
 		status?: PlaybackStatus;
 		speed?: number;
 		bufferedFrames?: number;
+		viewLabel?: string;
 		selectedObject?: SelectedPlaybackObject | null;
 		onSelect?: (object: SelectedPlaybackObject | null) => void;
 	} = $props();
@@ -165,7 +167,7 @@
 		<div class="simulation-viewport-hud" aria-live="polite">
 			<div>
 				<p class="studio-eyebrow">{mode} · {status}</p>
-				<h2>{frame.kind === 'field' ? frame.field : 'Graph'} frame</h2>
+				<h2>{viewLabel}</h2>
 				<p>
 					{frame.frame_id} · t={frame.t.toFixed(2)} · {speed}x · Frame buffer {bufferedFrames}
 				</p>

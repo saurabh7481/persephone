@@ -1,4 +1,5 @@
 import type {
+	ExplanationResponse,
 	CompareResult,
 	EventRecord,
 	ExampleConfigResponse,
@@ -8,6 +9,7 @@ import type {
 	FetchLike,
 	FrameListResponse,
 	MetricRecord,
+	PluginSemantics,
 	PluginSummary,
 	RunSummary,
 	SimulationFrame,
@@ -66,6 +68,10 @@ export class PersephoneApiClient {
 		return this.getJson('/plugins');
 	}
 
+	async getPluginSemantics(pluginName: string): Promise<PluginSemantics> {
+		return this.getJson(`/plugins/${encodeURIComponent(pluginName)}/semantics`);
+	}
+
 	async listExamples(): Promise<ExampleSummary[]> {
 		return this.getJson('/examples');
 	}
@@ -104,6 +110,22 @@ export class PersephoneApiClient {
 		params.append('run', runB);
 		params.set('metric', metric);
 		return this.getJson(`/compare?${params.toString()}`);
+	}
+
+	async getRunExplanation(runId: string): Promise<ExplanationResponse> {
+		return this.getJson(`/runs/${encodeURIComponent(runId)}/explanations/run`);
+	}
+
+	async getFrameExplanation(runId: string, frameId: string): Promise<ExplanationResponse> {
+		return this.getJson(
+			`/runs/${encodeURIComponent(runId)}/frames/${encodeURIComponent(frameId)}/explanation`
+		);
+	}
+
+	async getSelectionExplanation(runId: string, selectionId: string): Promise<ExplanationResponse> {
+		return this.getJson(
+			`/runs/${encodeURIComponent(runId)}/selections/${encodeURIComponent(selectionId)}/explanation`
+		);
 	}
 
 	streamUrl(runId: string): string {

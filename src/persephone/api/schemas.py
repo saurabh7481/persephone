@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from persephone.config.models import ExperimentConfig
+from persephone.core.interpretation import InterpretationResult
 from persephone.frames import FrameListResponse
 from persephone.sweeps import ScalarValue, SweepConfig
 
@@ -109,6 +110,12 @@ class SemanticManifest(BaseModel):
     preferred_view: str | None = None
 
 
+class PluginSemanticsResponse(BaseModel):
+    name: str
+    version: str
+    semantics: SemanticManifest
+
+
 class RunSummaryResponse(BaseModel):
     run_id: str
     name: str
@@ -120,6 +127,17 @@ class RunSummaryResponse(BaseModel):
     artifact_path: str | None
     error_message: str | None
     cancel_requested: bool = False
+    plugin_semantics: list[PluginSemanticsResponse] = Field(default_factory=list)
+
+
+class ExplanationResponse(BaseModel):
+    run_id: str
+    scope: Literal["run", "frame", "selection"]
+    frame_id: str | None = None
+    selection_id: str | None = None
+    available: bool
+    reason: str | None = None
+    interpretation: InterpretationResult | None = None
 
 
 class MetricRecordResponse(BaseModel):
@@ -183,6 +201,7 @@ class SweepCreateRequest(BaseModel):
 __all__ = [
     "ApiError",
     "EntityField",
+    "ExplanationResponse",
     "EventRecordResponse",
     "EventDefinition",
     "ExampleConfigResponse",
@@ -192,6 +211,7 @@ __all__ = [
     "HealthResponse",
     "MetricDefinition",
     "MetricRecordResponse",
+    "PluginSemanticsResponse",
     "PluginSummaryResponse",
     "RunCreateRequest",
     "RunSummaryResponse",
