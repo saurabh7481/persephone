@@ -1,3 +1,4 @@
+import { geoEquirectangular, geoPath } from 'd3';
 import type { SelectedPlaybackObject } from './playback';
 import type { SimulationFrame } from '$lib/api-client';
 
@@ -185,7 +186,7 @@ export function renderGraphFrame(
 		return;
 	}
 
-	if (options.mode === 'map_network') drawMapOverlay(context, viewport);
+	if (options.mode === 'map_network') drawMapOverlay(context, frame, viewport, options);
 
 	context.lineCap = 'round';
 	for (const edge of layout.edges) {
@@ -293,7 +294,7 @@ export function graphLayout(
 							source: node
 						} satisfies GraphLayoutNode;
 					})
-			: layoutSpatialNodes(positionedNodes, viewport, padding, radiusRange, options);
+			: layoutSpatialNodes(positionedNodes, viewport, padding, radiusRange, options, graphMode);
 	const nodesById = new Map(baseNodes.map((node) => [node.id, node]));
 	const edges = rawEdges.flatMap((edge) => {
 		const source = nodesById.get(edge.source);
@@ -441,8 +442,64 @@ function layoutSpatialNodes(
 	viewport: ViewportGeometry,
 	padding: number,
 	radiusRange: { min: number; max: number; low: number; high: number },
-	options: GraphRenderOptions
+	options: GraphRenderOptions,
+	mode: GraphRenderMode
 ): GraphLayoutNode[] {
+	const zoom = clamp(options.zoom ?? 1, 0.4, 6);
+	const panX = options.panX ?? 0;
+	const panY = options.panY ?? 0;
+	const search = options.search?.trim().toLowerCase() ?? '';
+
+	if (mode === 'map_network') {
+		const projection = geoEquirectangular();
+		const validCoords = nodes
+			.filter((n) => n.x !== null && n.y !== null)
+			.map((n) => [n.x as number, n.y as number]);
+
+		if (validCoords.length > 0 && viewport.width > padding * 2 && viewport.height > padding * 2) {
+			const points: Parameters<typeof projection.fitExtent>[1] = {
+				type: 'MultiPoint',
+				coordinates: validCoords
+			};
+			projection.fitExtent(
+				[
+					[padding, padding],
+					[viewport.width - padding, viewport.height - padding]
+				],
+				points
+			);
+
+			const currentScale = projection.scale();
+			const currentTranslate = projection.translate();
+			const centerX = viewport.width / 2;
+			const centerY = viewport.height / 2;
+
+			projection
+				.scale(currentScale * zoom)
+				.translate([
+					centerX + (currentTranslate[0] - centerX) * zoom + panX,
+					centerY + (currentTranslate[1] - centerY) * zoom + panY
+				]);
+		}
+
+		return nodes.map(({ node, x, y }) => {
+			const projected = projection([x ?? 0, y ?? 0]) || [0, 0];
+			const highlighted = nodeMatchesSearch(node, search);
+			return {
+				id: node.id,
+				x: projected[0],
+				y: projected[1],
+				radius: radiusForMetric(firstNumericMetricValue(node), radiusRange),
+				color: graphNodeColor(node),
+				label: nodeLabel(node),
+				group: stringValue(node.group),
+				highlighted,
+				dimmed: search.length > 0 && !highlighted,
+				source: node
+			} satisfies GraphLayoutNode;
+		});
+	}
+
 	const xs = nodes.map((node) => node.x ?? 0);
 	const ys = nodes.map((node) => node.y ?? 0);
 	const minX = Math.min(...xs);
@@ -451,10 +508,6 @@ function layoutSpatialNodes(
 	const maxY = Math.max(...ys);
 	const spanX = maxX - minX || 1;
 	const spanY = maxY - minY || 1;
-	const zoom = clamp(options.zoom ?? 1, 0.4, 6);
-	const panX = options.panX ?? 0;
-	const panY = options.panY ?? 0;
-	const search = options.search?.trim().toLowerCase() ?? '';
 
 	return nodes.map(({ node, x, y }) => {
 		const rawX = padding + (((x ?? 0) - minX) / spanX) * (viewport.width - padding * 2);
@@ -686,22 +739,486 @@ function renderGraphMatrix(
 	}
 }
 
-function drawMapOverlay(context: CanvasRenderingContext2D, viewport: ViewportGeometry) {
+const WORLD_MAP_POLYGONS: number[][][] = [
+	// North America (including Canada, Alaska, Mexico)
+	[
+		[-168, 66],
+		[-150, 70],
+		[-120, 70],
+		[-100, 68],
+		[-80, 69],
+		[-65, 63],
+		[-55, 50],
+		[-60, 45],
+		[-70, 45],
+		[-75, 35],
+		[-80, 25],
+		[-82, 25],
+		[-90, 30],
+		[-97, 26],
+		[-99, 16],
+		[-90, 15],
+		[-80, 9],
+		[-83, 8],
+		[-90, 13],
+		[-105, 20],
+		[-110, 23],
+		[-115, 33],
+		[-125, 42],
+		[-125, 48],
+		[-135, 55],
+		[-145, 60],
+		[-160, 55],
+		[-165, 60],
+		[-168, 66]
+	],
+	// South America
+	[
+		[-80, 9],
+		[-72, 12],
+		[-60, 10],
+		[-50, 0],
+		[-35, -6],
+		[-40, -20],
+		[-50, -35],
+		[-65, -50],
+		[-72, -55],
+		[-75, -50],
+		[-73, -40],
+		[-72, -30],
+		[-70, -20],
+		[-80, -5],
+		[-81, 5],
+		[-80, 9]
+	],
+	// Africa
+	[
+		[-17, 15],
+		[-15, 20],
+		[-12, 25],
+		[-5, 35],
+		[5, 36],
+		[10, 37],
+		[20, 32],
+		[30, 31],
+		[32, 30],
+		[33, 27],
+		[34, 25],
+		[39, 20],
+		[43, 12],
+		[51, 11],
+		[46, -5],
+		[40, -15],
+		[33, -28],
+		[28, -34],
+		[20, -34],
+		[15, -30],
+		[12, -20],
+		[8, -5],
+		[4, 4],
+		[-8, 4],
+		[-13, 8],
+		[-17, 15]
+	],
+	// Europe & Asia (Eurasia)
+	[
+		[-10, 37],
+		[-9, 43],
+		[-1, 46],
+		[-5, 48],
+		[0, 50],
+		[5, 53],
+		[8, 55],
+		[10, 57],
+		[15, 56],
+		[20, 60],
+		[25, 65],
+		[30, 70],
+		[40, 68],
+		[50, 68],
+		[60, 70],
+		[80, 73],
+		[100, 75],
+		[120, 73],
+		[140, 72],
+		[160, 70],
+		[170, 67],
+		[180, 65],
+		[170, 60],
+		[160, 53],
+		[140, 50],
+		[130, 43],
+		[125, 38],
+		[120, 35],
+		[120, 30],
+		[110, 20],
+		[105, 15],
+		[100, 10],
+		[103, 1],
+		[100, 5],
+		[95, 10],
+		[90, 20],
+		[80, 22],
+		[77, 8],
+		[72, 20],
+		[65, 25],
+		[60, 25],
+		[58, 20],
+		[50, 26],
+		[48, 30],
+		[40, 30],
+		[36, 35],
+		[35, 31],
+		[30, 31],
+		[34, 35],
+		[26, 40],
+		[15, 40],
+		[5, 36],
+		[-10, 37]
+	],
+	// Australia
+	[
+		[113, -26],
+		[114, -35],
+		[120, -34],
+		[130, -32],
+		[135, -35],
+		[145, -38],
+		[150, -34],
+		[153, -28],
+		[145, -15],
+		[142, -11],
+		[136, -12],
+		[130, -12],
+		[122, -18],
+		[113, -26]
+	],
+	// Greenland
+	[
+		[-60, 60],
+		[-50, 60],
+		[-40, 65],
+		[-30, 70],
+		[-20, 75],
+		[-20, 83],
+		[-30, 83],
+		[-40, 80],
+		[-50, 80],
+		[-60, 75],
+		[-73, 78],
+		[-70, 70],
+		[-60, 60]
+	],
+	// Great Britain & Ireland
+	[
+		[-10, 51],
+		[-10, 55],
+		[-5, 59],
+		[-2, 57],
+		[1, 51],
+		[-5, 50],
+		[-10, 51]
+	],
+	// Madagascar
+	[
+		[49, -12],
+		[50, -16],
+		[47, -25],
+		[44, -25],
+		[44, -17],
+		[49, -12]
+	],
+	// Japan
+	[
+		[140, 40],
+		[142, 38],
+		[138, 35],
+		[135, 34],
+		[132, 32],
+		[130, 31],
+		[131, 33],
+		[136, 36],
+		[140, 40]
+	]
+];
+
+const USA_MAP_POLYGON: number[][] = [
+	[-124.7, 48.4],
+	[-124.7, 46.2],
+	[-124.4, 46.2],
+	[-124.1, 44.0],
+	[-124.5, 42.0],
+	[-124.2, 40.4],
+	[-123.0, 38.0],
+	[-122.5, 37.8],
+	[-122.0, 36.0],
+	[-120.6, 34.5],
+	[-119.0, 34.0],
+	[-117.2, 32.5],
+	[-111.0, 31.3],
+	[-108.2, 31.3],
+	[-106.5, 31.8],
+	[-104.9, 29.5],
+	[-101.5, 29.7],
+	[-100.5, 26.0],
+	[-97.1, 26.0],
+	[-97.2, 28.0],
+	[-95.0, 29.5],
+	[-93.9, 29.8],
+	[-91.5, 29.0],
+	[-90.2, 29.2],
+	[-89.2, 30.2],
+	[-88.4, 30.4],
+	[-86.0, 30.3],
+	[-84.0, 29.0],
+	[-82.7, 27.8],
+	[-81.8, 24.5],
+	[-80.0, 26.0],
+	[-80.1, 28.0],
+	[-81.2, 30.5],
+	[-80.8, 32.1],
+	[-78.6, 33.9],
+	[-76.0, 35.0],
+	[-75.5, 35.2],
+	[-76.0, 37.0],
+	[-75.0, 38.5],
+	[-74.0, 40.5],
+	[-71.5, 41.2],
+	[-70.0, 41.5],
+	[-70.5, 43.0],
+	[-69.8, 44.4],
+	[-67.0, 44.8],
+	[-67.0, 45.2],
+	[-67.8, 45.6],
+	[-69.2, 47.4],
+	[-71.5, 45.0],
+	[-73.3, 45.0],
+	[-75.0, 45.0],
+	[-76.5, 44.0],
+	[-79.0, 43.6],
+	[-79.0, 43.0],
+	[-82.5, 43.0],
+	[-83.0, 42.0],
+	[-83.5, 42.2],
+	[-84.2, 46.0],
+	[-84.0, 46.5],
+	[-88.0, 48.0],
+	[-89.5, 48.0],
+	[-90.0, 47.0],
+	[-92.2, 46.7],
+	[-95.1, 49.4],
+	[-95.1, 49.0],
+	[-100.0, 49.0],
+	[-105.0, 49.0],
+	[-110.0, 49.0],
+	[-115.0, 49.0],
+	[-120.0, 49.0],
+	[-123.0, 49.0],
+	[-124.7, 48.4]
+];
+
+const GREAT_LAKES_POLYGONS: number[][][] = [
+	// Superior
+	[
+		[-92.0, 47.0],
+		[-88.0, 48.0],
+		[-85.0, 47.0],
+		[-85.0, 46.5],
+		[-87.0, 46.5],
+		[-92.0, 47.0]
+	],
+	// Michigan-Huron
+	[
+		[-87.0, 46.0],
+		[-85.0, 46.0],
+		[-84.0, 45.0],
+		[-82.5, 45.0],
+		[-82.0, 43.0],
+		[-83.0, 43.0],
+		[-85.0, 45.0],
+		[-86.0, 42.0],
+		[-87.0, 42.0],
+		[-88.0, 45.0],
+		[-87.0, 46.0]
+	],
+	// Erie
+	[
+		[-83.0, 42.0],
+		[-80.0, 42.5],
+		[-79.0, 42.8],
+		[-80.0, 41.5],
+		[-83.0, 41.5],
+		[-83.0, 42.0]
+	],
+	// Ontario
+	[
+		[-79.0, 43.5],
+		[-76.0, 44.0],
+		[-76.0, 43.5],
+		[-78.0, 43.2],
+		[-79.0, 43.5]
+	]
+];
+
+function drawMapOverlay(
+	context: CanvasRenderingContext2D,
+	frame: SimulationGraphFrame,
+	viewport: ViewportGeometry,
+	options: GraphRenderOptions
+) {
+	const geoNodes = frame.nodes
+		.map((node) => ({
+			x: numberValue(node.lon),
+			y: numberValue(node.lat)
+		}))
+		.filter((n) => n.x !== null && n.y !== null) as Array<{ x: number; y: number }>;
+
+	if (geoNodes.length === 0) {
+		context.save();
+		context.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+		context.lineWidth = 1;
+		for (let index = 1; index < 4; index += 1) {
+			const x = (viewport.width / 4) * index;
+			const y = (viewport.height / 4) * index;
+			context.beginPath();
+			context.moveTo(x, 0);
+			context.lineTo(x, viewport.height);
+			context.stroke();
+			context.beginPath();
+			context.moveTo(0, y);
+			context.lineTo(viewport.width, y);
+			context.stroke();
+		}
+		context.restore();
+		return;
+	}
+
+	const padding = Math.min(36, Math.max(20, Math.min(viewport.width, viewport.height) * 0.12));
+	const zoom = clamp(options.zoom ?? 1, 0.4, 6);
+	const panX = options.panX ?? 0;
+	const panY = options.panY ?? 0;
+
+	// Create a fully fitted, scaled, and translated D3 projection!
+	const projection = geoEquirectangular();
+	const validCoords = geoNodes.map((n) => [n.x, n.y]);
+
+	if (validCoords.length > 0 && viewport.width > padding * 2 && viewport.height > padding * 2) {
+		const points: Parameters<typeof projection.fitExtent>[1] = {
+			type: 'MultiPoint',
+			coordinates: validCoords
+		};
+		projection.fitExtent(
+			[
+				[padding, padding],
+				[viewport.width - padding, viewport.height - padding]
+			],
+			points
+		);
+
+		const centerX = viewport.width / 2;
+		const centerY = viewport.height / 2;
+		const currentScale = projection.scale();
+		const currentTranslate = projection.translate();
+
+		projection
+			.scale(currentScale * zoom)
+			.translate([
+				centerX + (currentTranslate[0] - centerX) * zoom + panX,
+				centerY + (currentTranslate[1] - centerY) * zoom + panY
+			]);
+	}
+
+	const pathGenerator = geoPath().projection(projection).context(context);
+
+	const isDark =
+		typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+	const mapFill = isDark ? 'rgba(30, 41, 59, 0.45)' : 'rgba(241, 245, 249, 0.65)';
+	const mapStroke = isDark ? 'rgba(71, 85, 105, 0.35)' : 'rgba(203, 213, 225, 0.55)';
+	const usaStroke = isDark ? 'rgba(100, 116, 139, 0.45)' : 'rgba(148, 163, 184, 0.6)';
+	const lakeFill = isDark ? '#101722' : '#ffffff';
+
 	context.save();
-	context.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+
+	// 1. Draw World Landmasses
+	const worldGeoJSON: Parameters<typeof pathGenerator>[0] = {
+		type: 'FeatureCollection',
+		features: WORLD_MAP_POLYGONS.map((poly) => ({
+			type: 'Feature',
+			geometry: {
+				type: 'Polygon',
+				coordinates: [poly]
+			},
+			properties: {}
+		}))
+	};
+
+	context.fillStyle = mapFill;
+	context.strokeStyle = mapStroke;
 	context.lineWidth = 1;
-	for (let index = 1; index < 4; index += 1) {
-		const x = (viewport.width / 4) * index;
-		const y = (viewport.height / 4) * index;
+	context.beginPath();
+	pathGenerator(worldGeoJSON);
+	context.fill();
+	context.stroke();
+
+	// 2. Draw USA detailed border
+	const usaGeoJSON: Parameters<typeof pathGenerator>[0] = {
+		type: 'Feature',
+		geometry: {
+			type: 'Polygon',
+			coordinates: [USA_MAP_POLYGON]
+		},
+		properties: {}
+	};
+
+	context.strokeStyle = usaStroke;
+	context.lineWidth = 1.5;
+	context.beginPath();
+	pathGenerator(usaGeoJSON);
+	context.stroke();
+
+	// 3. Draw Great Lakes as water bodies
+	const lakesGeoJSON: Parameters<typeof pathGenerator>[0] = {
+		type: 'FeatureCollection',
+		features: GREAT_LAKES_POLYGONS.map((poly) => ({
+			type: 'Feature',
+			geometry: {
+				type: 'Polygon',
+				coordinates: [poly]
+			},
+			properties: {}
+		}))
+	};
+
+	context.fillStyle = lakeFill;
+	context.strokeStyle = mapStroke;
+	context.lineWidth = 1;
+	context.beginPath();
+	pathGenerator(lakesGeoJSON);
+	context.fill();
+	context.stroke();
+
+	// 4. Draw latitude / longitude grid
+	context.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.08)' : 'rgba(148, 163, 184, 0.12)';
+	context.lineWidth = 0.75;
+	// Horizontal grid lines
+	for (let lat = -60; lat <= 80; lat += 20) {
 		context.beginPath();
-		context.moveTo(x, 0);
-		context.lineTo(x, viewport.height);
-		context.stroke();
-		context.beginPath();
-		context.moveTo(0, y);
-		context.lineTo(viewport.width, y);
+		const pStart = projection([-180, lat]) || [0, 0];
+		const pEnd = projection([180, lat]) || [0, 0];
+		context.moveTo(pStart[0], pStart[1]);
+		context.lineTo(pEnd[0], pEnd[1]);
 		context.stroke();
 	}
+	// Vertical grid lines
+	for (let lon = -180; lon <= 180; lon += 30) {
+		context.beginPath();
+		const pStart = projection([lon, -90]) || [0, 0];
+		const pEnd = projection([lon, 90]) || [0, 0];
+		context.moveTo(pStart[0], pStart[1]);
+		context.lineTo(pEnd[0], pEnd[1]);
+		context.stroke();
+	}
+
 	context.restore();
 }
 

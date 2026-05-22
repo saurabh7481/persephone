@@ -43,6 +43,14 @@ def test_api_lists_and_fetches_example_configs() -> None:
     assert workflow.status_code == 200
     assert workflow.json()["config"]["solvers"][0]["plugin"] == "dependency_workflow"
 
+    airline = client.get("/examples/airline_delay")
+    assert airline.status_code == 200
+    assert airline.json()["config"]["solvers"][0]["plugin"] == "airline_delay"
+
+    river = client.get("/examples/river_flood")
+    assert river.status_code == 200
+    assert river.json()["config"]["solvers"][0]["plugin"] == "river_flood"
+
 
 def test_deprecated_sir_example_alias_still_returns_config() -> None:
     client = TestClient(create_app())

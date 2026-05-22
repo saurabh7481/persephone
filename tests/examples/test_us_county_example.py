@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from persephone_us_county_epidemic import USCountyEpidemicPlugin
+
 from persephone.config.load import load_experiment_config
 from persephone.core.engine import PersephoneEngine
 from persephone.registry.registry import PluginRegistry
-from persephone_us_county_epidemic import USCountyEpidemicPlugin
 
 
 def test_example_us_county_config_validates() -> None:

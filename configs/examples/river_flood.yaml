@@ -1,0 +1,42 @@
+name: river_flood_routing_demo
+description: "Mississippi basin river flood routing simulation with linear reservoir propagation"
+seed: 42
+
+scheduler:
+  t_end: 72
+  sync_interval: auto
+
+solvers:
+  - type: graph
+    plugin: river_flood
+    version: ">=0.1.0"
+    params:
+      event_preset: "spring_snowmelt"
+      precipitation_cms: 500.0
+      precipitation_duration_hours: 24
+      routing_k: 0.35
+
+observer:
+  metrics:
+    - stations_flooding
+    - stations_watch
+    - total_excess_flow_cms
+    - peak_flow_cms
+    - flood_front_km
+  emit_every: 1.0
+
+storage:
+  artifacts_dir: runs
+  metrics: true
+  events: true
+
+visualization:
+  emit_every: 1.0
+
+interpretation:
+  mode: rules_only
+  every_n_ticks: 1
+  on_milestone: true
+  on_complete: true
+  max_input_facts: 4
+  max_output_tokens: 96

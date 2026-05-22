@@ -4,7 +4,6 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
-
 Severity = Literal["info", "notice", "warning", "critical"]
 ExplanationScope = Literal["run", "frame", "selection"]
 

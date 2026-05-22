@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from persephone_sdk.plugin import Observer, PluginManifest, Renderer, Solver, World
+
 from persephone.config.models import ExperimentConfig, SchedulerConfig, SolverConfig
 from persephone.core.explanations import ExplanationPacket
 from persephone.core.run import RunContext
-from persephone_sdk.plugin import Observer, PluginManifest, Renderer, Solver, World
 
 
 def test_experiment_config_accepts_interpretation_settings() -> None:

@@ -13,6 +13,8 @@ dependencies = [
     "persephone-plugin-heat-diffusion",
     "persephone-plugin-market-stress",
     "persephone-plugin-us-county-epidemic",
+    "persephone-plugin-airline-delay",
+    "persephone-plugin-river-flood",
     "persephone-sdk",
     "pyarrow>=16.0",
     "pydantic>=2.7",
@@ -51,10 +53,12 @@ persephone-plugin-sir-epidemic = { workspace = true }
 persephone-plugin-heat-diffusion = { workspace = true }
 persephone-plugin-market-stress = { workspace = true }
 persephone-plugin-us-county-epidemic = { workspace = true }
+persephone-plugin-airline-delay = { workspace = true }
+persephone-plugin-river-flood = { workspace = true }
 persephone-sdk = { workspace = true }
 
 [tool.uv.workspace]
-members = ["sdk", "plugins/persephone-plugin-sir-epidemic", "plugins/persephone-plugin-heat-diffusion", "plugins/persephone-plugin-us-county-epidemic", "plugins/persephone-plugin-market-stress", "plugins/persephone-plugin-dependency-workflow"]
+members = ["sdk", "plugins/persephone-plugin-sir-epidemic", "plugins/persephone-plugin-heat-diffusion", "plugins/persephone-plugin-us-county-epidemic", "plugins/persephone-plugin-market-stress", "plugins/persephone-plugin-dependency-workflow", "plugins/persephone-plugin-airline-delay", "plugins/persephone-plugin-river-flood"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "sdk/tests"]
@@ -70,4 +74,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "sdk/src", "plugins/persephone-plugin-sir-epidemic/src", "plugins/persephone-plugin-heat-diffusion/src", "plugins/persephone-plugin-us-county-epidemic/src", "plugins/persephone-plugin-market-stress/src", "plugins/persephone-plugin-dependency-workflow/src"]
+files = ["src", "sdk/src", "plugins/persephone-plugin-sir-epidemic/src", "plugins/persephone-plugin-heat-diffusion/src", "plugins/persephone-plugin-us-county-epidemic/src", "plugins/persephone-plugin-market-stress/src", "plugins/persephone-plugin-dependency-workflow/src", "plugins/persephone-plugin-airline-delay/src", "plugins/persephone-plugin-river-flood/src"]

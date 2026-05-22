@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Mapping, Sequence, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 import numpy as np
 

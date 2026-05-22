@@ -1,0 +1,42 @@
+name: airline_delay_propagation_demo
+description: "Global airline delay propagation simulation utilizing the OpenFlights dataset"
+seed: 42
+
+scheduler:
+  t_end: 24
+  sync_interval: auto
+
+solvers:
+  - type: graph
+    plugin: airline_delay
+    version: ">=0.1.0"
+    params:
+      initial_airports: ["JFK", "LHR", "DXB"]
+      initial_delay_minutes: 180.0
+      propagation_factor: 0.3
+      recovery_rate: 0.15
+
+observer:
+  metrics:
+    - delayed_airports
+    - disrupted_airports
+    - total_delay_minutes
+    - max_delay_minutes
+    - cascade_reach
+  emit_every: 1.0
+
+storage:
+  artifacts_dir: runs
+  metrics: true
+  events: true
+
+visualization:
+  emit_every: 1.0
+
+interpretation:
+  mode: rules_only
+  every_n_ticks: 1
+  on_milestone: true
+  on_complete: true
+  max_input_facts: 4
+  max_output_tokens: 96

@@ -177,4 +177,28 @@ describe('studio viewport render helpers', () => {
 			id: 'b->c'
 		});
 	});
+
+	test('lays out map_network frames with d3 projection', () => {
+		const mapGraphFrame: SimulationFrame = {
+			kind: 'graph',
+			frame_id: 'graph-map',
+			t: 3,
+			tick: 3,
+			solver_id: 'airline#0',
+			source: 'replay',
+			nodes: [
+				{ id: 'NYC', lon: -74, lat: 40.7 },
+				{ id: 'LAX', lon: -118.2, lat: 33.9 },
+				{ id: 'ORD', lon: -87.9, lat: 41.9 }
+			],
+			edges: [
+				{ source: 'NYC', target: 'LAX', weight: 1 },
+				{ source: 'ORD', target: 'NYC', weight: 0.5 }
+			],
+			visualization: { coordinate_system: 'geo' }
+		};
+		const layout = graphLayout(mapGraphFrame, normalizeViewport(800, 600, 1));
+		console.log('LAYOUT NODES:', layout.nodes);
+		expect(layout.nodes).toHaveLength(3);
+	});
 });

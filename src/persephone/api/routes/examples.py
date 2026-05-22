@@ -56,6 +56,18 @@ EXAMPLES = {
         description="Synthetic codebase dependency workflow that favors hierarchy and table views.",
         path="configs/examples/dependency_workflow.yaml",
     ),
+    "airline_delay": ExampleConfig(
+        id="airline_delay",
+        name="Global airline delay propagation",
+        description="Global airline delay propagation simulation utilizing the OpenFlights dataset.",
+        path="configs/examples/airline_delay.yaml",
+    ),
+    "river_flood": ExampleConfig(
+        id="river_flood",
+        name="Mississippi basin river flood routing",
+        description="Mississippi basin river flood routing simulation with linear reservoir propagation.",
+        path="configs/examples/river_flood.yaml",
+    ),
 }
 
 

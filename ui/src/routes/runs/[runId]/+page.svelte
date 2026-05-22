@@ -621,7 +621,10 @@
 							size="icon-sm"
 							aria-label="Previous frame"
 							disabled={!$playback.frameBuffer.length}
-							onclick={() => { playback.pause(); playback.stepFrame(-1); }}
+							onclick={() => {
+								playback.pause();
+								playback.stepFrame(-1);
+							}}
 						>
 							<SkipBack size={15} />
 						</Button>
@@ -642,7 +645,10 @@
 							size="icon-sm"
 							aria-label="Next frame"
 							disabled={!$playback.frameBuffer.length}
-							onclick={() => { playback.pause(); playback.stepFrame(1); }}
+							onclick={() => {
+								playback.pause();
+								playback.stepFrame(1);
+							}}
 						>
 							<SkipForward size={15} />
 						</Button>
@@ -683,7 +689,10 @@
 							max={lastT}
 							step="any"
 							value={$playback.currentTime}
-							oninput={(e) => { playback.pause(); playback.scrubTo(Number(e.currentTarget.value)); }}
+							oninput={(e) => {
+								playback.pause();
+								playback.scrubTo(Number(e.currentTarget.value));
+							}}
 						/>
 						<label class="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
 							<span>Speed</span>

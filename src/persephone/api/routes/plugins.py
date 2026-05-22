@@ -3,10 +3,14 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, cast
 
-from fastapi import APIRouter
-from fastapi import HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 
-from persephone.api.schemas import ApiError, PluginSemanticsResponse, PluginSummaryResponse, SemanticManifest
+from persephone.api.schemas import (
+    ApiError,
+    PluginSemanticsResponse,
+    PluginSummaryResponse,
+    SemanticManifest,
+)
 from persephone.registry.registry import PluginNotFoundError, PluginRegistry
 
 router = APIRouter()
