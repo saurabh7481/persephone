@@ -6,11 +6,12 @@ import type {
 	MetricRecord,
 	SimulationFrame
 } from '$lib/api-client';
-import { formatDelta, formatNumber, humanizeIdentifier } from '$lib/studio/format';
+import { formatDelta, formatNumber, formatTimeLabel, humanizeIdentifier } from '$lib/studio/format';
 
 export type NarrativeCard = {
 	label: string;
 	summary: string;
+	detail?: string;
 	severity: 'info' | 'notice' | 'warning' | 'critical';
 };
 
@@ -22,6 +23,41 @@ export type NarrativeMilestone = {
 	t: number;
 	severity: 'info' | 'notice' | 'warning' | 'critical';
 	metric?: string;
+};
+
+export type NarrativeLead = {
+	eyebrow: string;
+	title: string;
+	summary: string;
+	significance: string;
+	nextStep: string;
+};
+
+export type ExplanationPanelInput = {
+	key: string;
+	label: string;
+	description: string;
+	response: ExplanationResponse | null;
+	loading: boolean;
+};
+
+export type ExplanationPanelCard = {
+	key: string;
+	label: string;
+	description: string;
+	loading: boolean;
+	sourceLabel: string;
+	primaryStatement: string;
+	supportingDetail: string;
+	evidence: Array<{ label: string; value: string }>;
+	facts: Array<{
+		title: string;
+		summary: string;
+		severity: 'info' | 'notice' | 'warning' | 'critical';
+		time: number;
+		timeLabel: string;
+	}>;
+	footer: string;
 };
 
 export function extractMilestones({
@@ -126,11 +162,20 @@ export function recentChangeCards({
 	const cards: NarrativeCard[] = [];
 	const topMetric = topMetricDelta(metrics, selectedTime);
 	if (topMetric) {
+		const current = topMetric.current;
+		const direction = topMetric.delta >= 0 ? 'Climbed' : 'Dropped';
+		const thresholdDetail =
+			topMetric.severity === 'critical'
+				? 'The latest sample is above the critical threshold.'
+				: topMetric.severity === 'warning'
+					? 'The latest sample is above the warning threshold.'
+					: 'The latest sample stays within its expected range.';
 		cards.push({
 			label: humanizeIdentifier(topMetric.metric),
-			summary: `${topMetric.delta >= 0 ? 'Up' : 'Down'} ${formatDelta(Math.abs(topMetric.delta), {
+			summary: `${direction} by ${formatDelta(Math.abs(topMetric.delta), {
 				maximumFractionDigits: 1
-			}).replace('+', '')} from the previous sample`,
+			}).replace('+', '')} to ${formatNumber(current.value)} at the selected time.`,
+			detail: thresholdDetail,
 			severity: topMetric.severity
 		});
 	}
@@ -139,9 +184,12 @@ export function recentChangeCards({
 		(event) => typeof event.t === 'number' && event.t >= selectedTime - 1 && event.t <= selectedTime
 	);
 	if (recentEvents.length >= 2) {
+		const burstTime =
+			recentEvents[Math.floor(recentEvents.length / 2)]?.t ?? recentEvents[0]?.t ?? selectedTime;
 		cards.push({
 			label: 'Event burst',
-			summary: `${recentEvents.length} events landed within the recent activity window`,
+			summary: `${recentEvents.length} events landed in the same short activity window.`,
+			detail: `The burst centered on ${formatTimeLabel(burstTime)}.`,
 			severity: recentEvents.length >= 3 ? 'notice' : 'info'
 		});
 	}
@@ -151,11 +199,46 @@ export function recentChangeCards({
 		cards.push({
 			label: 'Interpretation',
 			summary: summary.summary,
+			detail: 'Deterministic summary for the active frame or run.',
 			severity: summary.severity
 		});
 	}
 
 	return cards;
+}
+
+export function buildExplanationPanelCards(
+	sections: ExplanationPanelInput[]
+): ExplanationPanelCard[] {
+	return sections.map((section) => {
+		const summary = section.response?.interpretation?.summary;
+		const facts = section.response?.interpretation?.facts ?? [];
+		return {
+			key: section.key,
+			label: section.label,
+			description: section.description,
+			loading: section.loading,
+			sourceLabel: explanationSourceLabel(section.response),
+			primaryStatement: summary?.title ?? facts[0]?.title ?? 'No interpretation yet',
+			supportingDetail:
+				summary?.summary ??
+				facts[0]?.summary ??
+				section.response?.reason ??
+				'This plugin has not emitted explanation facts for this scope yet.',
+			evidence: (summary?.evidence ?? facts[0]?.evidence ?? []).slice(0, 4).map((item) => ({
+				label: humanizeIdentifier(item.label),
+				value: item.value == null ? 'n/a' : formatUnknownEvidence(item.value, item.unit ?? null)
+			})),
+			facts: facts.slice(0, 3).map((fact) => ({
+				title: fact.title,
+				summary: fact.summary,
+				severity: fact.severity,
+				time: fact.t,
+				timeLabel: formatTimeLabel(fact.t)
+			})),
+			footer: explanationFooter(section.response)
+		};
+	});
 }
 
 export function milestonePlaybackTarget(
@@ -171,6 +254,34 @@ export function milestonePlaybackTarget(
 	return {
 		time: frame?.t ?? milestone.t,
 		frameId: frame?.frame_id ?? null
+	};
+}
+
+export function buildNarrativeLead({
+	explanation,
+	recentChanges,
+	viewLabel,
+	viewPurpose
+}: {
+	explanation: ExplanationResponse | null;
+	recentChanges: NarrativeCard[];
+	viewLabel: string;
+	viewPurpose: string;
+}): NarrativeLead {
+	const summary = explanation?.interpretation?.summary;
+	const strongestShift =
+		recentChanges.find((item) => item.label !== 'Interpretation') ?? recentChanges[0] ?? null;
+	return {
+		eyebrow: 'What is happening now',
+		title: summary?.title ?? strongestShift?.label ?? 'Run summary',
+		summary:
+			summary?.summary ??
+			strongestShift?.summary ??
+			'Persephone is ready, but this run has not emitted enough evidence to summarize yet.',
+		significance: strongestShift
+			? `The strongest recent shift is ${strongestShift.label}: ${strongestShift.summary}`
+			: 'No recent change has been extracted yet, so the best next step is to inspect the active view.',
+		nextStep: `Use ${viewLabel} to ${lowercaseLead(viewPurpose)}`
 	};
 }
 
@@ -252,8 +363,18 @@ function thresholdSeverity(record: MetricRecord): NarrativeMilestone['severity']
 function topMetricDelta(
 	metrics: MetricRecord[],
 	selectedTime: number
-): { metric: string; delta: number; severity: NarrativeCard['severity'] } | null {
-	let best: { metric: string; delta: number; severity: NarrativeCard['severity'] } | null = null;
+): {
+	metric: string;
+	delta: number;
+	current: MetricRecord;
+	severity: NarrativeCard['severity'];
+} | null {
+	let best: {
+		metric: string;
+		delta: number;
+		current: MetricRecord;
+		severity: NarrativeCard['severity'];
+	} | null = null;
 	for (const [metric, points] of metricSeries(metrics)) {
 		const currentIndex = nearestPointIndex(points, selectedTime);
 		if (currentIndex <= 0) continue;
@@ -264,6 +385,7 @@ function topMetricDelta(
 			best = {
 				metric,
 				delta,
+				current,
 				severity: thresholdSeverity(current)
 			};
 		}
@@ -297,4 +419,32 @@ function milestonePriority(kind: NarrativeMilestone['kind']): number {
 
 function numberValue(value: unknown): number | null {
 	return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function lowercaseLead(value: string): string {
+	if (!value) return value;
+	return value.charAt(0).toLowerCase() + value.slice(1);
+}
+
+function explanationSourceLabel(response: ExplanationResponse | null): string {
+	const mode = response?.interpretation?.mode_applied;
+	if (mode === 'minimal_ai') return 'AI-assisted interpretation';
+	if (mode === 'rules_only') return 'Deterministic facts';
+	if (response?.available === false) return 'Unavailable';
+	return 'Run context';
+}
+
+function explanationFooter(response: ExplanationResponse | null): string {
+	const interpretation = response?.interpretation;
+	if (!interpretation) return 'Interpretation unavailable right now';
+	const factCount = interpretation.facts.length;
+	const factLabel = `${factCount} supporting ${factCount === 1 ? 'fact' : 'facts'}`;
+	return `${factLabel} · ${interpretation.cached ? 'Cached response' : 'Fresh response'}`;
+}
+
+function formatUnknownEvidence(value: unknown, unit: string | null): string {
+	if (typeof value === 'number')
+		return unit ? `${formatNumber(value)} ${unit}` : formatNumber(value);
+	if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+	return unit ? `${String(value)} ${unit}` : String(value);
 }

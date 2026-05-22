@@ -73,6 +73,18 @@ describe('metric deck helpers', () => {
 		expect(deck.find((item) => item.metric === 'infections')?.headline).toBe(true);
 		expect(deck.find((item) => item.metric === 'infections')?.label).toBe('Active infections');
 		expect(deck.find((item) => item.metric === 'load')?.label).toBe('Load');
+		expect(deck.find((item) => item.metric === 'infections')).toMatchObject({
+			attentionLabel: 'Critical',
+			attentionSummary: expect.stringContaining('critical threshold')
+		});
+		expect(deck.find((item) => item.metric === 'latency')).toMatchObject({
+			attentionLabel: 'Improving',
+			attentionSummary: expect.stringContaining('moving back')
+		});
+		expect(deck.find((item) => item.metric === 'throughput')).toMatchObject({
+			attentionLabel: 'Stable',
+			attentionSummary: expect.stringContaining('holding steady')
+		});
 	});
 
 	test('toggles pinned metrics without mutating the input set', () => {

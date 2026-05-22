@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'vitest';
 
-import { extractMilestones, milestonePlaybackTarget, recentChangeCards } from './narrative';
+import {
+	buildExplanationPanelCards,
+	buildNarrativeLead,
+	extractMilestones,
+	milestonePlaybackTarget,
+	recentChangeCards
+} from './narrative';
 import type {
 	EventRecord,
 	ExplanationResponse,
@@ -120,18 +126,57 @@ describe('narrative helpers', () => {
 		expect(recentChangeCards({ metrics, events, selectedTime: 3.1, explanation })).toEqual([
 			{
 				label: 'Infected count',
-				summary: 'Up 10 from the previous sample',
+				summary: 'Climbed by 10 to 28 at the selected time.',
+				detail: 'The latest sample is above the critical threshold.',
 				severity: 'critical'
 			},
 			{
 				label: 'Event burst',
-				summary: '3 events landed within the recent activity window',
+				summary: '3 events landed in the same short activity window.',
+				detail: 'The burst centered on t=2.2.',
 				severity: 'notice'
 			},
 			{
 				label: 'Interpretation',
 				summary: 'Deterministic facts show recoveries accelerating after the infection peak.',
+				detail: 'Deterministic summary for the active frame or run.',
 				severity: 'notice'
+			}
+		]);
+	});
+
+	test('builds explanation cards with primary statement, source label, evidence, and footer', () => {
+		expect(
+			buildExplanationPanelCards([
+				{
+					key: 'run',
+					label: "What's happening",
+					description: 'Run-level summary from deterministic facts and optional interpretation.',
+					response: explanation,
+					loading: false
+				}
+			])
+		).toEqual([
+			{
+				key: 'run',
+				label: "What's happening",
+				description: 'Run-level summary from deterministic facts and optional interpretation.',
+				loading: false,
+				sourceLabel: 'Deterministic facts',
+				primaryStatement: 'Recovery trend strengthening',
+				supportingDetail:
+					'Deterministic facts show recoveries accelerating after the infection peak.',
+				evidence: [],
+				facts: [
+					{
+						title: 'Containment window opened',
+						summary: 'Recovery momentum overtook new infections.',
+						severity: 'notice',
+						time: 4,
+						timeLabel: 't=4'
+					}
+				],
+				footer: '1 supporting fact · Cached response'
 			}
 		]);
 	});
@@ -141,5 +186,23 @@ describe('narrative helpers', () => {
 		const target = milestonePlaybackTarget(milestones[0], frames);
 
 		expect(target).toEqual({ time: 3, frameId: 'frame-3' });
+	});
+
+	test('builds a narrative-first run lead with plain language, significance, and next step', () => {
+		expect(
+			buildNarrativeLead({
+				explanation,
+				recentChanges: recentChangeCards({ metrics, events, selectedTime: 3.1, explanation }),
+				viewLabel: 'Matrix',
+				viewPurpose: 'Compare the densest relationships without relying on node positions.'
+			})
+		).toEqual({
+			eyebrow: 'What is happening now',
+			title: 'Recovery trend strengthening',
+			summary: 'Deterministic facts show recoveries accelerating after the infection peak.',
+			significance:
+				'The strongest recent shift is Infected count: Climbed by 10 to 28 at the selected time.',
+			nextStep: 'Use Matrix to compare the densest relationships without relying on node positions.'
+		});
 	});
 });

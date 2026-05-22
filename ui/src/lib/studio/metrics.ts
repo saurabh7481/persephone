@@ -1,5 +1,5 @@
 import type { MetricDefinition, MetricRecord, PluginSemantics } from '$lib/api-client';
-import { humanizeIdentifier } from '$lib/studio/format';
+import { formatMetricValue, formatPercent, humanizeIdentifier } from '$lib/studio/format';
 
 export type MetricAttention = 'stable' | 'rising_concern' | 'critical' | 'improving';
 
@@ -18,6 +18,8 @@ export type MetricDeckItem = {
 	delta: number;
 	deltaPercent: number | null;
 	attention: MetricAttention;
+	attentionLabel: string;
+	attentionSummary: string;
 	headline: boolean;
 	pinned: boolean;
 	thresholds: MetricThresholds;
@@ -59,6 +61,15 @@ export function buildMetricDeck({
 				delta,
 				deltaPercent,
 				attention: metricAttention(current, previous, thresholds),
+				attentionLabel: attentionLabel(metricAttention(current, previous, thresholds)),
+				attentionSummary: attentionSummary({
+					attention: metricAttention(current, previous, thresholds),
+					current,
+					previous,
+					thresholds,
+					unit: definition?.unit ?? null,
+					deltaPercent
+				}),
 				headline: headlines.has(metric),
 				pinned: pinnedMetrics.has(metric),
 				thresholds,
@@ -144,6 +155,55 @@ function metricAttention(
 	if (deltaRatio >= 0.15) return 'rising_concern';
 	if (deltaRatio <= -0.12) return 'improving';
 	return 'stable';
+}
+
+function attentionLabel(attention: MetricAttention): string {
+	switch (attention) {
+		case 'critical':
+			return 'Critical';
+		case 'rising_concern':
+			return 'Rising concern';
+		case 'improving':
+			return 'Improving';
+		default:
+			return 'Stable';
+	}
+}
+
+function attentionSummary({
+	attention,
+	current,
+	previous,
+	thresholds,
+	unit,
+	deltaPercent
+}: {
+	attention: MetricAttention;
+	current: MetricRecord;
+	previous: MetricRecord | null;
+	thresholds: MetricThresholds;
+	unit: string | null;
+	deltaPercent: number | null;
+}): string {
+	switch (attention) {
+		case 'critical':
+			if (typeof thresholds.critical === 'number') {
+				return `Current value is above the critical threshold of ${formatMetricValue(thresholds.critical, unit)}.`;
+			}
+			return 'Current value is in the critical range and should be inspected first.';
+		case 'rising_concern':
+			if (typeof thresholds.warning === 'number' && current.value >= thresholds.warning) {
+				return 'Current value is above warning and still climbing.';
+			}
+			return deltaPercent == null
+				? 'Current value is climbing faster than the recent baseline.'
+				: `Current value is up ${formatPercent(deltaPercent, { signed: true })} from the previous point.`;
+		case 'improving':
+			return 'Current value is moving back toward the safer range.';
+		default:
+			if (!previous) return 'This metric has only one sampled point so far.';
+			return 'Current value is holding steady relative to the recent baseline.';
+	}
 }
 
 function groupMetricSeries(records: MetricRecord[]): Map<string, MetricRecord[]> {

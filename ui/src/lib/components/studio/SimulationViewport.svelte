@@ -33,6 +33,12 @@
 		bufferedFrames = 0,
 		viewKind = 'heatmap',
 		viewLabel = 'Viewport',
+		viewPurpose = '',
+		viewHelp = '',
+		loadingTitle = 'Waiting for frames',
+		loadingBody = 'The viewport will draw as soon as the first simulation frame arrives.',
+		emptyTitle = 'No frame selected',
+		emptyBody = 'Load a replay or live run to inspect field and graph frames.',
 		selectedObject = null,
 		onSelect
 	}: {
@@ -43,6 +49,12 @@
 		bufferedFrames?: number;
 		viewKind?: ViewKind;
 		viewLabel?: string;
+		viewPurpose?: string;
+		viewHelp?: string;
+		loadingTitle?: string;
+		loadingBody?: string;
+		emptyTitle?: string;
+		emptyBody?: string;
 		selectedObject?: SelectedPlaybackObject | null;
 		onSelect?: (object: SelectedPlaybackObject | null) => void;
 	} = $props();
@@ -93,6 +105,7 @@
 		panX,
 		panY
 	});
+	const viewLegend = $derived(viewLegendFor(viewKind, frame));
 
 	onMount(() => {
 		if (!viewportElement) return;
@@ -267,6 +280,37 @@
 	function clamp(value: number, min: number, max: number): number {
 		return Math.min(max, Math.max(min, value));
 	}
+
+	function viewLegendFor(currentView: ViewKind, currentFrame: SimulationFrame | null) {
+		if (!currentFrame) return [];
+		switch (currentView) {
+			case 'heatmap':
+				return [
+					{ label: 'Reading', value: 'Brighter cells represent stronger field values.' },
+					{ label: 'Selection', value: 'Click a cell to load local detail in the inspector.' }
+				];
+			case 'matrix':
+				return [
+					{ label: 'Reading', value: 'Each cell compares the strength of one relationship pair.' },
+					{ label: 'Density', value: 'Use the edge filter to quiet weaker links first.' }
+				];
+			case 'map_network':
+				return [
+					{ label: 'Geography', value: 'Node placement follows latitude and longitude hints.' },
+					{ label: 'Selection', value: 'Select nodes and edges to inspect regional context.' }
+				];
+			case 'positioned_graph':
+				return [
+					{ label: 'Layout', value: 'Node placement follows plugin-provided x/y coordinates.' },
+					{ label: 'Selection', value: 'Use search to highlight a node before selecting it.' }
+				];
+			default:
+				return [
+					{ label: 'Selection', value: 'Click a node or edge to inspect its local state.' },
+					{ label: 'Navigation', value: 'Pan, zoom, and search stay in sync with playback.' }
+				];
+		}
+	}
 </script>
 
 <div bind:this={viewportElement} class="simulation-viewport" data-status={status}>
@@ -287,17 +331,28 @@
 			<div>
 				<p class="studio-eyebrow">{mode} · {status}</p>
 				<h2>{viewLabel}</h2>
-				<p>
-					{frame.frame_id} · t={frame.t.toFixed(2)} · {speed}x · Frame buffer {bufferedFrames}
-				</p>
+				<p>{viewPurpose}</p>
+				<p>{frame.frame_id} · t={frame.t.toFixed(2)} · {speed}x · Frame buffer {bufferedFrames}</p>
 			</div>
 			{#if hoverLabel}
 				<p class="simulation-viewport-hover">{hoverLabel}</p>
 			{/if}
 		</div>
 
+		{#if viewLegend.length}
+			<div class="simulation-viewport-legend" aria-label="View guidance">
+				{#each viewLegend as item (`${viewKind}:${item.label}`)}
+					<div>
+						<p class="studio-eyebrow">{item.label}</p>
+						<p>{item.value}</p>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
 		{#if isFieldFrame}
 			<div class="simulation-viewport-controls" aria-label="Field visualization controls">
+				<p class="simulation-viewport-controls-copy">{viewHelp}</p>
 				<label>
 					<span>Palette</span>
 					<select bind:value={palette}>
@@ -329,6 +384,7 @@
 
 		{#if isGraphFrame}
 			<div class="simulation-viewport-controls" aria-label="Graph visualization controls">
+				<p class="simulation-viewport-controls-copy">{viewHelp}</p>
 				<label class="min-w-[12rem]">
 					<span>Search and highlight</span>
 					<input bind:value={graphSearch} placeholder="node label, group, state" />
@@ -356,8 +412,8 @@
 		<div class="studio-viewport-empty">
 			<div>
 				<p class="studio-eyebrow">{mode} · buffering</p>
-				<h2>Waiting for frames</h2>
-				<p>The viewport will draw as soon as the first simulation frame arrives.</p>
+				<h2>{loadingTitle}</h2>
+				<p>{loadingBody}</p>
 			</div>
 		</div>
 	{:else if status === 'error'}
@@ -372,8 +428,8 @@
 		<div class="studio-viewport-empty">
 			<div>
 				<p class="studio-eyebrow">{mode} · {status}</p>
-				<h2>No frame selected</h2>
-				<p>Load a replay or live run to inspect field and graph frames.</p>
+				<h2>{emptyTitle}</h2>
+				<p>{emptyBody}</p>
 			</div>
 		</div>
 	{/if}

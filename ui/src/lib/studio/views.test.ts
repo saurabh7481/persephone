@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { chooseDefaultView, standardViews } from './views';
+import { availableViews, chooseDefaultView, standardViews, viewNarrative } from './views';
 import type { PluginSemantics, SimulationFrame } from '$lib/api-client';
 
 const fieldFrame: SimulationFrame = {
@@ -129,5 +129,45 @@ describe('standard view selection', () => {
 	test('falls back to matrix for dense graphs and heatmap for field frames', () => {
 		expect(chooseDefaultView({ frame: denseGraph, pluginSemantics: [] }).kind).toBe('matrix');
 		expect(chooseDefaultView({ frame: fieldFrame, pluginSemantics: [] }).kind).toBe('heatmap');
+	});
+
+	test('provides richer purpose, fit, fallback, and state guidance for each shared view', () => {
+		for (const view of standardViews) {
+			expect(view.purpose.length).toBeGreaterThan(20);
+			expect(view.bestFit.length).toBeGreaterThan(20);
+			expect(view.fallback.length).toBeGreaterThan(20);
+			expect(view.empty.title.length).toBeGreaterThan(3);
+			expect(view.loading.title.length).toBeGreaterThan(3);
+			expect(view.help.length).toBeGreaterThan(20);
+		}
+	});
+
+	test('keeps richer view guidance attached to the capability-driven registry', () => {
+		const views = availableViews({
+			frame: denseGraph,
+			pluginSemantics: [pluginSemantics]
+		});
+		const matrix = views.find((view) => view.kind === 'matrix');
+		const timeline = views.find((view) => view.kind === 'timeline');
+
+		expect(matrix).toMatchObject({
+			surface: 'viewport',
+			purpose: expect.stringContaining('relationship'),
+			bestFit: expect.stringContaining('dense'),
+			fallback: expect.stringContaining('table')
+		});
+		expect(timeline?.help).toContain('trend');
+	});
+
+	test('builds a user-facing explanation for why the active view is on screen', () => {
+		const narrative = viewNarrative({
+			current: chooseDefaultView({ frame: denseGraph, pluginSemantics: [] }),
+			recommended: chooseDefaultView({ frame: denseGraph, pluginSemantics: [] }),
+			locked: false
+		});
+
+		expect(narrative.title).toContain('Matrix');
+		expect(narrative.summary).toContain('recommended');
+		expect(narrative.nextStep).toContain('densest');
 	});
 });

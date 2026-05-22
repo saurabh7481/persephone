@@ -288,69 +288,69 @@ Implementation agents should inspect these first:
 
 ### Checkpoint 3 — Rebuild the run page reading flow around narrative first
 
-- [ ] Re-order the default experience so the page answers “what is happening” before surfacing deep technical structure.
-- [ ] Reduce initial cognitive load by keeping core summary, key metrics, and active view context tightly grouped.
-- [ ] Move evidence chips, raw fact references, and technical identifiers into secondary positions.
-- [ ] Ensure the selected view description helps a user understand why that view is being shown.
-- [ ] Add responsive behavior so the reading order remains clear when columns stack.
+- [x] Re-order the default experience so the page answers “what is happening” before surfacing deep technical structure.
+- [x] Reduce initial cognitive load by keeping core summary, key metrics, and active view context tightly grouped.
+- [x] Move evidence chips, raw fact references, and technical identifiers into secondary positions.
+- [x] Ensure the selected view description helps a user understand why that view is being shown.
+- [x] Add responsive behavior so the reading order remains clear when columns stack.
 - [ ] Commit: `feat: make run analysis narrative-first`
 
 ### Checkpoint 4 — Redesign metric cards for readability under real data
 
-- [ ] Refine metric card layout so long labels, units, and values remain readable together.
-- [ ] Prevent large numbers from overflowing or colliding in compact cards.
-- [ ] Standardize compact, expanded, pinned, and focused metric states.
-- [ ] Improve sparkline and delta placement so the current value remains the visual anchor.
-- [ ] Ensure severity and headline badges help prioritization instead of creating clutter.
-- [ ] Add tests and screenshots for long labels, large values, many pinned metrics, and narrow widths.
+- [x] Refine metric card layout so long labels, units, and values remain readable together.
+- [x] Prevent large numbers from overflowing or colliding in compact cards.
+- [x] Standardize compact, expanded, pinned, and focused metric states.
+- [x] Improve sparkline and delta placement so the current value remains the visual anchor.
+- [x] Ensure severity and headline badges help prioritization instead of creating clutter.
+- [x] Add tests and screenshots for long labels, large values, many pinned metrics, and narrow widths.
 - [ ] Commit: `feat: improve metric card readability`
 
 ### Checkpoint 5 — Complete v4 Checkpoint 6B richer standard views
 
-- [ ] Add production-ready implementations or polish passes for the deferred shared views:
-  - [ ] positioned graph
-  - [ ] map-network
-  - [ ] adjacency matrix
-  - [ ] hierarchy
-  - [ ] richer table inspection mode
-  - [ ] polished timeline/heatmap switching
-- [ ] For each view, define:
-  - [ ] purpose
-  - [ ] best-fit data conditions
-  - [ ] fallback behavior
-  - [ ] empty state
-  - [ ] loading state
-- [ ] Add per-view interaction affordances where applicable:
-  - [ ] legends
-  - [ ] density controls
-  - [ ] coordinate-aware overlays
-  - [ ] selection affordances
-  - [ ] view-specific help copy
-- [ ] Keep all richer views connected to the shared capability-driven registry rather than bespoke route logic.
-- [ ] Add focused UI tests for each standard view surface.
+- [x] Add production-ready implementations or polish passes for the deferred shared views:
+  - [x] positioned graph
+  - [x] map-network
+  - [x] adjacency matrix
+  - [x] hierarchy
+  - [x] richer table inspection mode
+  - [x] polished timeline/heatmap switching
+- [x] For each view, define:
+  - [x] purpose
+  - [x] best-fit data conditions
+  - [x] fallback behavior
+  - [x] empty state
+  - [x] loading state
+- [x] Add per-view interaction affordances where applicable:
+  - [x] legends
+  - [x] density controls
+  - [x] coordinate-aware overlays
+  - [x] selection affordances
+  - [x] view-specific help copy
+- [x] Keep all richer views connected to the shared capability-driven registry rather than bespoke route logic.
+- [x] Add focused UI tests for each standard view surface.
 - [ ] Commit: `feat: complete richer standard analysis views`
 
 ### Checkpoint 6 — Simplify and humanize inspector presentation
 
-- [ ] Rework inspector sections so the top of the panel explains the selected entity in plain language.
-- [ ] Group schema-driven details into readable subsections rather than raw field dumps.
-- [ ] Show the most decision-relevant facts first:
-  - [ ] current state
-  - [ ] why this entity matters
-  - [ ] local metrics
-  - [ ] recent related events
-  - [ ] linked explanation facts
-- [ ] De-emphasize raw ids, degrees, and structural metadata unless they help interpretation.
-- [ ] Add graceful handling for sparse entities, edges, and non-graph selections.
+- [x] Rework inspector sections so the top of the panel explains the selected entity in plain language.
+- [x] Group schema-driven details into readable subsections rather than raw field dumps.
+- [x] Show the most decision-relevant facts first:
+  - [x] current state
+  - [x] why this entity matters
+  - [x] local metrics
+  - [x] recent related events
+  - [x] linked explanation facts
+- [x] De-emphasize raw ids, degrees, and structural metadata unless they help interpretation.
+- [x] Add graceful handling for sparse entities, edges, and non-graph selections.
 - [ ] Commit: `feat: humanize analysis inspector`
 
 ### Checkpoint 7 — Polish explanation and recent-change surfaces
 
-- [ ] Rewrite explanation panel rendering so each card has a clear primary statement, supporting detail, and evidence footer.
-- [ ] Distinguish deterministic fact output from optional AI interpretation without making the panel feel technical by default.
-- [ ] Improve “What changed recently” so changes read as meaningful deltas, not loose event snippets.
-- [ ] Make milestone cards scan cleanly at a glance and wrap safely across widths.
-- [ ] Ensure clicking milestones and related chips still integrates cleanly with playback.
+- [x] Rewrite explanation panel rendering so each card has a clear primary statement, supporting detail, and evidence footer.
+- [x] Distinguish deterministic fact output from optional AI interpretation without making the panel feel technical by default.
+- [x] Improve “What changed recently” so changes read as meaningful deltas, not loose event snippets.
+- [x] Make milestone cards scan cleanly at a glance and wrap safely across widths.
+- [x] Ensure clicking milestones and related chips still integrates cleanly with playback.
 - [ ] Commit: `feat: polish explanation and change surfaces`
 
 ### Checkpoint 8 — Tighten viewport controls and view-specific polish

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
 	artifactSummaries,
+	buildInspectorPanelModel,
 	browseFrameEntities,
 	fieldCellInspection,
 	graphEdgeInspection,
@@ -163,7 +164,9 @@ describe('studio inspector helpers', () => {
 			dtype: 'float64',
 			shape: [2, 2],
 			frameId: 'field-a',
-			source: 'replay'
+			source: 'replay',
+			summary: null,
+			facts: []
 		});
 	});
 
@@ -177,6 +180,7 @@ describe('studio inspector helpers', () => {
 			group: 'south',
 			entityType: 'county',
 			degree: 1,
+			summary: 'Transmission load rose sharply in the selected county.',
 			events: [{ t: 2, event_type: 'infection', node: '1' }],
 			metrics: [{ label: 'Transmission load', value: '0.8 idx' }],
 			fields: [
@@ -188,13 +192,17 @@ describe('studio inspector helpers', () => {
 	});
 
 	test('inspects graph edges as first-class relationships', () => {
-		expect(graphEdgeInspection(graphFrame, '0->1', events, pluginSemantics)).toMatchObject({
+		expect(
+			graphEdgeInspection(graphFrame, '0->1', events, pluginSemantics, selectionExplanation)
+		).toMatchObject({
 			id: '0->1',
 			label: 'Alpha county -> Bravo county',
 			kind: 'travel',
 			directed: true,
 			weight: 0.7,
-			events: [{ t: 2.5, event_type: 'travel_alert', source: '0', target: '1' }]
+			events: [{ t: 2.5, event_type: 'travel_alert', source: '0', target: '1' }],
+			summary: 'Transmission load rose sharply in the selected county.',
+			facts: []
 		});
 	});
 
@@ -239,5 +247,76 @@ describe('studio inspector helpers', () => {
 			{ kind: 'fields', label: 'Field frames', count: 1, href: '/runs/run-a/fields' },
 			{ kind: 'manifest', label: 'Run manifest', count: 1, href: '/runs/run-a' }
 		]);
+	});
+
+	test('builds a narrative-first inspector panel for graph nodes', () => {
+		const panel = buildInspectorPanelModel({
+			selectedFrame: graphFrame,
+			fieldCell: null,
+			graphNode: graphNodeInspection(
+				graphFrame,
+				'1',
+				events,
+				pluginSemantics,
+				selectionExplanation
+			),
+			graphEdge: null,
+			run: runInspection(run)
+		});
+
+		expect(panel).toMatchObject({
+			kind: 'graph-node',
+			title: 'Bravo county',
+			summary: 'Transmission load rose sharply in the selected county.',
+			highlights: [
+				{ label: 'Current state', value: 'Infected' },
+				{ label: 'Why it matters', value: 'Bravo county now has the highest transmission load.' }
+			],
+			sections: expect.arrayContaining([
+				expect.objectContaining({
+					title: 'Local metrics',
+					items: [{ label: 'Transmission load', value: '0.8 idx' }]
+				}),
+				expect.objectContaining({
+					title: 'Recent related events',
+					items: [expect.objectContaining({ label: 'Infection event', value: 't=2' })]
+				}),
+				expect.objectContaining({
+					title: 'Linked explanation facts',
+					items: [
+						expect.objectContaining({
+							label: 'County under pressure',
+							value: 't=2',
+							description: 'Bravo county now has the highest transmission load.'
+						})
+					]
+				})
+			]),
+			technical: expect.arrayContaining([
+				{ label: 'Node id', value: '1' },
+				{ label: 'Degree', value: '1' }
+			])
+		});
+	});
+
+	test('builds a graceful empty inspector state when nothing is selected', () => {
+		const panel = buildInspectorPanelModel({
+			selectedFrame: graphFrame,
+			fieldCell: null,
+			graphNode: null,
+			graphEdge: null,
+			run: runInspection(run)
+		});
+
+		expect(panel).toMatchObject({
+			kind: 'empty',
+			title: 'Select a node, relationship, or field cell',
+			summary:
+				'The inspector will explain why the selected entity matters once you click something in the active view.',
+			highlights: [
+				{ label: 'Selected frame', value: 'graph-a' },
+				{ label: 'Frame kind', value: 'graph' }
+			]
+		});
 	});
 });

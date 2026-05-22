@@ -34,19 +34,6 @@
 		return `${formatDelta(item.delta, { unit: item.unit })}${percent}`;
 	}
 
-	function attentionLabel(attention: MetricDeckItem['attention']): string {
-		switch (attention) {
-			case 'critical':
-				return 'Critical';
-			case 'rising_concern':
-				return 'Rising concern';
-			case 'improving':
-				return 'Improving';
-			default:
-				return 'Stable';
-		}
-	}
-
 	function attentionTone(attention: MetricDeckItem['attention']): string {
 		switch (attention) {
 			case 'critical':
@@ -58,6 +45,12 @@
 			default:
 				return 'border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-200';
 		}
+	}
+
+	function formatHeadlineValue(item: MetricDeckItem): string {
+		return formatMetricValue(item.current.value, null, {
+			compact: Math.abs(item.current.value) >= 100_000
+		});
 	}
 
 	function sparklinePath(values: number[]): string {
@@ -95,13 +88,13 @@
 	}
 </script>
 
-<div class="grid gap-3">
+<div class="grid gap-3" aria-label="Key metric cards">
 	{#if items.length}
 		{#each items as item (item.metric)}
 			<div
-				class={`min-w-0 cursor-pointer rounded-xl border p-3 transition ${
+				class={`min-w-0 cursor-pointer rounded-2xl border p-4 transition ${
 					focusedMetric === item.metric
-						? 'border-primary/60 bg-primary/5 shadow-sm'
+						? 'border-primary/60 bg-primary/5 shadow-sm ring-1 ring-primary/20'
 						: 'border-border bg-background/80 hover:border-primary/30'
 				}`}
 				role="button"
@@ -114,52 +107,75 @@
 					}
 				}}
 			>
-				<div class="flex items-start justify-between gap-3">
-					<div class="min-w-0 space-y-2">
-						<div class="flex flex-wrap items-center gap-2">
-							<p class="min-w-0 text-sm font-semibold break-words">{item.label}</p>
+				<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+					<div class="min-w-0 space-y-3">
+						<div class="flex flex-wrap items-start gap-2">
+							<div class="min-w-0 flex-1">
+								<div class="flex flex-wrap items-center gap-2">
+									<p class="min-w-0 text-sm font-semibold break-words">{item.label}</p>
+									{#if item.unit}
+										<span
+											class="rounded-full border border-border/80 px-2 py-0.5 text-[11px] text-muted-foreground"
+										>
+											{item.unit}
+										</span>
+									{/if}
+								</div>
+								<p class="mt-1 text-xs leading-5 text-muted-foreground">
+									{item.attentionSummary}
+								</p>
+							</div>
 							<span
 								class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${attentionTone(item.attention)}`}
 							>
-								{attentionLabel(item.attention)}
+								{item.attentionLabel}
 							</span>
-							{#if item.headline}
-								<span
-									class="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
-								>
-									Headline
-								</span>
-							{/if}
-							{#if item.pinned}
-								<span
-									class="rounded-full bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-300"
-								>
-									Pinned
-								</span>
-							{/if}
 						</div>
-						<div class="flex flex-wrap items-end justify-between gap-3">
-							<div class="min-w-0">
-								<p class="text-2xl font-semibold tracking-tight break-words">
-									{formatMetricValue(item.current.value, item.unit)}
+
+						<div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+							<div class="min-w-0 space-y-2">
+								<p
+									class="text-3xl font-semibold tracking-tight break-all"
+									title={formatMetricValue(item.current.value, item.unit)}
+								>
+									{formatHeadlineValue(item)}
 								</p>
-								<p class="text-xs text-muted-foreground">
-									{formatDeltaLabel(item)} since previous point
-								</p>
+								<div class="flex flex-wrap gap-2 text-[11px]">
+									<span
+										class="rounded-full border border-border/80 px-2 py-1 text-muted-foreground"
+									>
+										{formatDeltaLabel(item)} since previous point
+									</span>
+									{#if item.headline}
+										<span class="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">
+											Headline
+										</span>
+									{/if}
+									{#if item.pinned}
+										<span
+											class="rounded-full bg-sky-500/10 px-2 py-1 font-medium text-sky-700 dark:text-sky-300"
+										>
+											Pinned
+										</span>
+									{/if}
+								</div>
 							</div>
-							<svg viewBox="0 0 84 28" class="h-8 w-24 shrink-0" aria-hidden="true">
-								<path
-									d={sparklinePath(item.points.map((point) => point.value))}
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									class="text-primary"
-								/>
-							</svg>
+							<div class="grid gap-1 md:justify-items-end">
+								<svg viewBox="0 0 84 28" class="h-10 w-full max-w-28 shrink-0" aria-hidden="true">
+									<path
+										d={sparklinePath(item.points.map((point) => point.value))}
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										class="text-primary"
+									/>
+								</svg>
+								<p class="text-[11px] text-muted-foreground">{item.attentionLabel}</p>
+							</div>
 						</div>
 					</div>
 
-					<div class="flex shrink-0 items-center gap-1">
+					<div class="flex shrink-0 items-start gap-1">
 						<button
 							type="button"
 							class="rounded-md border border-border p-1.5 text-muted-foreground hover:text-foreground"
@@ -204,7 +220,7 @@
 
 				{#if expandedMetrics.includes(item.metric)}
 					<div
-						class="mt-3 grid gap-2 rounded-lg border border-dashed border-border/80 bg-muted/30 p-3 text-xs text-muted-foreground"
+						class="mt-4 grid gap-2 rounded-xl border border-dashed border-border/80 bg-muted/30 p-3 text-xs text-muted-foreground"
 					>
 						<div class="grid gap-1 sm:grid-cols-2">
 							<p><span class="font-medium text-foreground">Metric id:</span> {item.metric}</p>
@@ -213,6 +229,7 @@
 								{formatTimeLabel(item.current.t)}
 							</p>
 						</div>
+						<p>{item.attentionSummary}</p>
 						{#if thresholdSummary(item).length}
 							<div class="flex flex-wrap gap-2">
 								{#each thresholdSummary(item) as line (line)}

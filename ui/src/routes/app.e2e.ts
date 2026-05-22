@@ -62,6 +62,12 @@ const runs = [
 							label: 'Correlation pressure',
 							headline: true
 						},
+						cross_market_liquidity_pressure_estimate: {
+							name: 'cross_market_liquidity_pressure_estimate',
+							label: 'Cross-market liquidity pressure estimate',
+							headline: true,
+							unit: 'bps'
+						},
 						stress: { name: 'stress', label: 'Stress score' },
 						beta: { name: 'beta', label: 'Beta' }
 					},
@@ -111,6 +117,11 @@ const runs = [
 							headline: true
 						},
 						blocked_items: { name: 'blocked_items', label: 'Blocked items', headline: true },
+						cross_team_review_backlog_pressure: {
+							name: 'cross_team_review_backlog_pressure',
+							label: 'Cross-team review backlog pressure',
+							headline: true
+						},
 						service_risk: { name: 'service_risk', label: 'Service risk' },
 						review_backlog: { name: 'review_backlog', label: 'Review backlog' }
 					},
@@ -311,8 +322,10 @@ test.beforeEach(async ({ page }) => {
 			json: [
 				{ t: 1, metric: 'portfolio_stress_index', value: 48 },
 				{ t: 1, metric: 'correlation_pressure', value: 61 },
+				{ t: 1, metric: 'cross_market_liquidity_pressure_estimate', value: 982450 },
 				{ t: 2, metric: 'portfolio_stress_index', value: 56 },
-				{ t: 2, metric: 'correlation_pressure', value: 67 }
+				{ t: 2, metric: 'correlation_pressure', value: 67 },
+				{ t: 2, metric: 'cross_market_liquidity_pressure_estimate', value: 1284500 }
 			]
 		});
 	});
@@ -321,8 +334,10 @@ test.beforeEach(async ({ page }) => {
 			json: [
 				{ t: 1, metric: 'delivery_risk_index', value: 42 },
 				{ t: 1, metric: 'blocked_items', value: 1 },
+				{ t: 1, metric: 'cross_team_review_backlog_pressure', value: 12 },
 				{ t: 2, metric: 'delivery_risk_index', value: 58 },
-				{ t: 2, metric: 'blocked_items', value: 2 }
+				{ t: 2, metric: 'blocked_items', value: 2 },
+				{ t: 2, metric: 'cross_team_review_backlog_pressure', value: 38 }
 			]
 		});
 	});
@@ -887,7 +902,7 @@ test('renders run detail metrics and events', async ({ page }) => {
 	}));
 	expect(canvasSize.width).toBeGreaterThan(100);
 	expect(canvasSize.height).toBeGreaterThan(100);
-	await expect(page.getByLabel('Current metric cards').getByText('infected_count')).toBeVisible();
+	await expect(page.getByLabel('Key metric cards').getByText('Infected count')).toBeVisible();
 	await expect(page.getByText('Peak value')).toBeVisible();
 	await expect(page.getByText('Final value')).toBeVisible();
 	await expect(page.getByLabel('Metric timeline').first()).toBeVisible();
@@ -922,7 +937,8 @@ test('renders SIR graph replay frames and supports node inspection', async ({ pa
 test('adapts the shared run page across market and workflow semantic domains', async ({ page }) => {
 	await page.goto('/runs/run-market');
 
-	await expect(page.getByText('Default selection')).toBeVisible();
+	await expect(page.getByText('What is happening now')).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'View guide' })).toBeVisible();
 	await expect(page.locator('option[value="matrix"]')).toHaveText('Matrix');
 	await expect(page.getByText('Market stress remains clustered').first()).toBeVisible();
 	await page.getByRole('combobox').selectOption('table');
@@ -938,6 +954,40 @@ test('adapts the shared run page across market and workflow semantic domains', a
 	await page.getByRole('combobox').selectOption('hierarchy');
 	await expect(page.getByRole('button', { name: 'Rules engine Blocked' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Ingest gateway Healthy' })).toBeVisible();
+	await expect(page.getByText('Best when').first()).toBeVisible();
+	await expect(page.getByText('Fallback').first()).toBeVisible();
+});
+
+test('prioritizes the run story, key metrics, and next step before technical detail', async ({
+	page
+}) => {
+	await page.goto('/runs/run-workflow');
+	await pausePlaybackIfNeeded(page);
+
+	await expect(page.getByText('What is happening now')).toBeVisible();
+	await expect(page.getByText('Why it matters')).toBeVisible();
+	await expect(page.getByText('What to inspect next')).toBeVisible();
+	await expect(page.getByText('Key metrics')).toBeVisible();
+	await expect(page.getByText('Technical details')).toBeVisible();
+});
+
+test('keeps metric cards readable with long labels and large values at tablet widths', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1024, height: 1366 });
+	await page.goto('/runs/run-market');
+	await pausePlaybackIfNeeded(page);
+
+	await expect(
+		page
+			.getByLabel('Key metric cards')
+			.getByText('Cross-market liquidity pressure estimate')
+			.first()
+	).toBeVisible();
+	await expect(page.getByText(/1\.28M|1,284,500/).first()).toBeVisible();
+	await expect(page.getByLabel('Key metric cards')).toHaveScreenshot(
+		'run-market-metric-cards-tablet.png'
+	);
 });
 
 test('keeps the analysis workspace free of horizontal overflow across supported widths', async ({
