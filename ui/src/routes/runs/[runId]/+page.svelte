@@ -28,7 +28,6 @@
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
-	import * as Tabs from '$lib/components/ui/tabs';
 	import { createPlaybackStore, playbackSourceFromApi } from '$lib/studio/playback';
 	import {
 		artifactSummaries,
@@ -163,7 +162,6 @@
 			run: runDetails
 		})
 	);
-	const inspectorPreviewModel = $derived(inspectorPreview(inspectorPanel));
 	const artifacts = $derived(artifactSummaries(run, metrics, events, $playback.frameBuffer));
 	const entityBrowser = $derived(browseFrameEntities(selectedFrame, pluginSemantics));
 	const metricDeck = $derived(
