@@ -20,12 +20,13 @@ export function buildRunPageModel(input: {
 	runStatus: string;
 	currentView: { label: string; kind: string; surface: string; purpose: string };
 	narrativeLead: {
+		eyebrow?: string;
 		title: string;
 		summary: string;
 		significance: string;
 		nextStep: string;
 	};
-	focusedMetric: { metric: string; label: string; unit?: string | null; current: { t: number; value: number } } | null;
+	focusedMetric: { metric: string; label: string; headline?: boolean; unit?: string | null; current: { t: number; value: number } } | null;
 	explanationCards: Array<{ sourceLabel: string; primaryStatement: string; supportingDetail: string }>;
 	recentChanges: Array<{ label: string; summary: string }>;
 	inspectorKind: 'empty' | 'field-cell' | 'graph-node' | 'graph-edge';
@@ -62,7 +63,7 @@ export function buildRunPageModel(input: {
 		primarySections: ['summary', 'view', 'metric'],
 		secondaryTabs,
 		showExplainTab: meaningfulExplain,
-		showInspectorPreview: input.hasSelection,
+		showInspectorPreview: input.hasSelection || input.inspectorKind !== 'empty',
 		showRecentChanges: meaningfulRecentChanges,
 		showDebugTab: true
 	};
