@@ -136,6 +136,11 @@ const metrics = [
 	{ t: 2, metric: 'recovered_count', value: 0 }
 ];
 
+// These two mocked runs are the smallest reliable set for run-page visual coverage:
+// - run-market exercises dense numeric cards and alternate analysis surfaces.
+// - run-workflow exercises hierarchy, narrative-heavy explanation, and inspector-heavy layouts.
+const runPageVisualCoverage = ['run-market', 'run-workflow'] as const;
+
 test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/health', async (route) => {
 		await route.fulfill({ json: { status: 'ok', version: '0.1.0' } });
@@ -817,6 +822,23 @@ test.beforeEach(async ({ page }) => {
 	});
 });
 
+async function pausePlaybackIfNeeded(page: import('@playwright/test').Page) {
+	const pauseButton = page.getByRole('button', { name: 'Pause playback' });
+	if (await pauseButton.isVisible().catch(() => false)) {
+		await pauseButton.click();
+	}
+}
+
+async function ensureTheme(page: import('@playwright/test').Page, theme: 'light' | 'dark') {
+	const isDark = (await page.locator('html').getAttribute('class'))?.includes('dark') ?? false;
+	if (theme === 'dark' && !isDark) {
+		await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+	}
+	if (theme === 'light' && isDark) {
+		await page.getByRole('button', { name: 'Switch to light mode' }).click();
+	}
+}
+
 test('renders the run dashboard with catalog rows', async ({ page }) => {
 	await page.goto('/runs');
 
@@ -916,6 +938,59 @@ test('adapts the shared run page across market and workflow semantic domains', a
 	await page.getByRole('combobox').selectOption('hierarchy');
 	await expect(page.getByRole('button', { name: 'Rules engine Blocked' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Ingest gateway Healthy' })).toBeVisible();
+});
+
+test('keeps the analysis workspace free of horizontal overflow across supported widths', async ({
+	page
+}) => {
+	for (const viewport of [
+		{ name: 'desktop', width: 1536, height: 960 },
+		{ name: 'laptop', width: 1280, height: 900 },
+		{ name: 'tablet', width: 1024, height: 1366 }
+	]) {
+		await page.setViewportSize({ width: viewport.width, height: viewport.height });
+		await page.goto('/runs/run-workflow');
+		await pausePlaybackIfNeeded(page);
+		await ensureTheme(page, 'light');
+		await expect
+			.poll(
+				() =>
+					page.evaluate(() => ({
+						scrollWidth: document.documentElement.scrollWidth,
+						clientWidth: document.documentElement.clientWidth
+					})),
+				{ message: `${viewport.name} viewport should not overflow horizontally` }
+			)
+			.toEqual({ scrollWidth: viewport.width, clientWidth: viewport.width });
+	}
+});
+
+test('supports theme switching for the analysis workspace', async ({ page }) => {
+	await page.goto('/runs/run-workflow');
+	await pausePlaybackIfNeeded(page);
+	await ensureTheme(page, 'light');
+
+	await expect(page.locator('html')).not.toHaveClass(/dark/);
+	await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+	await expect(page.locator('html')).toHaveClass(/dark/);
+	await page.getByRole('button', { name: 'Switch to light mode' }).click();
+	await expect(page.locator('html')).not.toHaveClass(/dark/);
+});
+
+test('captures representative run-page visual baselines in light and dark themes', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
+
+	for (const runId of runPageVisualCoverage) {
+		await page.goto(`/runs/${runId}`);
+		await pausePlaybackIfNeeded(page);
+		await ensureTheme(page, 'light');
+		await expect(page.getByLabel('Studio workspace')).toHaveScreenshot(`${runId}-light.png`);
+
+		await ensureTheme(page, 'dark');
+		await expect(page.getByLabel('Studio workspace')).toHaveScreenshot(`${runId}-dark.png`);
+	}
 });
 
 test('submits an example experiment config', async ({ page }) => {

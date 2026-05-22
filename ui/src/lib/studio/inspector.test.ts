@@ -198,6 +198,12 @@ describe('studio inspector helpers', () => {
 		});
 	});
 
+	test('humanizes fallback graph metric labels when semantics are missing', () => {
+		const withoutSemantics = graphNodeInspection(graphFrame, '1', events, [], selectionExplanation);
+
+		expect(withoutSemantics?.metrics).toEqual([{ label: 'Load', value: '0.8' }]);
+	});
+
 	test('builds browseable entity tables for graph and field frames', () => {
 		expect(browseFrameEntities(graphFrame, pluginSemantics)).toMatchObject({
 			mode: 'grouped',

@@ -2,6 +2,12 @@
 	import { Maximize2, Pin, PinOff, Rows3 } from '@lucide/svelte';
 
 	import type { MetricDeckItem } from '$lib/studio/metrics';
+	import {
+		formatDelta,
+		formatMetricValue,
+		formatPercent,
+		formatTimeLabel
+	} from '$lib/studio/format';
 
 	let {
 		items,
@@ -21,17 +27,11 @@
 		onOpenFullscreen?: (metric: string) => void;
 	} = $props();
 
-	function formatValue(value: number, unit: string | null): string {
-		const compact = Math.abs(value) >= 1000 ? value.toLocaleString() : value.toFixed(2);
-		return unit ? `${compact} ${unit}` : compact;
-	}
-
-	function formatDelta(item: MetricDeckItem): string {
+	function formatDeltaLabel(item: MetricDeckItem): string {
 		if (!item.previous) return 'No prior point';
-		const sign = item.delta > 0 ? '+' : '';
 		const percent =
-			item.deltaPercent === null ? '' : ` (${sign}${(item.deltaPercent * 100).toFixed(1)}%)`;
-		return `${sign}${item.delta.toFixed(2)}${percent}`;
+			item.deltaPercent === null ? '' : ` (${formatPercent(item.deltaPercent, { signed: true })})`;
+		return `${formatDelta(item.delta, { unit: item.unit })}${percent}`;
 	}
 
 	function attentionLabel(attention: MetricDeckItem['attention']): string {
@@ -79,13 +79,13 @@
 	function thresholdSummary(item: MetricDeckItem): string[] {
 		const lines: string[] = [];
 		if (typeof item.thresholds.warning === 'number') {
-			lines.push(`Warning ${formatValue(item.thresholds.warning, item.unit)}`);
+			lines.push(`Warning ${formatMetricValue(item.thresholds.warning, item.unit)}`);
 		}
 		if (typeof item.thresholds.critical === 'number') {
-			lines.push(`Critical ${formatValue(item.thresholds.critical, item.unit)}`);
+			lines.push(`Critical ${formatMetricValue(item.thresholds.critical, item.unit)}`);
 		}
 		if (typeof item.thresholds.target === 'number') {
-			lines.push(`Target ${formatValue(item.thresholds.target, item.unit)}`);
+			lines.push(`Target ${formatMetricValue(item.thresholds.target, item.unit)}`);
 		}
 		return lines;
 	}
@@ -99,7 +99,7 @@
 	{#if items.length}
 		{#each items as item (item.metric)}
 			<div
-				class={`cursor-pointer rounded-xl border p-3 transition ${
+				class={`min-w-0 cursor-pointer rounded-xl border p-3 transition ${
 					focusedMetric === item.metric
 						? 'border-primary/60 bg-primary/5 shadow-sm'
 						: 'border-border bg-background/80 hover:border-primary/30'
@@ -117,7 +117,7 @@
 				<div class="flex items-start justify-between gap-3">
 					<div class="min-w-0 space-y-2">
 						<div class="flex flex-wrap items-center gap-2">
-							<p class="truncate text-sm font-semibold">{item.label}</p>
+							<p class="min-w-0 text-sm font-semibold break-words">{item.label}</p>
 							<span
 								class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${attentionTone(item.attention)}`}
 							>
@@ -138,13 +138,13 @@
 								</span>
 							{/if}
 						</div>
-						<div class="flex items-end justify-between gap-3">
-							<div>
-								<p class="text-2xl font-semibold tracking-tight">
-									{formatValue(item.current.value, item.unit)}
+						<div class="flex flex-wrap items-end justify-between gap-3">
+							<div class="min-w-0">
+								<p class="text-2xl font-semibold tracking-tight break-words">
+									{formatMetricValue(item.current.value, item.unit)}
 								</p>
 								<p class="text-xs text-muted-foreground">
-									{formatDelta(item)} since previous point
+									{formatDeltaLabel(item)} since previous point
 								</p>
 							</div>
 							<svg viewBox="0 0 84 28" class="h-8 w-24 shrink-0" aria-hidden="true">
@@ -210,7 +210,7 @@
 							<p><span class="font-medium text-foreground">Metric id:</span> {item.metric}</p>
 							<p>
 								<span class="font-medium text-foreground">Selected time:</span>
-								t={item.current.t.toFixed(2)}
+								{formatTimeLabel(item.current.t)}
 							</p>
 						</div>
 						{#if thresholdSummary(item).length}

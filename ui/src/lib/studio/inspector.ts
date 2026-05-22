@@ -10,6 +10,12 @@ import type {
 	SimulationFrame,
 	StateDefinition
 } from '$lib/api-client';
+import {
+	formatMetricValue,
+	formatNumber,
+	formatUnknownValue,
+	humanizeIdentifier
+} from '$lib/studio/format';
 
 type SimulationGraphNode = Extract<SimulationFrame, { kind: 'graph' }>['nodes'][number];
 
@@ -359,10 +365,12 @@ function nodeMetrics(
 	const definitions = metricDefinitions(pluginSemantics);
 	return Object.entries(node.metrics ?? {}).map(([metric, value]) => {
 		const definition = definitions.get(metric);
-		const formatted = typeof value === 'number' ? value.toString() : formatPrimitive(value);
 		return {
-			label: definition?.label ?? metric,
-			value: definition?.unit ? `${formatted} ${definition.unit}` : formatted
+			label: definition?.label ?? humanizeIdentifier(metric),
+			value:
+				typeof value === 'number'
+					? formatMetricValue(value, definition?.unit ?? null)
+					: formatUnknownValue(value, definition?.unit ?? null)
 		};
 	});
 }
@@ -388,7 +396,7 @@ function fallbackFields(node: Record<string, unknown>): InspectionField[] {
 	const rows = Object.entries(attrs ?? {})
 		.filter(([, value]) => primitiveLike(value))
 		.map(([key, value]) => ({
-			label: startCase(key),
+			label: humanizeIdentifier(key),
 			value: formatPrimitive(value)
 		}));
 	if (rows.length) return rows;
@@ -484,7 +492,7 @@ function firstMetricSummary(
 	const [name, value] = Object.entries(node.metrics ?? {})[0] ?? [];
 	if (!name) return null;
 	const definition = metricDefinitions(pluginSemantics).get(name);
-	return `${definition?.label ?? name}: ${formatPrimitive(value)}`;
+	return `${definition?.label ?? humanizeIdentifier(name)}: ${formatPrimitive(value)}`;
 }
 
 function graphLabel(frame: Extract<SimulationFrame, { kind: 'graph' }>, nodeId: string): string {
@@ -497,8 +505,12 @@ function primitiveLike(value: unknown): boolean {
 
 function formatPrimitive(value: unknown): string {
 	if (value == null) return '-';
-	if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toString();
-	if (typeof value === 'boolean') return value ? 'true' : 'false';
+	if (typeof value === 'number') {
+		return Number.isInteger(value)
+			? formatNumber(value, { maximumFractionDigits: 0 })
+			: formatNumber(value);
+	}
+	if (typeof value === 'boolean') return value ? 'Yes' : 'No';
 	return String(value);
 }
 

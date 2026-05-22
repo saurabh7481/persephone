@@ -14,7 +14,7 @@
 	} = $props();
 </script>
 
-<section class={cn('studio-panel', className)}>
+<section class={cn('studio-panel min-w-0', className)}>
 	{#if title || description}
 		<header class="studio-panel-header">
 			{#if title}
@@ -25,7 +25,7 @@
 			{/if}
 		</header>
 	{/if}
-	<div class="studio-panel-body">
+	<div class="studio-panel-body min-w-0">
 		{@render children?.()}
 	</div>
 </section>

@@ -6,6 +6,7 @@ import type {
 	MetricRecord,
 	SimulationFrame
 } from '$lib/api-client';
+import { formatDelta, formatNumber, humanizeIdentifier } from '$lib/studio/format';
 
 export type NarrativeCard = {
 	label: string;
@@ -44,8 +45,8 @@ export function extractMilestones({
 			milestones.push({
 				id: `peak:${metric}:${peak.t}`,
 				kind: 'peak',
-				title: `${metric} peak`,
-				summary: `${metric} reached ${peak.value}`,
+				title: `${humanizeIdentifier(metric)} peak`,
+				summary: `${humanizeIdentifier(metric)} reached ${formatNumber(peak.value)}`,
 				t: peak.t,
 				severity: thresholdSeverity(peak),
 				metric
@@ -57,8 +58,8 @@ export function extractMilestones({
 			milestones.push({
 				id: `threshold:${metric}:${crossing.t}`,
 				kind: 'threshold_crossing',
-				title: `${metric} crossed the critical threshold`,
-				summary: `${metric} moved above the configured critical threshold.`,
+				title: `${humanizeIdentifier(metric)} crossed the critical threshold`,
+				summary: `${humanizeIdentifier(metric)} moved above the configured critical threshold.`,
 				t: crossing.t,
 				severity: 'critical',
 				metric
@@ -70,8 +71,8 @@ export function extractMilestones({
 			milestones.push({
 				id: `anomaly-end:${metric}:${anomalyEnd.t}`,
 				kind: 'anomaly_end',
-				title: `${metric} snapped back toward baseline`,
-				summary: `${metric} dropped sharply after its recent spike.`,
+				title: `${humanizeIdentifier(metric)} snapped back toward baseline`,
+				summary: `${humanizeIdentifier(metric)} dropped sharply after its recent spike.`,
 				t: anomalyEnd.t,
 				severity: 'warning',
 				metric
@@ -126,8 +127,10 @@ export function recentChangeCards({
 	const topMetric = topMetricDelta(metrics, selectedTime);
 	if (topMetric) {
 		cards.push({
-			label: topMetric.metric,
-			summary: `${topMetric.delta >= 0 ? 'Up' : 'Down'} ${Math.abs(topMetric.delta).toFixed(1)} from the previous sample`,
+			label: humanizeIdentifier(topMetric.metric),
+			summary: `${topMetric.delta >= 0 ? 'Up' : 'Down'} ${formatDelta(Math.abs(topMetric.delta), {
+				maximumFractionDigits: 1
+			}).replace('+', '')} from the previous sample`,
 			severity: topMetric.severity
 		});
 	}

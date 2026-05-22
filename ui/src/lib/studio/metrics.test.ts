@@ -72,6 +72,7 @@ describe('metric deck helpers', () => {
 		expect(deck.find((item) => item.metric === 'throughput')?.pinned).toBe(true);
 		expect(deck.find((item) => item.metric === 'infections')?.headline).toBe(true);
 		expect(deck.find((item) => item.metric === 'infections')?.label).toBe('Active infections');
+		expect(deck.find((item) => item.metric === 'load')?.label).toBe('Load');
 	});
 
 	test('toggles pinned metrics without mutating the input set', () => {

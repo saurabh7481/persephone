@@ -119,8 +119,8 @@ describe('narrative helpers', () => {
 	test('summarizes what changed recently around the selected playback time', () => {
 		expect(recentChangeCards({ metrics, events, selectedTime: 3.1, explanation })).toEqual([
 			{
-				label: 'infected_count',
-				summary: 'Up 10.0 from the previous sample',
+				label: 'Infected count',
+				summary: 'Up 10 from the previous sample',
 				severity: 'critical'
 			},
 			{

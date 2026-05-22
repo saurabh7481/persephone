@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { onMount } from 'svelte';
 	import {
 		Activity,
 		Boxes,
@@ -7,18 +8,28 @@
 		FlaskConical,
 		GitCompareArrows,
 		ListTree,
+		MoonStar,
 		Plug,
 		Settings,
-		SlidersHorizontal
+		SlidersHorizontal,
+		SunMedium
 	} from '@lucide/svelte';
 
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Tooltip from '$lib/components/ui/tooltip';
+	import {
+		applyStudioTheme,
+		resolveStudioTheme,
+		STUDIO_THEME_STORAGE_KEY,
+		type StudioTheme
+	} from '$lib/studio/theme';
 	import { dismissToast, studioToasts } from '$lib/studio/toasts';
 
 	let { children }: { children?: import('svelte').Snippet } = $props();
 	let commandOpen = $state(false);
+	let theme = $state<StudioTheme>('light');
+	let themeReady = $state(false);
 
 	const navItems = [
 		{ href: '/runs', label: 'Runs', icon: ListTree },
@@ -40,6 +51,34 @@
 			location.href = resolve('/experiments');
 		}
 	}
+
+	onMount(() => {
+		const media = window.matchMedia('(prefers-color-scheme: dark)');
+		const stored = window.localStorage.getItem(STUDIO_THEME_STORAGE_KEY);
+		theme = resolveStudioTheme(stored, media.matches);
+		applyStudioTheme(theme);
+		themeReady = true;
+
+		const handleChange = (event: MediaQueryListEvent) => {
+			const currentStored = window.localStorage.getItem(STUDIO_THEME_STORAGE_KEY);
+			if (currentStored === 'light' || currentStored === 'dark') return;
+			theme = resolveStudioTheme(null, event.matches);
+			applyStudioTheme(theme);
+		};
+
+		media.addEventListener('change', handleChange);
+		return () => media.removeEventListener('change', handleChange);
+	});
+
+	$effect(() => {
+		if (!themeReady) return;
+		applyStudioTheme(theme);
+		window.localStorage.setItem(STUDIO_THEME_STORAGE_KEY, theme);
+	});
+
+	function toggleTheme() {
+		theme = theme === 'dark' ? 'light' : 'dark';
+	}
 </script>
 
 <svelte:window onkeydown={handleShellKeydown} />
@@ -60,6 +99,20 @@
 				<span>Python runtime</span>
 			</div>
 			<div class="studio-topbar-actions">
+				<Button
+					variant="outline"
+					size="sm"
+					aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+					onclick={toggleTheme}
+				>
+					{#if theme === 'dark'}
+						<SunMedium size={15} />
+						Light
+					{:else}
+						<MoonStar size={15} />
+						Dark
+					{/if}
+				</Button>
 				<Button variant="outline" size="sm" onclick={() => (commandOpen = true)}>
 					<Command size={15} />
 					Command

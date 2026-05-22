@@ -1,4 +1,5 @@
 import type { MetricDefinition, MetricRecord, PluginSemantics } from '$lib/api-client';
+import { humanizeIdentifier } from '$lib/studio/format';
 
 export type MetricAttention = 'stable' | 'rising_concern' | 'critical' | 'improving';
 
@@ -51,7 +52,7 @@ export function buildMetricDeck({
 			const thresholds = readThresholds(current, definition);
 			return {
 				metric,
-				label: definition?.label ?? metric,
+				label: definition?.label ?? humanizeIdentifier(metric),
 				unit: definition?.unit ?? null,
 				current,
 				previous,

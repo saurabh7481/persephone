@@ -3,6 +3,12 @@
 
 	import type { EventRecord, MetricRecord, SimulationFrame } from '$lib/api-client';
 	import {
+		formatMetricValue,
+		formatNumber,
+		formatTimeLabel,
+		humanizeIdentifier
+	} from '$lib/studio/format';
+	import {
 		currentMetricCards,
 		eventMarkers,
 		frameTickMarkers,
@@ -121,9 +127,9 @@
 		<div class="metric-timeline-cards" aria-label="Current metric cards">
 			{#each cards as card (card.metric)}
 				<div class="metric-timeline-card">
-					<p class="studio-eyebrow">{card.metric}</p>
-					<p>{card.value}</p>
-					<span>t={card.t}</span>
+					<p class="studio-eyebrow">{humanizeIdentifier(card.metric)}</p>
+					<p>{formatMetricValue(card.value)}</p>
+					<span>{formatTimeLabel(card.t)}</span>
 				</div>
 			{/each}
 		</div>
@@ -165,7 +171,7 @@
 							text-anchor="middle"
 							class="metric-timeline-axis"
 						>
-							{tick.toFixed(1)}
+							{formatNumber(tick, { maximumFractionDigits: 1 })}
 						</text>
 					{/each}
 
@@ -275,11 +281,13 @@
 			{/each}
 		</div>
 		<div class="metric-timeline-status">
-			<span>Selected time {selectedTime.toFixed(2)}</span>
+			<span>Selected time {formatTimeLabel(selectedTime, { prefix: '' })}</span>
 			<span>Events {markerEvents.length}</span>
 			<span>Frames {markerFrames.length}</span>
 			{#if brushedRange}
-				<span>Brush {brushedRange.start.toFixed(2)}-{brushedRange.end.toFixed(2)}</span>
+				<span>
+					Brush {formatNumber(brushedRange.start)}-{formatNumber(brushedRange.end)}
+				</span>
 			{/if}
 		</div>
 	</div>

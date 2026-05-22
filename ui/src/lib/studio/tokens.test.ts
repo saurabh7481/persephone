@@ -19,5 +19,8 @@ describe('Studio design tokens', () => {
 		expect(
 			contrastRatio(studioTokenGroups.light.accent, studioTokenGroups.light.surface)
 		).toBeGreaterThan(3);
+		expect(
+			contrastRatio(studioTokenGroups.dark.accent, studioTokenGroups.dark.surface)
+		).toBeGreaterThan(4);
 	});
 });

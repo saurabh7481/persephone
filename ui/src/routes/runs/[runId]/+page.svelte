@@ -51,6 +51,13 @@
 		type FocusSurface
 	} from '$lib/studio/run-focus';
 	import {
+		formatMetricValue as formatDisplayMetricValue,
+		formatNumber,
+		formatTimeLabel,
+		formatUnknownValue,
+		humanizeIdentifier
+	} from '$lib/studio/format';
+	import {
 		availableViews,
 		chooseDefaultView,
 		standardViews,
@@ -182,7 +189,7 @@
 			key: 'frame',
 			label: 'Current frame',
 			description: selectedFrame
-				? `${selectedFrame.frame_id} at t=${selectedFrame.t.toFixed(2)}`
+				? `${selectedFrame.frame_id} at ${formatTimeLabel(selectedFrame.t)}`
 				: 'Pause playback or scrub to inspect a specific frame.',
 			response: frameExplanation,
 			loading: frameExplanationLoading
@@ -516,8 +523,8 @@
 		)
 			.slice(0, 4)
 			.map((item) => ({
-				label: item.label,
-				value: item.value == null ? 'n/a' : `${item.value}${item.unit ? ` ${item.unit}` : ''}`
+				label: humanizeIdentifier(item.label),
+				value: item.value == null ? 'n/a' : formatUnknownValue(item.value, item.unit ?? null)
 			}));
 	}
 
@@ -536,9 +543,7 @@
 
 	function formatMetricValue(item: MetricDeckItem | null): string {
 		if (!item) return '-';
-		return item.unit
-			? `${item.current.value.toFixed(2)} ${item.unit}`
-			: item.current.value.toFixed(2);
+		return formatDisplayMetricValue(item.current.value, item.unit);
 	}
 
 	function explanationFacts(response: ExplanationResponse | null) {
@@ -555,17 +560,17 @@
 
 <svelte:window onkeydown={handleRunKeydown} />
 
-<div class="space-y-4">
+<div class="min-w-0 space-y-4">
 	<header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-		<div>
+		<div class="min-w-0">
 			<p class="studio-eyebrow">Run analysis workspace</p>
-			<h1 class="text-2xl font-semibold tracking-tight">{data.runId}</h1>
+			<h1 class="text-2xl font-semibold tracking-tight break-words">{data.runId}</h1>
 			<p class="text-sm text-muted-foreground">
 				Viewport, interpretation, metrics, and inspection stay visible together so the run can be
 				read without hunting below the fold.
 			</p>
 		</div>
-		<div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+		<div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground lg:justify-end">
 			<span class="rounded-full border px-2 py-1">Space play/pause</span>
 			<span class="rounded-full border px-2 py-1">Left/right previous and next frame</span>
 			<span class="rounded-full border px-2 py-1">F viewport full-screen</span>
@@ -597,7 +602,9 @@
 			</div>
 		</StudioPanel>
 		<StudioPanel title="Selected time">
-			<p class="text-3xl font-semibold tracking-tight">{$playback.currentTime.toFixed(2)}</p>
+			<p class="text-3xl font-semibold tracking-tight">
+				{formatNumber($playback.currentTime)}
+			</p>
 			<p class="mt-2 text-xs text-muted-foreground">
 				Frame {selectedFrame?.frame_id ?? 'none'} · {$playback.status}
 			</p>
@@ -607,15 +614,21 @@
 			<p class="mt-2 text-xs text-muted-foreground">{currentViewSummary}</p>
 		</StudioPanel>
 		<StudioPanel title="Focused metric">
-			<p class="truncate text-lg font-semibold">{focusedMetric?.label ?? summary.primaryMetric}</p>
+			<p class="text-lg font-semibold break-words">
+				{focusedMetric?.label ?? humanizeIdentifier(summary.primaryMetric)}
+			</p>
 			<p class="mt-2 text-xs text-muted-foreground">
-				{focusedMetric ? formatMetricValue(focusedMetric) : `Peak ${summary.peakValue}`}
+				{focusedMetric
+					? formatMetricValue(focusedMetric)
+					: `Peak ${formatNumber(summary.peakValue)}`}
 			</p>
 		</StudioPanel>
 	</div>
 
-	<div class="grid gap-4 xl:grid-cols-[minmax(15rem,17rem)_minmax(0,1.35fr)_minmax(20rem,24rem)]">
-		<div class="grid content-start gap-4">
+	<div
+		class="grid gap-4 xl:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(15rem,17rem)_minmax(0,1.25fr)_minmax(18rem,22rem)]"
+	>
+		<div class="grid min-w-0 content-start gap-4">
 			<StudioPanel title="Run status and playback controls">
 				<div class="grid gap-4">
 					<div class="grid gap-2 text-sm">
@@ -740,7 +753,7 @@
 			</StudioPanel>
 		</div>
 
-		<div class="grid content-start gap-4">
+		<div class="grid min-w-0 content-start gap-4">
 			<StudioPanel title="Viewport">
 				<div class="mb-3 flex items-center justify-between gap-3">
 					<div>
@@ -803,11 +816,11 @@
 												{#each group.rows as row (row.id)}
 													<button
 														type="button"
-														class="flex items-center justify-between rounded-lg border px-3 py-2 text-left hover:bg-muted/40"
+														class="flex min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left hover:bg-muted/40"
 														onclick={() => playback.selectObject({ kind: row.kind, id: row.id })}
 													>
-														<span class="font-medium">{row.label}</span>
-														<span class="text-xs text-muted-foreground">{row.value}</span>
+														<span class="min-w-0 font-medium break-words">{row.label}</span>
+														<span class="shrink-0 text-xs text-muted-foreground">{row.value}</span>
 													</button>
 												{/each}
 											</div>
@@ -824,11 +837,11 @@
 												{#each entityBrowser.relationshipRows as row (row.id)}
 													<button
 														type="button"
-														class="flex items-center justify-between rounded-lg border px-3 py-2 text-left hover:bg-muted/40"
+														class="flex min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left hover:bg-muted/40"
 														onclick={() => playback.selectObject({ kind: row.kind, id: row.id })}
 													>
-														<span class="font-medium">{row.label}</span>
-														<span class="text-xs text-muted-foreground">{row.value}</span>
+														<span class="min-w-0 font-medium break-words">{row.label}</span>
+														<span class="shrink-0 text-xs text-muted-foreground">{row.value}</span>
 													</button>
 												{/each}
 											</div>
@@ -840,16 +853,16 @@
 									{#each entityBrowser.rows as row (row.id)}
 										<button
 											type="button"
-											class="flex items-center justify-between rounded-lg border bg-background/80 px-3 py-2 text-left hover:bg-muted/40"
+											class="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-background/80 px-3 py-2 text-left hover:bg-muted/40"
 											onclick={() => playback.selectObject({ kind: row.kind, id: row.id })}
 										>
-											<div>
-												<p class="font-medium">{row.label}</p>
+											<div class="min-w-0">
+												<p class="font-medium break-words">{row.label}</p>
 												{#if row.description}
 													<p class="text-xs text-muted-foreground">{row.description}</p>
 												{/if}
 											</div>
-											<span class="text-xs text-muted-foreground">{row.value}</span>
+											<span class="shrink-0 text-xs text-muted-foreground">{row.value}</span>
 										</button>
 									{/each}
 								</div>
@@ -863,8 +876,8 @@
 				title={focusedMetric ? `${focusedMetric.label} analysis` : 'Metric analysis'}
 				description="Focus one metric at a time with playback-aligned charting, event markers, and threshold context."
 			>
-				<div class="mb-3 flex items-center justify-between gap-3">
-					<div class="text-xs text-muted-foreground">
+				<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+					<div class="min-w-0 text-xs text-muted-foreground">
 						{#if focusedMetric}
 							Current {formatMetricValue(focusedMetric)} · {focusedMetric.attention.replace(
 								'_',
@@ -905,13 +918,13 @@
 			</StudioPanel>
 		</div>
 
-		<div class="grid content-start gap-4">
+		<div class="grid min-w-0 content-start gap-4 xl:col-span-2 2xl:col-span-1">
 			<StudioPanel title="What's happening explanation">
 				<div class="grid gap-3">
 					{#each explanationSections as section (section.key)}
 						<div class="rounded-xl border p-3">
-							<div class="flex items-start justify-between gap-3">
-								<div>
+							<div class="flex flex-wrap items-start justify-between gap-3">
+								<div class="min-w-0">
 									<p class="text-sm font-semibold">{section.label}</p>
 									<p class="mt-1 text-xs text-muted-foreground">{section.description}</p>
 								</div>
@@ -958,7 +971,7 @@
 														<span
 															class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(fact.severity)}`}
 														>
-															t={fact.t.toFixed(2)}
+															{formatTimeLabel(fact.t)}
 														</span>
 													</div>
 													<p class="mt-1 text-xs text-muted-foreground">{fact.summary}</p>
@@ -999,8 +1012,8 @@
 					{/if}
 
 					<div class="rounded-xl border p-3">
-						<div class="flex items-center justify-between gap-3">
-							<div>
+						<div class="flex flex-wrap items-center justify-between gap-3">
+							<div class="min-w-0">
 								<p class="text-sm font-semibold">Milestone timeline</p>
 								<p class="mt-1 text-xs text-muted-foreground">
 									Peaks, threshold crossings, anomalies, and event bursts can jump playback
@@ -1012,11 +1025,11 @@
 							</span>
 						</div>
 						{#if milestones.length}
-							<div class="mt-3 flex gap-3 overflow-x-auto pb-1">
+							<div class="mt-3 grid gap-3 md:grid-cols-2">
 								{#each milestones as milestone (milestone.id)}
 									<button
 										type="button"
-										class="min-w-[13rem] rounded-xl border bg-background/80 p-3 text-left hover:bg-muted/40"
+										class="min-w-0 rounded-xl border bg-background/80 p-3 text-left hover:bg-muted/40"
 										onclick={() => openMilestone(milestone)}
 									>
 										<div class="flex items-center justify-between gap-2">
@@ -1025,9 +1038,9 @@
 											>
 												{milestone.kind.replace('_', ' ')}
 											</span>
-											<span class="text-[11px] text-muted-foreground"
-												>t={milestone.t.toFixed(2)}</span
-											>
+											<span class="text-[11px] text-muted-foreground">
+												{formatTimeLabel(milestone.t)}
+											</span>
 										</div>
 										<p class="mt-2 font-medium">{milestone.title}</p>
 										<p class="mt-1 text-xs text-muted-foreground">{milestone.summary}</p>
@@ -1127,7 +1140,9 @@
 											<p class="font-medium">
 												{event.event_type ?? event.event ?? event.type ?? 'event'}
 											</p>
-											<p class="mt-1 text-muted-foreground">t={event.t ?? '-'}</p>
+											<p class="mt-1 text-muted-foreground">
+												{formatTimeLabel(typeof event.t === 'number' ? event.t : null)}
+											</p>
 										</div>
 									{/each}
 								</div>
@@ -1160,7 +1175,7 @@
 								<p class="mt-1 text-xs text-muted-foreground">
 									{graphEdgeDetails.kind}
 									{#if graphEdgeDetails.weight !== null}
-										· weight {graphEdgeDetails.weight}
+										· weight {formatNumber(graphEdgeDetails.weight)}
 									{/if}
 									· {graphEdgeDetails.directed ? 'directed' : 'undirected'}
 								</p>
@@ -1183,7 +1198,9 @@
 											<p class="font-medium">
 												{event.event_type ?? event.event ?? event.type ?? 'event'}
 											</p>
-											<p class="mt-1 text-muted-foreground">t={event.t ?? '-'}</p>
+											<p class="mt-1 text-muted-foreground">
+												{formatTimeLabel(typeof event.t === 'number' ? event.t : null)}
+											</p>
 										</div>
 									{/each}
 								</div>
@@ -1229,7 +1246,9 @@
 								<p class="font-medium">
 									{event.event_type ?? event.event ?? event.type ?? 'event'}
 								</p>
-								<span class="text-xs text-muted-foreground">t={event.t ?? '-'}</span>
+								<span class="text-xs text-muted-foreground">
+									{formatTimeLabel(typeof event.t === 'number' ? event.t : null)}
+								</span>
 							</div>
 							<p class="mt-2 truncate font-mono text-xs text-muted-foreground">
 								{JSON.stringify(event)}
@@ -1288,19 +1307,19 @@
 			<Tabs.TabsContent value="metrics">
 				<div class="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
 					<StudioPanel title="Selected time">
-						<p class="text-2xl font-semibold">{$playback.currentTime.toFixed(2)}</p>
+						<p class="text-2xl font-semibold">{formatNumber($playback.currentTime)}</p>
 					</StudioPanel>
 					<StudioPanel title="Current frame">
 						<p class="truncate text-2xl font-semibold">{selectedFrame?.frame_id ?? '-'}</p>
 					</StudioPanel>
 					<StudioPanel title="Peak value">
-						<p class="text-2xl font-semibold">{summary.peakValue}</p>
+						<p class="text-2xl font-semibold">{formatNumber(summary.peakValue)}</p>
 					</StudioPanel>
 					<StudioPanel title="Final value">
-						<p class="text-2xl font-semibold">{summary.finalValue}</p>
+						<p class="text-2xl font-semibold">{formatNumber(summary.finalValue)}</p>
 					</StudioPanel>
 					<StudioPanel title="Elapsed time">
-						<p class="text-2xl font-semibold">{summary.duration}</p>
+						<p class="text-2xl font-semibold">{formatNumber(summary.duration)}</p>
 					</StudioPanel>
 				</div>
 				<MetricTimeline
@@ -1327,7 +1346,9 @@
 					<Table.TableBody>
 						{#each events as event, index (index)}
 							<Table.TableRow>
-								<Table.TableCell>{event.t ?? '-'}</Table.TableCell>
+								<Table.TableCell>
+									{typeof event.t === 'number' ? formatNumber(event.t) : '-'}
+								</Table.TableCell>
 								<Table.TableCell>{event.event_type ?? event.type ?? '-'}</Table.TableCell>
 								<Table.TableCell class="font-mono text-xs">{JSON.stringify(event)}</Table.TableCell>
 							</Table.TableRow>
@@ -1350,7 +1371,7 @@
 							<Table.TableRow>
 								<Table.TableCell class="font-mono text-xs">{frame.frame_id}</Table.TableCell>
 								<Table.TableCell>{frame.kind}</Table.TableCell>
-								<Table.TableCell>{frame.t}</Table.TableCell>
+								<Table.TableCell>{formatNumber(frame.t)}</Table.TableCell>
 							</Table.TableRow>
 						{/each}
 					</Table.TableBody>

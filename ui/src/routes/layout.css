@@ -171,6 +171,7 @@
 		display: grid;
 		grid-template-columns: 3.75rem minmax(0, 1fr);
 		grid-template-rows: 3.5rem minmax(0, 1fr);
+		overflow-x: clip;
 	}
 
 	.studio-topbar {
@@ -189,7 +190,8 @@
 
 	.studio-brand {
 		display: inline-flex;
-		min-width: 15rem;
+		min-width: 0;
+		max-width: 100%;
 		align-items: center;
 		gap: 0.65rem;
 		color: inherit;
@@ -225,6 +227,7 @@
 		display: flex;
 		flex: 1;
 		align-items: center;
+		flex-wrap: wrap;
 		gap: 0.65rem;
 		min-width: 0;
 	}
@@ -238,6 +241,8 @@
 	.studio-topbar-actions {
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
+		justify-content: flex-end;
 		gap: 0.5rem;
 	}
 
@@ -316,20 +321,24 @@
 		grid-column: 2;
 		min-width: 0;
 		padding: 1rem;
+		overflow-x: clip;
 	}
 
 	.studio-panel {
+		min-width: 0;
 		border: 1px solid var(--studio-border);
 		border-radius: 0.5rem;
 		background: var(--studio-panel);
 	}
 
 	.studio-panel-header {
+		min-width: 0;
 		border-bottom: 1px solid color-mix(in oklab, var(--studio-border) 70%, transparent);
 		padding: 0.75rem 0.85rem;
 	}
 
 	.studio-panel-body {
+		min-width: 0;
 		padding: 0.85rem;
 	}
 
@@ -608,6 +617,7 @@
 		left: 0.75rem;
 		top: 0.75rem;
 		display: flex;
+		flex-wrap: wrap;
 		max-width: min(31rem, calc(100% - 1.5rem));
 		align-items: end;
 		justify-content: space-between;
@@ -637,7 +647,9 @@
 		right: 0.75rem;
 		bottom: 0.75rem;
 		display: grid;
-		grid-template-columns: repeat(5, minmax(4rem, auto));
+		width: min(40rem, calc(100% - 1.5rem));
+		max-width: calc(100% - 1.5rem);
+		grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
 		gap: 0.55rem;
 		padding: 0.65rem;
 	}
@@ -706,6 +718,8 @@
 
 	.metric-timeline-chart {
 		height: 18rem;
+		min-width: 0;
+		overflow: hidden;
 		border: 1px solid var(--studio-border);
 		border-radius: 0.5rem;
 		background: var(--studio-panel);
@@ -777,7 +791,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: flex-start;
 		gap: 0.75rem;
 		font-size: 0.78rem;
 	}
@@ -816,6 +830,14 @@
 
 		.studio-main {
 			grid-column: 3;
+		}
+	}
+
+	@media (max-width: 1180px) {
+		.studio-topbar {
+			flex-wrap: wrap;
+			min-height: 3.5rem;
+			padding: 0.75rem 1rem;
 		}
 	}
 
@@ -861,6 +883,7 @@
 		.simulation-viewport-controls {
 			left: 0.75rem;
 			right: 0.75rem;
+			width: auto;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 
