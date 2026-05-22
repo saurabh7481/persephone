@@ -513,48 +513,48 @@ This delivers most of the user-facing value even if the optional AI layer ships 
 
 ### Checkpoint 10 — Rich graph rendering and density handling
 
-- [ ] Improve graph rendering for diverse domains:
-  - [ ] stable layout across time
-  - [ ] positioned layout support
-  - [ ] map/network overlay support
-  - [ ] density-aware edge rendering
-  - [ ] node sizing by metric
-  - [ ] hover labels
-  - [ ] search and highlight
-- [ ] Add fallbacks for dense graphs:
-  - [ ] adjacency matrix mode
-  - [ ] community/cluster aggregation
-  - [ ] edge threshold filtering
-- [ ] Add pan/zoom for graph views.
-- [ ] Add tests for layout determinism, hit-testing, and performance-sensitive rendering paths.
+- [x] Improve graph rendering for diverse domains:
+  - [x] stable layout across time
+  - [x] positioned layout support
+  - [x] map/network overlay support
+  - [x] density-aware edge rendering
+  - [x] node sizing by metric
+  - [x] hover labels
+  - [x] search and highlight
+- [x] Add fallbacks for dense graphs:
+  - [x] adjacency matrix mode
+  - [x] community/cluster aggregation
+  - [x] edge threshold filtering
+- [x] Add pan/zoom for graph views.
+- [x] Add tests for layout determinism, hit-testing, and performance-sensitive rendering paths.
 - [ ] Commit: `feat: strengthen graph analysis views`.
 
 ### Checkpoint 11 — Schema-driven inspector
 
-- [ ] Replace hardcoded graph-node inspection with schema-driven rendering.
-- [ ] Display:
-  - [ ] human-readable label
-  - [ ] state
-  - [ ] group/region/category
-  - [ ] local metrics
-  - [ ] recent events
-  - [ ] explanation facts for the selected entity
-- [ ] Add support for inspecting edges/relationships, not only nodes.
-- [ ] Add support for non-graph entity inspection through tables or hierarchical selections.
-- [ ] Add tests for inspector rendering across multiple plugin semantic shapes.
+- [x] Replace hardcoded graph-node inspection with schema-driven rendering.
+- [x] Display:
+  - [x] human-readable label
+  - [x] state
+  - [x] group/region/category
+  - [x] local metrics
+  - [x] recent events
+  - [x] explanation facts for the selected entity
+- [x] Add support for inspecting edges/relationships, not only nodes.
+- [x] Add support for non-graph entity inspection through tables or hierarchical selections.
+- [x] Add tests for inspector rendering across multiple plugin semantic shapes.
 - [ ] Commit: `feat: add schema-driven inspector`.
 
 ### Checkpoint 12 — Narrative summaries and milestone timeline
 
-- [ ] Add a “What’s happening” panel driven by deterministic facts or AI-paraphrased summaries.
-- [ ] Add a “What changed recently” panel for frame-to-frame deltas.
-- [ ] Add a milestone timeline with markers for:
-  - [ ] peaks
-  - [ ] threshold crossings
-  - [ ] anomaly starts/ends
-  - [ ] major event bursts
-- [ ] Allow clicking a milestone to jump playback to the relevant frame.
-- [ ] Add tests for milestone extraction and timeline linking.
+- [x] Add a “What’s happening” panel driven by deterministic facts or AI-paraphrased summaries.
+- [x] Add a “What changed recently” panel for frame-to-frame deltas.
+- [x] Add a milestone timeline with markers for:
+  - [x] peaks
+  - [x] threshold crossings
+  - [x] anomaly starts/ends
+  - [x] major event bursts
+- [x] Allow clicking a milestone to jump playback to the relevant frame.
+- [x] Add tests for milestone extraction and timeline linking.
 - [ ] Commit: `feat: add narrative summaries and milestones`.
 
 ### Checkpoint 13 — Cross-domain examples and fixture plugins

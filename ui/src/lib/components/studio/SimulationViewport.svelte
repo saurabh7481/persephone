@@ -1,16 +1,29 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import type { SelectedPlaybackObject, PlaybackMode, PlaybackStatus } from '$lib/studio/playback';
+	import type { SimulationFrame } from '$lib/api-client';
+	import type { PlaybackMode, PlaybackStatus, SelectedPlaybackObject } from '$lib/studio/playback';
 	import {
+		describeGraphObject,
 		fieldCellFromPoint,
 		graphHitTest,
 		graphLayout,
 		normalizeViewport,
 		renderSimulationFrame,
-		type FieldRenderOptions
+		type FieldRenderOptions,
+		type GraphRenderOptions,
+		type GraphRenderMode
 	} from '$lib/studio/renderers';
-	import type { SimulationFrame } from '$lib/api-client';
+
+	type ViewKind =
+		| 'network'
+		| 'positioned_graph'
+		| 'map_network'
+		| 'matrix'
+		| 'table'
+		| 'timeline'
+		| 'heatmap'
+		| 'hierarchy';
 
 	let {
 		frame = null,
@@ -18,6 +31,7 @@
 		status = 'idle',
 		speed = 1,
 		bufferedFrames = 0,
+		viewKind = 'heatmap',
 		viewLabel = 'Viewport',
 		selectedObject = null,
 		onSelect
@@ -27,6 +41,7 @@
 		status?: PlaybackStatus;
 		speed?: number;
 		bufferedFrames?: number;
+		viewKind?: ViewKind;
 		viewLabel?: string;
 		selectedObject?: SelectedPlaybackObject | null;
 		onSelect?: (object: SelectedPlaybackObject | null) => void;
@@ -42,9 +57,22 @@
 	let opacity = $state(1);
 	let manualMin = $state('');
 	let manualMax = $state('');
+	let graphSearch = $state('');
+	let edgeThreshold = $state('');
+	let aggregateGroups = $state(false);
+	let zoom = $state(1);
+	let panX = $state(0);
+	let panY = $state(0);
+	let draggingGraph = $state(false);
 	let renderHandle = 0;
+	let pointerAnchorX = 0;
+	let pointerAnchorY = 0;
+	let pointerPanX = 0;
+	let pointerPanY = 0;
+	let movedDuringDrag = false;
 
 	const isFieldFrame = $derived(frame?.kind === 'field');
+	const isGraphFrame = $derived(frame?.kind === 'graph');
 	const paletteValue = $derived(
 		palette ||
 			(typeof frame?.visualization.palette === 'string' ? frame.visualization.palette : 'viridis')
@@ -55,6 +83,15 @@
 		min: manualMin === '' ? undefined : Number(manualMin),
 		max: manualMax === '' ? undefined : Number(manualMax),
 		opacity
+	});
+	const graphOptions = $derived<GraphRenderOptions>({
+		mode: graphModeFor(viewKind, frame),
+		search: graphSearch,
+		edgeThreshold: edgeThreshold === '' ? undefined : Number(edgeThreshold),
+		aggregateGroups,
+		zoom,
+		panX,
+		panY
 	});
 
 	onMount(() => {
@@ -75,7 +112,7 @@
 	});
 
 	$effect(() => {
-		scheduleRenderFor(frame, selectedObject, width, height, fieldOptions);
+		scheduleRenderFor(frame, selectedObject, width, height, fieldOptions, graphOptions);
 	});
 
 	function scheduleRenderFor(
@@ -83,9 +120,10 @@
 		_selectedObject: SelectedPlaybackObject | null,
 		_width: number,
 		_height: number,
-		_fieldOptions: FieldRenderOptions
+		_fieldOptions: FieldRenderOptions,
+		_graphOptions: GraphRenderOptions
 	) {
-		const dependencies = [_frame, _selectedObject, _width, _height, _fieldOptions];
+		const dependencies = [_frame, _selectedObject, _width, _height, _fieldOptions, _graphOptions];
 		if (!dependencies.length) return;
 		scheduleRender();
 	}
@@ -110,7 +148,7 @@
 			canvas.height = physicalHeight;
 		}
 		context.setTransform(viewport.dpr, 0, 0, viewport.dpr, 0, 0);
-		renderSimulationFrame(context, frame, viewport, fieldOptions, selectedObject);
+		renderSimulationFrame(context, frame, viewport, fieldOptions, selectedObject, graphOptions);
 	}
 
 	function selectAtPointer(event: MouseEvent | PointerEvent) {
@@ -119,6 +157,7 @@
 	}
 
 	function hoverAtPointer(event: PointerEvent) {
+		if (draggingGraph) return;
 		const object = objectAtPointer(event);
 		hoverLabel = describeObject(object);
 	}
@@ -134,7 +173,7 @@
 		const y = event.clientY - rect.top;
 		const viewport = normalizeViewport(rect.width, rect.height, globalThis.devicePixelRatio ?? 1);
 		if (frame.kind === 'field') return fieldCellFromPoint(frame, viewport, x, y);
-		return graphHitTest(graphLayout(frame, viewport), x, y);
+		return graphHitTest(graphLayout(frame, viewport, graphOptions), x, y);
 	}
 
 	function describeObject(object: SelectedPlaybackObject | null): string {
@@ -148,8 +187,83 @@
 			const value = typeof cell.value === 'number' ? cell.value.toPrecision(4) : '-';
 			return `cell ${cell.row},${cell.column} · ${value}`;
 		}
-		if (object.kind === 'graph-node') return `node ${object.id}`;
+		if (frame?.kind === 'graph') {
+			const viewport = normalizeViewport(width, height, globalThis.devicePixelRatio ?? 1);
+			return describeGraphObject(graphLayout(frame, viewport, graphOptions), object);
+		}
 		return object.id;
+	}
+
+	function handlePointerDown(event: PointerEvent) {
+		if (!isGraphFrame || !canvas) return;
+		draggingGraph = true;
+		movedDuringDrag = false;
+		pointerAnchorX = event.clientX;
+		pointerAnchorY = event.clientY;
+		pointerPanX = panX;
+		pointerPanY = panY;
+		canvas.setPointerCapture(event.pointerId);
+	}
+
+	function handlePointerMove(event: PointerEvent) {
+		if (!draggingGraph) {
+			hoverAtPointer(event);
+			return;
+		}
+		movedDuringDrag = movedDuringDrag || Math.hypot(event.clientX - pointerAnchorX, event.clientY - pointerAnchorY) > 3;
+		panX = pointerPanX + (event.clientX - pointerAnchorX);
+		panY = pointerPanY + (event.clientY - pointerAnchorY);
+		scheduleRender();
+	}
+
+	function handlePointerUp(event: PointerEvent) {
+		if (!draggingGraph || !canvas) {
+			selectAtPointer(event);
+			return;
+		}
+		draggingGraph = false;
+		canvas.releasePointerCapture(event.pointerId);
+		if (!movedDuringDrag) selectAtPointer(event);
+	}
+
+	function handleWheel(event: WheelEvent) {
+		if (!isGraphFrame) return;
+		event.preventDefault();
+		const multiplier = event.deltaY < 0 ? 1.08 : 0.92;
+		zoom = clamp(zoom * multiplier, 0.6, 6);
+	}
+
+	function nudgeZoom(delta: number) {
+		zoom = clamp(zoom + delta, 0.6, 6);
+	}
+
+	function resetGraphViewport() {
+		graphSearch = '';
+		edgeThreshold = '';
+		aggregateGroups = false;
+		zoom = 1;
+		panX = 0;
+		panY = 0;
+	}
+
+	function graphModeFor(
+		currentView: ViewKind,
+		currentFrame: SimulationFrame | null
+	): GraphRenderMode | undefined {
+		if (!currentFrame || currentFrame.kind !== 'graph') return undefined;
+		if (
+			currentView === 'network' ||
+			currentView === 'positioned_graph' ||
+			currentView === 'map_network' ||
+			currentView === 'matrix'
+		) {
+			return currentView;
+		}
+		return undefined;
+	}
+
+	function clamp(value: number, min: number, max: number): number {
+		return Math.min(max, Math.max(min, value));
 	}
 </script>
 
@@ -159,9 +273,12 @@
 			bind:this={canvas}
 			class="simulation-viewport-canvas"
 			aria-label="Rendered simulation frame"
-			onclick={selectAtPointer}
-			onpointermove={hoverAtPointer}
+			onclick={!isGraphFrame ? selectAtPointer : undefined}
+			onpointerdown={handlePointerDown}
+			onpointermove={handlePointerMove}
+			onpointerup={handlePointerUp}
 			onpointerleave={clearHover}
+			onwheel={handleWheel}
 		></canvas>
 
 		<div class="simulation-viewport-hud" aria-live="polite">
@@ -205,6 +322,30 @@
 					<span>Opacity</span>
 					<input bind:value={opacity} type="range" min="0.1" max="1" step="0.05" />
 				</label>
+			</div>
+		{/if}
+
+		{#if isGraphFrame}
+			<div class="simulation-viewport-controls" aria-label="Graph visualization controls">
+				<label class="min-w-[12rem]">
+					<span>Search and highlight</span>
+					<input bind:value={graphSearch} placeholder="node label, group, state" />
+				</label>
+				<label>
+					<span>Edge filter</span>
+					<input bind:value={edgeThreshold} type="range" min="0" max="1" step="0.05" />
+					<small>{edgeThreshold === '' ? 'all edges' : `>= ${Number(edgeThreshold).toFixed(2)}`}</small>
+				</label>
+				<label class="simulation-viewport-checkbox">
+					<input type="checkbox" bind:checked={aggregateGroups} />
+					<span>Cluster groups</span>
+				</label>
+				<div class="simulation-viewport-zoom">
+					<button type="button" onclick={() => nudgeZoom(-0.2)} aria-label="Zoom out">-</button>
+					<span>{zoom.toFixed(1)}x</span>
+					<button type="button" onclick={() => nudgeZoom(0.2)} aria-label="Zoom in">+</button>
+					<button type="button" onclick={resetGraphViewport}>Reset</button>
+				</div>
 			</div>
 		{/if}
 	{:else if status === 'buffering'}

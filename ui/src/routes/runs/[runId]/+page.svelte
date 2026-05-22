@@ -32,11 +32,19 @@
 	import { createPlaybackStore, playbackSourceFromApi } from '$lib/studio/playback';
 	import {
 		artifactSummaries,
+		browseFrameEntities,
 		fieldCellInspection,
+		graphEdgeInspection,
 		graphNodeInspection,
 		runInspection
 	} from '$lib/studio/inspector';
 	import { buildMetricDeck, togglePinnedMetric, type MetricDeckItem } from '$lib/studio/metrics';
+	import {
+		extractMilestones,
+		milestonePlaybackTarget,
+		recentChangeCards,
+		type NarrativeMilestone
+	} from '$lib/studio/narrative';
 	import {
 		shortcutActionFromEvent,
 		toggleFocusSurface,
@@ -112,9 +120,21 @@
 			selectedFrame,
 			selectedObject?.kind === 'graph-node' ? selectedObject.id : null,
 			events
+			,
+			pluginSemantics,
+			selectionExplanation
+		)
+	);
+	const graphEdgeDetails = $derived(
+		graphEdgeInspection(
+			selectedFrame,
+			selectedObject?.kind === 'graph-edge' ? selectedObject.id : null,
+			events,
+			pluginSemantics
 		)
 	);
 	const artifacts = $derived(artifactSummaries(run, metrics, events, $playback.frameBuffer));
+	const entityBrowser = $derived(browseFrameEntities(selectedFrame, pluginSemantics));
 	const metricDeck = $derived(
 		buildMetricDeck({
 			records: metrics,
@@ -133,6 +153,22 @@
 		[...events]
 			.sort((left, right) => Number(right.t ?? -Infinity) - Number(left.t ?? -Infinity))
 			.slice(0, 6)
+	);
+	const recentChangeItems = $derived(
+		recentChangeCards({
+			metrics,
+			events,
+			selectedTime: $playback.currentTime,
+			explanation: frameExplanation ?? runExplanation
+		})
+	);
+	const milestones = $derived(
+		extractMilestones({
+			metrics,
+			events,
+			frames: $playback.frameBuffer,
+			explanation: runExplanation
+		})
 	);
 	const explanationSections = $derived([
 		{
@@ -399,6 +435,7 @@
 	}
 
 	function toggleViewportFullscreen() {
+		if (currentView.surface !== 'viewport') return;
 		focusSurface = toggleFocusSurface(focusSurface, 'viewport');
 	}
 
@@ -409,7 +446,10 @@
 
 	function selectedObjectSummary(): string {
 		if (graphNodeDetails) {
-			return `${graphNodeDetails.id} · ${graphNodeDetails.state} · degree ${graphNodeDetails.degree}`;
+			return `${graphNodeDetails.label} · ${graphNodeDetails.state} · degree ${graphNodeDetails.degree}`;
+		}
+		if (graphEdgeDetails) {
+			return `${graphEdgeDetails.label} · ${graphEdgeDetails.kind}`;
 		}
 		if (fieldCellDetails) {
 			return `${fieldCellDetails.field}[${fieldCellDetails.row}, ${fieldCellDetails.column}]`;
@@ -420,6 +460,10 @@
 	function explanationSeverityClass(response: ExplanationResponse | null): string {
 		const severity =
 			response?.interpretation?.summary?.severity ?? response?.interpretation?.facts[0]?.severity;
+		return severityBadgeClass(severity);
+	}
+
+	function severityBadgeClass(severity: string | undefined): string {
 		switch (severity) {
 			case 'critical':
 				return 'border-red-300 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200';
@@ -490,6 +534,17 @@
 		return item.unit
 			? `${item.current.value.toFixed(2)} ${item.unit}`
 			: item.current.value.toFixed(2);
+	}
+
+	function explanationFacts(response: ExplanationResponse | null) {
+		return response?.interpretation?.facts ?? [];
+	}
+
+	function openMilestone(milestone: NarrativeMilestone) {
+		const target = milestonePlaybackTarget(milestone, $playback.frameBuffer);
+		playback.pause();
+		playback.scrubTo(target.time);
+		if (target.frameId) playback.selectFrame(target.frameId);
 	}
 </script>
 
@@ -689,28 +744,109 @@
 							Selection and playback persist while switching layouts or entering full-screen focus.
 						</p>
 					</div>
-					<Button variant="outline" size="sm" onclick={toggleViewportFullscreen}>
-						{#if focusSurface === 'viewport'}
-							<Minimize2 size={15} />
-						{:else}
-							<Maximize2 size={15} />
-						{/if}
-						<span class="ml-2"
-							>{focusSurface === 'viewport' ? 'Exit full-screen' : 'Full-screen'}</span
-						>
-					</Button>
+					{#if currentView.surface === 'viewport'}
+						<Button variant="outline" size="sm" onclick={toggleViewportFullscreen}>
+							{#if focusSurface === 'viewport'}
+								<Minimize2 size={15} />
+							{:else}
+								<Maximize2 size={15} />
+							{/if}
+							<span class="ml-2"
+								>{focusSurface === 'viewport' ? 'Exit full-screen' : 'Full-screen'}</span
+							>
+						</Button>
+					{/if}
 				</div>
 				<div class="relative min-h-[26rem] overflow-hidden rounded-xl border bg-muted/30">
-					<SimulationViewport
-						frame={selectedFrame}
-						mode={$playback.mode}
-						status={$playback.status}
-						speed={$playback.speed}
-						bufferedFrames={$playback.frameBuffer.length}
-						selectedObject={$playback.selectedObject}
-						viewLabel={currentView.label}
-						onSelect={(object) => playback.selectObject(object)}
-					/>
+					{#if currentView.surface === 'viewport'}
+						<SimulationViewport
+							frame={selectedFrame}
+							mode={$playback.mode}
+							status={$playback.status}
+							speed={$playback.speed}
+							bufferedFrames={$playback.frameBuffer.length}
+							selectedObject={$playback.selectedObject}
+							viewKind={currentView.kind}
+							viewLabel={currentView.label}
+							onSelect={(object) => playback.selectObject(object)}
+						/>
+					{:else if currentView.surface === 'metrics'}
+						<div class="h-full overflow-auto p-4">
+							<MetricTimeline
+								records={metrics}
+								{events}
+								frames={$playback.frameBuffer}
+								selectedTime={$playback.currentTime}
+								onSelectTime={(time) => {
+									playback.pause();
+									playback.scrubTo(time);
+								}}
+							/>
+						</div>
+					{:else}
+						<div class="h-full overflow-auto p-4">
+							{#if entityBrowser.mode === 'grouped'}
+								<div class="grid gap-4">
+									{#each entityBrowser.groups as group (group.id)}
+										<div class="rounded-lg border bg-background/80 p-3">
+											<p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+												{group.label}
+											</p>
+											<div class="mt-3 grid gap-2">
+												{#each group.rows as row (row.id)}
+													<button
+														type="button"
+														class="flex items-center justify-between rounded-lg border px-3 py-2 text-left hover:bg-muted/40"
+														onclick={() => playback.selectObject({ kind: row.kind, id: row.id })}
+													>
+														<span class="font-medium">{row.label}</span>
+														<span class="text-xs text-muted-foreground">{row.value}</span>
+													</button>
+												{/each}
+											</div>
+										</div>
+									{/each}
+									{#if entityBrowser.relationshipRows.length}
+										<div class="rounded-lg border bg-background/80 p-3">
+											<p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+												Relationships
+											</p>
+											<div class="mt-3 grid gap-2">
+												{#each entityBrowser.relationshipRows as row (row.id)}
+													<button
+														type="button"
+														class="flex items-center justify-between rounded-lg border px-3 py-2 text-left hover:bg-muted/40"
+														onclick={() => playback.selectObject({ kind: row.kind, id: row.id })}
+													>
+														<span class="font-medium">{row.label}</span>
+														<span class="text-xs text-muted-foreground">{row.value}</span>
+													</button>
+												{/each}
+											</div>
+										</div>
+									{/if}
+								</div>
+							{:else}
+								<div class="grid gap-2">
+									{#each entityBrowser.rows as row (row.id)}
+										<button
+											type="button"
+											class="flex items-center justify-between rounded-lg border bg-background/80 px-3 py-2 text-left hover:bg-muted/40"
+											onclick={() => playback.selectObject({ kind: row.kind, id: row.id })}
+										>
+											<div>
+												<p class="font-medium">{row.label}</p>
+												{#if row.description}
+													<p class="text-xs text-muted-foreground">{row.description}</p>
+												{/if}
+											</div>
+											<span class="text-xs text-muted-foreground">{row.value}</span>
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
 				</div>
 			</StudioPanel>
 
@@ -804,10 +940,96 @@
 											{/each}
 										</div>
 									{/if}
+									{#if explanationFacts(section.response).length > 1}
+										<div class="grid gap-2">
+											{#each explanationFacts(section.response).slice(0, 3) as fact (`${section.key}:${fact.title}:${fact.t}`)}
+												<div class="rounded-lg border bg-background/70 p-2">
+													<div class="flex items-center justify-between gap-2">
+														<p class="text-xs font-medium">{fact.title}</p>
+														<span
+															class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(fact.severity)}`}
+														>
+															t={fact.t.toFixed(2)}
+														</span>
+													</div>
+													<p class="mt-1 text-xs text-muted-foreground">{fact.summary}</p>
+												</div>
+											{/each}
+										</div>
+									{/if}
 								</div>
 							{/if}
 						</div>
 					{/each}
+				</div>
+			</StudioPanel>
+
+			<StudioPanel
+				title="What changed recently"
+				description="Recent deterministic deltas and clickable milestones stay tied to replay time."
+			>
+				<div class="grid gap-3">
+					{#if recentChangeItems.length}
+						{#each recentChangeItems as item (`change:${item.label}`)}
+							<div class="rounded-xl border p-3">
+								<div class="flex items-center justify-between gap-3">
+									<p class="text-sm font-semibold">{item.label}</p>
+									<span
+										class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(item.severity)}`}
+									>
+										{item.severity}
+									</span>
+								</div>
+								<p class="mt-2 text-sm text-muted-foreground">{item.summary}</p>
+							</div>
+						{/each}
+					{:else}
+						<p class="text-sm text-muted-foreground">
+							Pause playback or load more metrics to surface recent changes.
+						</p>
+					{/if}
+
+					<div class="rounded-xl border p-3">
+						<div class="flex items-center justify-between gap-3">
+							<div>
+								<p class="text-sm font-semibold">Milestone timeline</p>
+								<p class="mt-1 text-xs text-muted-foreground">
+									Peaks, threshold crossings, anomalies, and event bursts can jump playback directly.
+								</p>
+							</div>
+							<span class="rounded-full border px-2 py-0.5 text-[11px] font-medium">
+								{milestones.length} markers
+							</span>
+						</div>
+						{#if milestones.length}
+							<div class="mt-3 flex gap-3 overflow-x-auto pb-1">
+								{#each milestones as milestone (milestone.id)}
+									<button
+										type="button"
+										class="min-w-[13rem] rounded-xl border bg-background/80 p-3 text-left hover:bg-muted/40"
+										onclick={() => openMilestone(milestone)}
+									>
+										<div class="flex items-center justify-between gap-2">
+											<span
+												class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(milestone.severity)}`}
+											>
+												{milestone.kind.replace('_', ' ')}
+											</span>
+											<span class="text-[11px] text-muted-foreground"
+												>t={milestone.t.toFixed(2)}</span
+											>
+										</div>
+										<p class="mt-2 font-medium">{milestone.title}</p>
+										<p class="mt-1 text-xs text-muted-foreground">{milestone.summary}</p>
+									</button>
+								{/each}
+							</div>
+						{:else}
+							<p class="mt-3 text-sm text-muted-foreground">
+								No milestones have been extracted from the current replay yet.
+							</p>
+						{/if}
+					</div>
 				</div>
 			</StudioPanel>
 
@@ -845,9 +1067,7 @@
 					{#if fieldCellDetails}
 						<div class="rounded-lg border p-3">
 							<p class="studio-eyebrow">Field cell</p>
-							<p class="mt-2 font-mono text-xs">
-								{fieldCellDetails.field}[{fieldCellDetails.row}, {fieldCellDetails.column}]
-							</p>
+							<p class="mt-2 font-mono text-xs">{fieldCellDetails.label}</p>
 							<p class="text-sm">
 								{fieldCellDetails.value ?? '-'}
 								{fieldCellDetails.units}
@@ -858,13 +1078,102 @@
 						</div>
 					{/if}
 					{#if graphNodeDetails}
-						<div class="rounded-lg border p-3">
+						<div class="grid gap-3 rounded-lg border p-3">
 							<p class="studio-eyebrow">Graph node</p>
-							<p class="mt-2 font-mono text-xs">{graphNodeDetails.id}</p>
-							<p class="text-sm">{graphNodeDetails.state} · degree {graphNodeDetails.degree}</p>
-							<p class="mt-1 text-xs text-muted-foreground">
-								{graphNodeDetails.events.length} related events
-							</p>
+							<div>
+								<p class="font-medium">{graphNodeDetails.label}</p>
+								<p class="mt-1 text-xs text-muted-foreground">
+									{graphNodeDetails.state} · degree {graphNodeDetails.degree}
+									{#if graphNodeDetails.group}
+										· {graphNodeDetails.group}
+									{/if}
+								</p>
+							</div>
+							{#if graphNodeDetails.metrics.length}
+								<div class="grid gap-1 rounded-lg bg-muted/30 p-2 text-xs">
+									{#each graphNodeDetails.metrics as metric (`metric:${metric.label}`)}
+										<div class="flex items-center justify-between gap-3">
+											<span class="text-muted-foreground">{metric.label}</span>
+											<span class="font-medium">{metric.value}</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if graphNodeDetails.fields.length}
+								<div class="grid gap-1 rounded-lg bg-muted/30 p-2 text-xs">
+									{#each graphNodeDetails.fields as field (`field:${field.label}`)}
+										<div class="flex items-center justify-between gap-3">
+											<span class="text-muted-foreground">{field.label}</span>
+											<span class="font-medium">{field.value}</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if graphNodeDetails.events.length}
+								<div class="grid gap-2">
+									<p class="text-xs font-medium text-muted-foreground">Recent events</p>
+									{#each graphNodeDetails.events.slice(0, 3) as event, index (`node-event:${index}`)}
+										<div class="rounded-lg border bg-background/70 p-2 text-xs">
+											<p class="font-medium">{event.event_type ?? event.event ?? event.type ?? 'event'}</p>
+											<p class="mt-1 text-muted-foreground">t={event.t ?? '-'}</p>
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if graphNodeDetails.facts.length}
+								<div class="grid gap-2">
+									<p class="text-xs font-medium text-muted-foreground">Selection facts</p>
+									{#each graphNodeDetails.facts as fact (`fact:${fact.title}:${fact.t}`)}
+										<div class="rounded-lg border bg-background/70 p-2 text-xs">
+											<div class="flex items-center justify-between gap-2">
+												<p class="font-medium">{fact.title}</p>
+												<span
+													class={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${severityBadgeClass(fact.severity)}`}
+												>
+													{fact.severity}
+												</span>
+											</div>
+											<p class="mt-1 text-muted-foreground">{fact.summary}</p>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
+					{#if graphEdgeDetails}
+						<div class="grid gap-3 rounded-lg border p-3">
+							<p class="studio-eyebrow">Relationship</p>
+							<div>
+								<p class="font-medium">{graphEdgeDetails.label}</p>
+								<p class="mt-1 text-xs text-muted-foreground">
+									{graphEdgeDetails.kind}
+									{#if graphEdgeDetails.weight !== null}
+										· weight {graphEdgeDetails.weight}
+									{/if}
+									· {graphEdgeDetails.directed ? 'directed' : 'undirected'}
+								</p>
+							</div>
+							{#if graphEdgeDetails.fields.length}
+								<div class="grid gap-1 rounded-lg bg-muted/30 p-2 text-xs">
+									{#each graphEdgeDetails.fields as field (`edge-field:${field.label}`)}
+										<div class="flex items-center justify-between gap-3">
+											<span class="text-muted-foreground">{field.label}</span>
+											<span class="font-medium">{field.value}</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if graphEdgeDetails.events.length}
+								<div class="grid gap-2">
+									<p class="text-xs font-medium text-muted-foreground">Recent events</p>
+									{#each graphEdgeDetails.events.slice(0, 3) as event, index (`edge-event:${index}`)}
+										<div class="rounded-lg border bg-background/70 p-2 text-xs">
+											<p class="font-medium">{event.event_type ?? event.event ?? event.type ?? 'event'}</p>
+											<p class="mt-1 text-muted-foreground">t={event.t ?? '-'}</p>
+										</div>
+									{/each}
+								</div>
+							{/if}
 						</div>
 					{/if}
 					{#if runDetails}
@@ -1140,7 +1449,7 @@
 	</StudioPanel>
 </div>
 
-{#if focusSurface === 'viewport'}
+{#if focusSurface === 'viewport' && currentView.surface === 'viewport'}
 	<div class="fixed inset-0 z-50 bg-background/85 p-4 backdrop-blur-sm">
 		<div class="flex h-full flex-col gap-4 rounded-2xl border bg-background p-4 shadow-2xl">
 			<div class="flex items-center justify-between gap-3">
@@ -1163,6 +1472,7 @@
 					speed={$playback.speed}
 					bufferedFrames={$playback.frameBuffer.length}
 					selectedObject={$playback.selectedObject}
+					viewKind={currentView.kind}
 					viewLabel={currentView.label}
 					onSelect={(object) => playback.selectObject(object)}
 				/>

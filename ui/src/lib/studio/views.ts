@@ -46,7 +46,7 @@ export const standardViews: StandardViewDefinition[] = [
 		kind: 'matrix',
 		label: 'Matrix',
 		description: 'Dense graph fallback when connectivity overwhelms node-link rendering.',
-		surface: 'table'
+		surface: 'viewport'
 	},
 	{
 		kind: 'table',

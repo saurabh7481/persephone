@@ -45,6 +45,29 @@ const graphFrame: SimulationFrame = {
 	visualization: {}
 };
 
+const denseGraphFrame: SimulationFrame = {
+	kind: 'graph',
+	frame_id: 'graph-dense',
+	t: 5,
+	tick: 5,
+	solver_id: 'network#0',
+	source: 'replay',
+	nodes: [
+		{ id: 'a', label: 'Alpha', group: 'north', metrics: { load: 2 } },
+		{ id: 'b', label: 'Beta', group: 'north', metrics: { load: 4 } },
+		{ id: 'c', label: 'Gamma', group: 'south', metrics: { load: 8 } },
+		{ id: 'd', label: 'Delta', group: 'south', metrics: { load: 6 } }
+	],
+	edges: [
+		{ source: 'a', target: 'b', weight: 0.2 },
+		{ source: 'a', target: 'c', weight: 0.9 },
+		{ source: 'b', target: 'c', weight: 0.75 },
+		{ source: 'c', target: 'd', weight: 0.85 },
+		{ source: 'd', target: 'a', weight: 0.7 }
+	],
+	visualization: { density_hint: 'dense' }
+};
+
 describe('studio viewport render helpers', () => {
 	test('maps field values through configured bounds and palettes', () => {
 		expect(fieldColor(fieldFrame, 0, { palette: 'inferno', autoscale: false })).toBe('#1f1536');
@@ -90,5 +113,69 @@ describe('studio viewport render helpers', () => {
 			id: '1'
 		});
 		expect(graphHitTest(layout, 239, 159)).toBeNull();
+	});
+
+	test('keeps graph layout stable even when node ordering changes across frames', () => {
+		const viewport = normalizeViewport(320, 240, 1);
+		const reordered: SimulationFrame = {
+			...graphFrame,
+			nodes: [...graphFrame.nodes].reverse()
+		};
+
+		const first = graphLayout(graphFrame, viewport, { mode: 'network' });
+		const second = graphLayout(reordered, viewport, { mode: 'network' });
+
+		const normalize = (nodes: typeof first.nodes) =>
+			[...nodes]
+				.map((node) => [node.id, node.x, node.y])
+				.sort((left, right) => String(left[0]).localeCompare(String(right[0])));
+
+		expect(normalize(first.nodes)).toEqual(normalize(second.nodes));
+	});
+
+	test('supports dense-graph matrix mode, threshold filtering, and group aggregation', () => {
+		const layout = graphLayout(denseGraphFrame, normalizeViewport(360, 240, 1), {
+			mode: 'matrix',
+			edgeThreshold: 0.7,
+			aggregateGroups: true
+		});
+
+		expect(layout.mode).toBe('matrix');
+		expect(layout.nodes.map((node) => node.id)).toEqual(['north', 'south']);
+		expect(layout.hiddenEdgeCount).toBe(1);
+		expect(layout.matrixCells).toHaveLength(4);
+		expect(layout.matrixCells.find((cell) => cell.source === 'north' && cell.target === 'south'))
+			.toMatchObject({
+				weight: 1.65,
+				edgeCount: 2
+			});
+	});
+
+	test('sizes nodes by metrics, highlights search matches, and hit tests edges', () => {
+		const layout = graphLayout(denseGraphFrame, normalizeViewport(360, 240, 1), {
+			mode: 'network',
+			search: 'gamma',
+			edgeThreshold: 0.7
+		});
+		const gamma = layout.nodes.find((node) => node.id === 'c');
+		const alpha = layout.nodes.find((node) => node.id === 'a');
+		const highlightedEdge = layout.edges.find(
+			(edge) => edge.source === 'b' && edge.target === 'c'
+		);
+
+		expect(gamma?.highlighted).toBe(true);
+		expect(alpha?.dimmed).toBe(true);
+		expect(gamma?.radius ?? 0).toBeGreaterThan(alpha?.radius ?? 0);
+		expect(highlightedEdge?.highlighted).toBe(true);
+		expect(
+			graphHitTest(
+				layout,
+				(highlightedEdge!.x1 + highlightedEdge!.x2) / 2,
+				(highlightedEdge!.y1 + highlightedEdge!.y2) / 2
+			)
+		).toMatchObject({
+			kind: 'graph-edge',
+			id: 'b->c'
+		});
 	});
 });
