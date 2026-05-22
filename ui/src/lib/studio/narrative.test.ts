@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest';
 
-import {
-	extractMilestones,
-	milestonePlaybackTarget,
-	recentChangeCards
-} from './narrative';
-import type { EventRecord, ExplanationResponse, MetricRecord, SimulationFrame } from '$lib/api-client';
+import { extractMilestones, milestonePlaybackTarget, recentChangeCards } from './narrative';
+import type {
+	EventRecord,
+	ExplanationResponse,
+	MetricRecord,
+	SimulationFrame
+} from '$lib/api-client';
 
 const metrics: MetricRecord[] = [
 	{ t: 1, metric: 'infected_count', value: 10, warning_threshold: 15, critical_threshold: 24 },

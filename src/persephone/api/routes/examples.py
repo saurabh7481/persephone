@@ -44,6 +44,18 @@ EXAMPLES = {
         description="Real-world county adjacency simulation backed by the 2023 U.S. Census file.",
         path="configs/examples/us_county_epidemic.yaml",
     ),
+    "market_stress": ExampleConfig(
+        id="market_stress",
+        name="Market stress demo",
+        description="Synthetic sector-correlation stress run that favors the matrix view.",
+        path="configs/examples/market_stress.yaml",
+    ),
+    "dependency_workflow": ExampleConfig(
+        id="dependency_workflow",
+        name="Dependency workflow demo",
+        description="Synthetic codebase dependency workflow that favors hierarchy and table views.",
+        path="configs/examples/dependency_workflow.yaml",
+    ),
 }
 
 

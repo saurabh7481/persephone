@@ -1,0 +1,39 @@
+name: dependency_workflow_risk_demo
+description: "Synthetic codebase dependency workflow with blocker propagation semantics"
+seed: 42
+
+scheduler:
+  t_end: 10
+  sync_interval: auto
+
+solvers:
+  - type: graph
+    plugin: dependency_workflow
+    version: ">=0.1.0"
+    params:
+      risk_bias: 0.02
+      backlog_bias: 1.0
+
+observer:
+  metrics:
+    - delivery_risk_index
+    - blocked_items
+    - review_backlog
+    - critical_path_pressure
+  emit_every: 1.0
+
+storage:
+  artifacts_dir: runs
+  metrics: true
+  events: true
+
+visualization:
+  emit_every: 1.0
+
+interpretation:
+  mode: rules_only
+  every_n_ticks: 1
+  on_milestone: true
+  on_complete: true
+  max_input_facts: 4
+  max_output_tokens: 96

@@ -68,6 +68,7 @@
 	let error = $state('');
 	let streamState = $state<'idle' | 'connected' | 'closed'>('idle');
 	let selectedView = $state<StandardViewKind | null>(null);
+	let selectedViewLocked = $state(false);
 	let activeDockTab = $state('metrics');
 	let focusSurface = $state<FocusSurface>('none');
 	let pinnedMetrics = $state<string[]>([]);
@@ -119,8 +120,7 @@
 		graphNodeInspection(
 			selectedFrame,
 			selectedObject?.kind === 'graph-node' ? selectedObject.id : null,
-			events
-			,
+			events,
 			pluginSemantics,
 			selectionExplanation
 		)
@@ -201,9 +201,13 @@
 	$effect(() => {
 		const options = viewOptions;
 		if (!options.length) return;
-		if (selectedView && options.some((view) => view.kind === selectedView)) return;
-		selectedView = recommendedView.kind;
-		activeDockTab = defaultDockTab(recommendedView.kind);
+		const selectedStillAvailable = selectedView
+			? options.some((view) => view.kind === selectedView)
+			: false;
+		if (!selectedViewLocked || !selectedStillAvailable) {
+			selectedView = recommendedView.kind;
+			activeDockTab = defaultDockTab(recommendedView.kind);
+		}
 	});
 
 	$effect(() => {
@@ -359,6 +363,7 @@
 
 	function handleViewChange(value: string) {
 		selectedView = value as StandardViewKind;
+		selectedViewLocked = true;
 		activeDockTab = defaultDockTab(selectedView);
 	}
 
@@ -789,7 +794,9 @@
 								<div class="grid gap-4">
 									{#each entityBrowser.groups as group (group.id)}
 										<div class="rounded-lg border bg-background/80 p-3">
-											<p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+											<p
+												class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+											>
 												{group.label}
 											</p>
 											<div class="mt-3 grid gap-2">
@@ -808,7 +815,9 @@
 									{/each}
 									{#if entityBrowser.relationshipRows.length}
 										<div class="rounded-lg border bg-background/80 p-3">
-											<p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+											<p
+												class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+											>
 												Relationships
 											</p>
 											<div class="mt-3 grid gap-2">
@@ -994,7 +1003,8 @@
 							<div>
 								<p class="text-sm font-semibold">Milestone timeline</p>
 								<p class="mt-1 text-xs text-muted-foreground">
-									Peaks, threshold crossings, anomalies, and event bursts can jump playback directly.
+									Peaks, threshold crossings, anomalies, and event bursts can jump playback
+									directly.
 								</p>
 							</div>
 							<span class="rounded-full border px-2 py-0.5 text-[11px] font-medium">
@@ -1114,7 +1124,9 @@
 									<p class="text-xs font-medium text-muted-foreground">Recent events</p>
 									{#each graphNodeDetails.events.slice(0, 3) as event, index (`node-event:${index}`)}
 										<div class="rounded-lg border bg-background/70 p-2 text-xs">
-											<p class="font-medium">{event.event_type ?? event.event ?? event.type ?? 'event'}</p>
+											<p class="font-medium">
+												{event.event_type ?? event.event ?? event.type ?? 'event'}
+											</p>
 											<p class="mt-1 text-muted-foreground">t={event.t ?? '-'}</p>
 										</div>
 									{/each}
@@ -1168,7 +1180,9 @@
 									<p class="text-xs font-medium text-muted-foreground">Recent events</p>
 									{#each graphEdgeDetails.events.slice(0, 3) as event, index (`edge-event:${index}`)}
 										<div class="rounded-lg border bg-background/70 p-2 text-xs">
-											<p class="font-medium">{event.event_type ?? event.event ?? event.type ?? 'event'}</p>
+											<p class="font-medium">
+												{event.event_type ?? event.event ?? event.type ?? 'event'}
+											</p>
 											<p class="mt-1 text-muted-foreground">t={event.t ?? '-'}</p>
 										</div>
 									{/each}

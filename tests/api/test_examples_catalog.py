@@ -11,7 +11,14 @@ def test_api_lists_and_fetches_example_configs() -> None:
     listed = client.get("/examples")
     assert listed.status_code == 200
     ids = {item["id"] for item in listed.json()}
-    assert {"sir_epidemic", "heat_diffusion", "heat_diffusion_large", "us_county_epidemic"} <= ids
+    assert {
+        "sir_epidemic",
+        "heat_diffusion",
+        "heat_diffusion_large",
+        "us_county_epidemic",
+        "market_stress",
+        "dependency_workflow",
+    } <= ids
 
     fetched = client.get("/examples/heat_diffusion")
     assert fetched.status_code == 200
@@ -27,6 +34,14 @@ def test_api_lists_and_fetches_example_configs() -> None:
     county = client.get("/examples/us_county_epidemic")
     assert county.status_code == 200
     assert county.json()["config"]["solvers"][0]["plugin"] == "us_county_epidemic"
+
+    market = client.get("/examples/market_stress")
+    assert market.status_code == 200
+    assert market.json()["config"]["solvers"][0]["plugin"] == "market_stress"
+
+    workflow = client.get("/examples/dependency_workflow")
+    assert workflow.status_code == 200
+    assert workflow.json()["config"]["solvers"][0]["plugin"] == "dependency_workflow"
 
 
 def test_deprecated_sir_example_alias_still_returns_config() -> None:

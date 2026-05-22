@@ -210,7 +210,9 @@
 			hoverAtPointer(event);
 			return;
 		}
-		movedDuringDrag = movedDuringDrag || Math.hypot(event.clientX - pointerAnchorX, event.clientY - pointerAnchorY) > 3;
+		movedDuringDrag =
+			movedDuringDrag ||
+			Math.hypot(event.clientX - pointerAnchorX, event.clientY - pointerAnchorY) > 3;
 		panX = pointerPanX + (event.clientX - pointerAnchorX);
 		panY = pointerPanY + (event.clientY - pointerAnchorY);
 		scheduleRender();
@@ -334,7 +336,9 @@
 				<label>
 					<span>Edge filter</span>
 					<input bind:value={edgeThreshold} type="range" min="0" max="1" step="0.05" />
-					<small>{edgeThreshold === '' ? 'all edges' : `>= ${Number(edgeThreshold).toFixed(2)}`}</small>
+					<small
+						>{edgeThreshold === '' ? 'all edges' : `>= ${Number(edgeThreshold).toFixed(2)}`}</small
+					>
 				</label>
 				<label class="simulation-viewport-checkbox">
 					<input type="checkbox" bind:checked={aggregateGroups} />

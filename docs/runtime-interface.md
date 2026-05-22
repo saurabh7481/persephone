@@ -15,6 +15,13 @@ A runtime can:
 - list run artifacts,
 - report runtime capabilities.
 
+In v4, that runtime boundary also carries semantic and interpretation artifacts without letting AI into the deterministic stepping path. The runtime is responsible for surfacing:
+
+- plugin semantic metadata attached to runs,
+- replayable frame artifacts that keep entity labels and view hints intact,
+- deterministic explanation fact packets,
+- optional cached interpretation outputs derived from those facts.
+
 ## Capability Metadata
 
 Every runtime reports:
@@ -27,6 +34,8 @@ Every runtime reports:
 - recommended frame rate.
 
 Run manifests also include `runtime_backend` and `runtime_version` so artifacts remain interpretable after the runtime implementation changes.
+
+Interpretation remains downstream of simulation. A runtime may expose rules-only or minimal-AI summaries, but those summaries must consume compact deterministic fact packets rather than mutating or steering simulation state.
 
 ## Rust Path
 

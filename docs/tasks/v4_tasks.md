@@ -559,35 +559,35 @@ This delivers most of the user-facing value even if the optional AI layer ships 
 
 ### Checkpoint 13 — Cross-domain examples and fixture plugins
 
-- [ ] Keep the county epidemic plugin as one example, but add at least two more semantic fixtures:
-  - [ ] a market-style plugin or synthetic sector/correlation example
-  - [ ] a codebase/workflow plugin or synthetic dependency-risk example
-- [ ] Ensure these examples rely on the same shared contracts and standard views.
-- [ ] Add UI and API tests proving the run page adapts across domains without custom page rewrites.
+- [x] Keep the county epidemic plugin as one example, but add at least two more semantic fixtures:
+  - [x] a market-style plugin or synthetic sector/correlation example
+  - [x] a codebase/workflow plugin or synthetic dependency-risk example
+- [x] Ensure these examples rely on the same shared contracts and standard views.
+- [x] Add UI and API tests proving the run page adapts across domains without custom page rewrites.
 - [ ] Commit: `feat: validate cross-domain semantic contracts`.
 
 ### Checkpoint 14 — Documentation and migration guidance
 
-- [ ] Update SDK docs for semantic manifests and explanation hooks.
-- [ ] Add migration guidance for existing plugins.
-- [ ] Document how to keep AI interpretation low-token and evidence-backed.
-- [ ] Document how plugins should choose default views and expose entity labels.
-- [ ] Update README and architecture docs for v4 behavior.
+- [x] Update SDK docs for semantic manifests and explanation hooks.
+- [x] Add migration guidance for existing plugins.
+- [x] Document how to keep AI interpretation low-token and evidence-backed.
+- [x] Document how plugins should choose default views and expose entity labels.
+- [x] Update README and architecture docs for v4 behavior.
 - [ ] Commit: `docs: add v4 semantic and interpretation guidance`.
 
 ### Checkpoint 15 — Quality gates and release hardening
 
-- [ ] Run `UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest`.
-- [ ] Run targeted API contract and frame replay tests.
-- [ ] Run `cd ui && bun run check && bun run lint && bun run test:unit && bun run build`.
-- [ ] Run Playwright or equivalent end-to-end tests for:
-  - [ ] run page layout
-  - [ ] full-screen viewport
-  - [ ] metric focus
-  - [ ] explanation panel
-  - [ ] inspector behavior
-  - [ ] cross-domain view switching
-- [ ] Verify Docker builds and serves the v4 UI/API together.
+- [x] Run `UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest`.
+- [x] Run targeted API contract and frame replay tests.
+- [x] Run `cd ui && bun run check && bun run lint && bun run test:unit && bun run build`.
+- [x] Run Playwright or equivalent end-to-end tests for:
+  - [x] run page layout
+  - [x] full-screen viewport
+  - [x] metric focus
+  - [x] explanation panel
+  - [x] inspector behavior
+  - [x] cross-domain view switching
+- [x] Verify Docker builds and serves the v4 UI/API together.
 - [ ] Commit: `chore: ship v4 interpretable analysis studio`.
 
 ---

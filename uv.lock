@@ -9,7 +9,9 @@ resolution-markers = [
 [manifest]
 members = [
     "persephone",
+    "persephone-plugin-dependency-workflow",
     "persephone-plugin-heat-diffusion",
+    "persephone-plugin-market-stress",
     "persephone-plugin-sir-epidemic",
     "persephone-plugin-us-county-epidemic",
     "persephone-sdk",
@@ -562,7 +564,9 @@ dependencies = [
     { name = "fastapi" },
     { name = "numpy" },
     { name = "packaging" },
+    { name = "persephone-plugin-dependency-workflow" },
     { name = "persephone-plugin-heat-diffusion" },
+    { name = "persephone-plugin-market-stress" },
     { name = "persephone-plugin-sir-epidemic" },
     { name = "persephone-plugin-us-county-epidemic" },
     { name = "persephone-sdk" },
@@ -591,7 +595,9 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "packaging", specifier = ">=24.0" },
+    { name = "persephone-plugin-dependency-workflow", editable = "plugins/persephone-plugin-dependency-workflow" },
     { name = "persephone-plugin-heat-diffusion", editable = "plugins/persephone-plugin-heat-diffusion" },
+    { name = "persephone-plugin-market-stress", editable = "plugins/persephone-plugin-market-stress" },
     { name = "persephone-plugin-sir-epidemic", editable = "plugins/persephone-plugin-sir-epidemic" },
     { name = "persephone-plugin-us-county-epidemic", editable = "plugins/persephone-plugin-us-county-epidemic" },
     { name = "persephone-sdk", editable = "sdk" },
@@ -616,9 +622,39 @@ dev = [
 ]
 
 [[package]]
+name = "persephone-plugin-dependency-workflow"
+version = "0.1.0"
+source = { editable = "plugins/persephone-plugin-dependency-workflow" }
+dependencies = [
+    { name = "numpy" },
+    { name = "persephone-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "persephone-sdk", editable = "sdk" },
+]
+
+[[package]]
 name = "persephone-plugin-heat-diffusion"
 version = "0.1.0"
 source = { editable = "plugins/persephone-plugin-heat-diffusion" }
+dependencies = [
+    { name = "numpy" },
+    { name = "persephone-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "persephone-sdk", editable = "sdk" },
+]
+
+[[package]]
+name = "persephone-plugin-market-stress"
+version = "0.1.0"
+source = { editable = "plugins/persephone-plugin-market-stress" }
 dependencies = [
     { name = "numpy" },
     { name = "persephone-sdk" },

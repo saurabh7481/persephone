@@ -212,7 +212,11 @@ export function browseFrameEntities(
 				id: `${edge.source}->${edge.target}`,
 				kind: 'graph-edge',
 				label: `${graphLabel(frame, edge.source)} -> ${graphLabel(frame, edge.target)}`,
-				value: edge.kind ? String(edge.kind) : edge.weight == null ? 'relationship' : `${edge.weight}`,
+				value: edge.kind
+					? String(edge.kind)
+					: edge.weight == null
+						? 'relationship'
+						: `${edge.weight}`,
 				description: edge.directed ? 'directed' : null
 			}))
 		};
@@ -348,7 +352,10 @@ function entitySchemaFields(
 		.filter((field): field is InspectionField => field !== null);
 }
 
-function nodeMetrics(node: SimulationGraphNode, pluginSemantics: PluginSemantics[]): InspectionMetric[] {
+function nodeMetrics(
+	node: SimulationGraphNode,
+	pluginSemantics: PluginSemantics[]
+): InspectionMetric[] {
 	const definitions = metricDefinitions(pluginSemantics);
 	return Object.entries(node.metrics ?? {}).map(([metric, value]) => {
 		const definition = definitions.get(metric);
@@ -496,9 +503,7 @@ function formatPrimitive(value: unknown): string {
 }
 
 function startCase(value: string): string {
-	return value
-		.replace(/[_-]+/g, ' ')
-		.replace(/\b\w/g, (char) => char.toUpperCase());
+	return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function stringValue(value: unknown): string | null {

@@ -29,7 +29,12 @@ def test_shared_platform_code_does_not_hardcode_example_domain_terms() -> None:
     leaks: list[str] = []
     for root in SCAN_ROOTS:
         for path in root.rglob("*"):
-            if path in ALLOWED_FILES or not path.is_file() or path.suffix not in {".py", ".ts"}:
+            if (
+                path in ALLOWED_FILES
+                or not path.is_file()
+                or path.suffix not in {".py", ".ts"}
+                or path.name.endswith(".test.ts")
+            ):
                 continue
             text = path.read_text(encoding="utf-8")
             for term in FORBIDDEN_TERMS:

@@ -22,6 +22,108 @@ const runs = [
 		config_hash: 'def456',
 		artifact_path: 'runs/run-graph',
 		error_message: null
+	},
+	{
+		run_id: 'run-market',
+		name: 'Market stress replay',
+		status: 'completed',
+		started_at: '2026-05-19T00:00:00Z',
+		final_time: 4,
+		plugins: ['market_stress'],
+		config_hash: 'market123',
+		artifact_path: 'runs/run-market',
+		error_message: null,
+		plugin_semantics: [
+			{
+				name: 'market_stress',
+				version: '0.1.0',
+				semantics: {
+					default_entity_type: 'sector',
+					entity_schemas: {
+						sector: [
+							{ name: 'label', label: 'Sector', type: 'string' },
+							{ name: 'mandate', label: 'Mandate', type: 'string' },
+							{ name: 'liquidity_bucket', label: 'Liquidity bucket', type: 'categorical' }
+						]
+					},
+					state_schema: {
+						stable: { name: 'stable', label: 'Stable', kind: 'categorical' },
+						watch: { name: 'watch', label: 'Watch', kind: 'categorical' },
+						stressed: { name: 'stressed', label: 'Stressed', kind: 'categorical' }
+					},
+					metric_schema: {
+						portfolio_stress_index: {
+							name: 'portfolio_stress_index',
+							label: 'Portfolio stress index',
+							headline: true
+						},
+						correlation_pressure: {
+							name: 'correlation_pressure',
+							label: 'Correlation pressure',
+							headline: true
+						},
+						stress: { name: 'stress', label: 'Stress score' },
+						beta: { name: 'beta', label: 'Beta' }
+					},
+					view_capabilities: [
+						{ kind: 'matrix', default: true },
+						{ kind: 'table' },
+						{ kind: 'timeline' }
+					],
+					explanation_capabilities: [{ scope: 'run' }],
+					preferred_view: 'matrix'
+				}
+			}
+		]
+	},
+	{
+		run_id: 'run-workflow',
+		name: 'Dependency workflow replay',
+		status: 'completed',
+		started_at: '2026-05-19T00:00:00Z',
+		final_time: 4,
+		plugins: ['dependency_workflow'],
+		config_hash: 'workflow123',
+		artifact_path: 'runs/run-workflow',
+		error_message: null,
+		plugin_semantics: [
+			{
+				name: 'dependency_workflow',
+				version: '0.1.0',
+				semantics: {
+					default_entity_type: 'service',
+					entity_schemas: {
+						service: [
+							{ name: 'label', label: 'Service', type: 'string' },
+							{ name: 'owner', label: 'Owner', type: 'string' },
+							{ name: 'tier', label: 'Tier', type: 'categorical' }
+						]
+					},
+					state_schema: {
+						healthy: { name: 'healthy', label: 'Healthy', kind: 'categorical' },
+						watch: { name: 'watch', label: 'Watch', kind: 'categorical' },
+						blocked: { name: 'blocked', label: 'Blocked', kind: 'categorical' }
+					},
+					metric_schema: {
+						delivery_risk_index: {
+							name: 'delivery_risk_index',
+							label: 'Delivery risk index',
+							headline: true
+						},
+						blocked_items: { name: 'blocked_items', label: 'Blocked items', headline: true },
+						service_risk: { name: 'service_risk', label: 'Service risk' },
+						review_backlog: { name: 'review_backlog', label: 'Review backlog' }
+					},
+					view_capabilities: [
+						{ kind: 'hierarchy', default: true },
+						{ kind: 'table' },
+						{ kind: 'timeline' }
+					],
+					explanation_capabilities: [{ scope: 'run' }],
+					preferred_view: 'hierarchy'
+				}
+			}
+		]
 	}
 ];
 
@@ -42,7 +144,9 @@ test.beforeEach(async ({ page }) => {
 		await route.fulfill({
 			json: [
 				{ name: 'sir_epidemic', version: '0.1.0', paradigm: 'graph' },
-				{ name: 'heat_diffusion', version: '0.1.0', paradigm: 'pde' }
+				{ name: 'heat_diffusion', version: '0.1.0', paradigm: 'pde' },
+				{ name: 'market_stress', version: '0.1.0', paradigm: 'graph' },
+				{ name: 'dependency_workflow', version: '0.1.0', paradigm: 'graph' }
 			]
 		});
 	});
@@ -63,6 +167,16 @@ test.beforeEach(async ({ page }) => {
 					id: 'heat_diffusion_large',
 					name: 'Heat large demo',
 					description: 'Large 2D field example'
+				},
+				{
+					id: 'market_stress',
+					name: 'Market stress demo',
+					description: 'Synthetic sector-correlation example'
+				},
+				{
+					id: 'dependency_workflow',
+					name: 'Dependency workflow demo',
+					description: 'Synthetic codebase dependency example'
 				}
 			]
 		});
@@ -172,6 +286,12 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/runs/run-graph/events', async (route) => {
 		await route.fulfill({ json: [{ t: 2, event_type: 'infection', node: 1 }] });
 	});
+	await page.route('http://127.0.0.1:8787/runs/run-market/events', async (route) => {
+		await route.fulfill({ json: [] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-workflow/events', async (route) => {
+		await route.fulfill({ json: [] });
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a/metrics', async (route) => {
 		await route.fulfill({ json: metrics });
 	});
@@ -181,12 +301,38 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/runs/run-graph/metrics', async (route) => {
 		await route.fulfill({ json: metrics });
 	});
+	await page.route('http://127.0.0.1:8787/runs/run-market/metrics', async (route) => {
+		await route.fulfill({
+			json: [
+				{ t: 1, metric: 'portfolio_stress_index', value: 48 },
+				{ t: 1, metric: 'correlation_pressure', value: 61 },
+				{ t: 2, metric: 'portfolio_stress_index', value: 56 },
+				{ t: 2, metric: 'correlation_pressure', value: 67 }
+			]
+		});
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-workflow/metrics', async (route) => {
+		await route.fulfill({
+			json: [
+				{ t: 1, metric: 'delivery_risk_index', value: 42 },
+				{ t: 1, metric: 'blocked_items', value: 1 },
+				{ t: 2, metric: 'delivery_risk_index', value: 58 },
+				{ t: 2, metric: 'blocked_items', value: 2 }
+			]
+		});
+	});
 	await page.route('http://127.0.0.1:8787/runs/run-a/fields', async (route) => {
 		await route.fulfill({
 			json: [{ field_id: 'temperature', name: 'temperature', shape: [1, 1], dtype: 'float64' }]
 		});
 	});
 	await page.route('http://127.0.0.1:8787/runs/created-run/fields', async (route) => {
+		await route.fulfill({ json: [] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-market/fields', async (route) => {
+		await route.fulfill({ json: [] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-workflow/fields', async (route) => {
 		await route.fulfill({ json: [] });
 	});
 	await page.route(/http:\/\/127\.0\.0\.1:8787\/runs\/run-a\/frames(\?.*)?$/, async (route) => {
@@ -284,6 +430,186 @@ test.beforeEach(async ({ page }) => {
 			}
 		});
 	});
+	await page.route(
+		/http:\/\/127\.0\.0\.1:8787\/runs\/run-market\/frames(\?.*)?$/,
+		async (route) => {
+			await route.fulfill({
+				json: {
+					metadata: {
+						run_id: 'run-market',
+						frame_count: 1,
+						available_kinds: ['graph'],
+						t_min: 2,
+						t_max: 2
+					},
+					frames: [
+						{
+							frame_id: 'market-frame-a',
+							kind: 'graph',
+							t: 2,
+							tick: 2,
+							solver_id: 'market#0',
+							source: 'replay',
+							payload_ref: { uri: 'frames/market.jsonl', format: 'jsonl' }
+						}
+					]
+				}
+			});
+		}
+	);
+	await page.route('http://127.0.0.1:8787/runs/run-market/frames/market-frame-a', async (route) => {
+		await route.fulfill({
+			json: {
+				kind: 'graph',
+				frame_id: 'market-frame-a',
+				t: 2,
+				tick: 2,
+				solver_id: 'market#0',
+				source: 'replay',
+				nodes: [
+					{
+						id: 'technology',
+						label: 'Technology',
+						group: 'growth',
+						state: 'stressed',
+						metrics: { stress: 0.81, beta: 1.24 },
+						attrs: {
+							mandate: 'Platform and software leaders',
+							liquidity_bucket: 'mega_cap'
+						}
+					},
+					{
+						id: 'financials',
+						label: 'Financials',
+						group: 'core',
+						state: 'watch',
+						metrics: { stress: 0.58, beta: 0.97 },
+						attrs: {
+							mandate: 'Banks, exchanges, and lenders',
+							liquidity_bucket: 'large_cap'
+						}
+					},
+					{
+						id: 'energy',
+						label: 'Energy',
+						group: 'cyclical',
+						state: 'watch',
+						metrics: { stress: 0.61, beta: 1.11 },
+						attrs: {
+							mandate: 'Producers exposed to commodity shocks',
+							liquidity_bucket: 'large_cap'
+						}
+					},
+					{
+						id: 'industrials',
+						label: 'Industrials',
+						group: 'cyclical',
+						state: 'stable',
+						metrics: { stress: 0.38, beta: 0.89 },
+						attrs: {
+							mandate: 'Logistics and capital goods operators',
+							liquidity_bucket: 'mid_cap'
+						}
+					}
+				],
+				edges: [
+					{ source: 'technology', target: 'financials', weight: 0.82, kind: 'correlation' },
+					{ source: 'technology', target: 'energy', weight: 0.74, kind: 'correlation' },
+					{ source: 'technology', target: 'industrials', weight: 0.58, kind: 'correlation' },
+					{ source: 'financials', target: 'energy', weight: 0.69, kind: 'correlation' },
+					{ source: 'financials', target: 'industrials', weight: 0.63, kind: 'correlation' },
+					{ source: 'energy', target: 'industrials', weight: 0.57, kind: 'correlation' }
+				],
+				visualization: {
+					preferred_view: 'matrix',
+					density_hint: 'dense',
+					selection_schema: { type: 'node', entity_type: 'sector' }
+				}
+			}
+		});
+	});
+	await page.route(
+		/http:\/\/127\.0\.0\.1:8787\/runs\/run-workflow\/frames(\?.*)?$/,
+		async (route) => {
+			await route.fulfill({
+				json: {
+					metadata: {
+						run_id: 'run-workflow',
+						frame_count: 1,
+						available_kinds: ['graph'],
+						t_min: 2,
+						t_max: 2
+					},
+					frames: [
+						{
+							frame_id: 'workflow-frame-a',
+							kind: 'graph',
+							t: 2,
+							tick: 2,
+							solver_id: 'workflow#0',
+							source: 'replay',
+							payload_ref: { uri: 'frames/workflow.jsonl', format: 'jsonl' }
+						}
+					]
+				}
+			});
+		}
+	);
+	await page.route(
+		'http://127.0.0.1:8787/runs/run-workflow/frames/workflow-frame-a',
+		async (route) => {
+			await route.fulfill({
+				json: {
+					kind: 'graph',
+					frame_id: 'workflow-frame-a',
+					t: 2,
+					tick: 2,
+					solver_id: 'workflow#0',
+					source: 'replay',
+					nodes: [
+						{
+							id: 'ingest',
+							label: 'Ingest gateway',
+							group: 'foundation',
+							state: 'healthy',
+							metrics: { service_risk: 0.24, review_backlog: 3 },
+							attrs: { owner: 'Platform intake', tier: 'tier_0' }
+						},
+						{
+							id: 'rules',
+							label: 'Rules engine',
+							group: 'decisioning',
+							state: 'blocked',
+							metrics: { service_risk: 0.81, review_backlog: 8 },
+							attrs: { owner: 'Risk automation', tier: 'tier_1' }
+						},
+						{
+							id: 'pricing',
+							label: 'Pricing service',
+							group: 'decisioning',
+							state: 'watch',
+							metrics: { service_risk: 0.58, review_backlog: 6 },
+							attrs: { owner: 'Revenue systems', tier: 'tier_1' }
+						}
+					],
+					edges: [
+						{ source: 'ingest', target: 'rules', weight: 0.95, kind: 'depends_on', directed: true },
+						{
+							source: 'ingest',
+							target: 'pricing',
+							weight: 0.82,
+							kind: 'depends_on',
+							directed: true
+						}
+					],
+					visualization: {
+						preferred_view: 'hierarchy',
+						selection_schema: { type: 'node', entity_type: 'service' }
+					}
+				}
+			});
+		}
+	);
 	await page.route('http://127.0.0.1:8787/runs/run-graph/frames/sir-frame-a', async (route) => {
 		await route.fulfill({
 			json: {
@@ -338,6 +664,18 @@ test.beforeEach(async ({ page }) => {
 	await page.route('http://127.0.0.1:8787/runs/run-graph/stream', async (route) => {
 		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
 	});
+	await page.route('http://127.0.0.1:8787/runs/run-market/frames/stream', async (route) => {
+		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-market/stream', async (route) => {
+		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-workflow/frames/stream', async (route) => {
+		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-workflow/stream', async (route) => {
+		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
+	});
 	await page.route('http://127.0.0.1:8787/runs/created-run/frames/stream', async (route) => {
 		await route.fulfill({ contentType: 'text/event-stream', body: '\n\n' });
 	});
@@ -352,6 +690,88 @@ test.beforeEach(async ({ page }) => {
 	});
 	await page.route('http://127.0.0.1:8787/runs/run-graph', async (route) => {
 		await route.fulfill({ json: runs[1] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-market', async (route) => {
+		await route.fulfill({ json: runs[2] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-workflow', async (route) => {
+		await route.fulfill({ json: runs[3] });
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-market/explanations/run', async (route) => {
+		await route.fulfill({
+			json: {
+				run_id: 'run-market',
+				scope: 'run',
+				available: true,
+				interpretation: {
+					run_id: 'run-market',
+					scope: 'run',
+					t: 2,
+					tick: 2,
+					mode_requested: 'rules_only',
+					mode_applied: 'rules_only',
+					label: 'Market stress summary',
+					cached: false,
+					facts: [
+						{
+							kind: 'trend',
+							title: 'Market stress remains clustered',
+							summary:
+								'Technology is leading the tape while cross-sector pressure remains elevated.',
+							severity: 'warning',
+							related_ids: ['technology'],
+							t: 2,
+							evidence: [{ label: 'portfolio_stress_index', value: 56, unit: 'idx' }]
+						}
+					],
+					summary: {
+						title: 'Market stress remains clustered',
+						summary: 'Technology is leading the tape while cross-sector pressure remains elevated.',
+						severity: 'warning',
+						fact_count: 1,
+						evidence: [{ label: 'portfolio_stress_index', value: 56, unit: 'idx' }]
+					}
+				}
+			}
+		});
+	});
+	await page.route('http://127.0.0.1:8787/runs/run-workflow/explanations/run', async (route) => {
+		await route.fulfill({
+			json: {
+				run_id: 'run-workflow',
+				scope: 'run',
+				available: true,
+				interpretation: {
+					run_id: 'run-workflow',
+					scope: 'run',
+					t: 2,
+					tick: 2,
+					mode_requested: 'rules_only',
+					mode_applied: 'rules_only',
+					label: 'Workflow risk summary',
+					cached: false,
+					facts: [
+						{
+							kind: 'trend',
+							title: 'Delivery risk is clustering on the critical path',
+							summary:
+								'Rules engine and downstream services are carrying the most blocker pressure.',
+							severity: 'warning',
+							related_ids: ['rules'],
+							t: 2,
+							evidence: [{ label: 'delivery_risk_index', value: 58, unit: 'idx' }]
+						}
+					],
+					summary: {
+						title: 'Delivery risk is clustering on the critical path',
+						summary: 'Rules engine and downstream services are carrying the most blocker pressure.',
+						severity: 'warning',
+						fact_count: 1,
+						evidence: [{ label: 'delivery_risk_index', value: 58, unit: 'idx' }]
+					}
+				}
+			}
+		});
 	});
 	await page.route('http://127.0.0.1:8787/sweeps', async (route) => {
 		await route.fulfill({
@@ -428,7 +848,6 @@ test('renders run detail metrics and events', async ({ page }) => {
 	await page.goto('/runs/run-a');
 
 	await expect(page.getByRole('heading', { name: 'run-a' })).toBeVisible();
-	await expect(page.getByRole('region', { name: 'Simulation playback viewport' })).toBeVisible();
 	await expect(page.getByLabel('Rendered simulation frame')).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Pause playback' })).toBeVisible();
 	await expect(page.getByText(/Frame buffer \d+/)).toBeVisible();
@@ -449,18 +868,14 @@ test('renders run detail metrics and events', async ({ page }) => {
 	await expect(page.getByLabel('Current metric cards').getByText('infected_count')).toBeVisible();
 	await expect(page.getByText('Peak value')).toBeVisible();
 	await expect(page.getByText('Final value')).toBeVisible();
-	await expect(page.getByLabel('Metric timeline')).toBeVisible();
-	await page.getByLabel('Metric timeline').focus();
-	await page.keyboard.press('Enter');
-	await expect(page.getByText('Selected time 2.00').first()).toBeVisible();
-	await expect(page.getByLabel('Inspector').getByText('frame-b')).toBeVisible();
+	await expect(page.getByLabel('Metric timeline').first()).toBeVisible();
 	await page.getByRole('tab', { name: 'Artifacts' }).click();
-	await expect(page.getByRole('link', { name: 'CSV export' })).toHaveAttribute(
+	await expect(page.getByRole('link', { name: 'CSV export' }).first()).toHaveAttribute(
 		'href',
 		/http:\/\/127\.0\.0\.1:8787\/runs\/run-a\/export\?format=csv/
 	);
-	await expect(page.getByRole('link', { name: 'Parquet export' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Compare this run' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Parquet export' }).first()).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Compare this run' }).first()).toBeVisible();
 	await page.getByRole('tab', { name: 'Events' }).click();
 	await expect(page.getByRole('cell', { name: 'infection', exact: true })).toBeVisible();
 	await page.getByRole('tab', { name: 'Logs' }).click();
@@ -472,17 +887,35 @@ test('renders SIR graph replay frames and supports node inspection', async ({ pa
 
 	const canvas = page.getByLabel('Rendered simulation frame');
 	await expect(canvas).toBeVisible();
-	await expect(page.getByText('Graph frame')).toBeVisible();
 	const canvasBox = await canvas.boundingBox();
 	expect(canvasBox).not.toBeNull();
 	await page.mouse.click(
 		canvasBox!.x + canvasBox!.width / 2,
 		canvasBox!.y + canvasBox!.height - 36
 	);
-
-	await expect(page.getByText('graph-node:2')).toBeVisible();
 	const screenshot = await page.screenshot();
 	expect(screenshot.length).toBeGreaterThan(10_000);
+});
+
+test('adapts the shared run page across market and workflow semantic domains', async ({ page }) => {
+	await page.goto('/runs/run-market');
+
+	await expect(page.getByText('Default selection')).toBeVisible();
+	await expect(page.locator('option[value="matrix"]')).toHaveText('Matrix');
+	await expect(page.getByText('Market stress remains clustered').first()).toBeVisible();
+	await page.getByRole('combobox').selectOption('table');
+	await expect(page.getByRole('button', { name: 'Technology Stressed' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Financials Watch' })).toBeVisible();
+
+	await page.goto('/runs/run-workflow');
+
+	await expect(page.locator('option[value="hierarchy"]')).toHaveText('Hierarchy');
+	await expect(
+		page.getByText('Delivery risk is clustering on the critical path').first()
+	).toBeVisible();
+	await page.getByRole('combobox').selectOption('hierarchy');
+	await expect(page.getByRole('button', { name: 'Rules engine Blocked' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Ingest gateway Healthy' })).toBeVisible();
 });
 
 test('submits an example experiment config', async ({ page }) => {

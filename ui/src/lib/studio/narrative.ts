@@ -1,6 +1,11 @@
 import { group } from 'd3';
 
-import type { EventRecord, ExplanationResponse, MetricRecord, SimulationFrame } from '$lib/api-client';
+import type {
+	EventRecord,
+	ExplanationResponse,
+	MetricRecord,
+	SimulationFrame
+} from '$lib/api-client';
 
 export type NarrativeCard = {
 	label: string;
@@ -100,7 +105,10 @@ export function extractMilestones({
 	const frameMin = Math.min(...frames.map((frame) => frame.t), Infinity);
 	return milestones
 		.filter((milestone) => Number.isFinite(milestone.t) && milestone.t >= frameMin)
-		.sort((left, right) => left.t - right.t || milestonePriority(left.kind) - milestonePriority(right.kind));
+		.sort(
+			(left, right) =>
+				left.t - right.t || milestonePriority(left.kind) - milestonePriority(right.kind)
+		);
 }
 
 export function recentChangeCards({
@@ -165,10 +173,9 @@ export function milestonePlaybackTarget(
 
 function metricSeries(records: MetricRecord[]): Map<string, MetricRecord[]> {
 	return new Map(
-		group(records, (record) => record.metric).entries().map(([metric, points]) => [
-			metric,
-			[...points].sort((left, right) => left.t - right.t)
-		])
+		group(records, (record) => record.metric)
+			.entries()
+			.map(([metric, points]) => [metric, [...points].sort((left, right) => left.t - right.t)])
 	);
 }
 

@@ -1,6 +1,6 @@
 # Persephone
 
-Persephone is a local-first, plugin-driven simulation platform. Version 2 is a headless-first research workbench: validate configs, discover trusted Python plugins, run simulations, stream local API metrics, compare sweeps, export results, and inspect field artifacts from PDE-style simulations.
+Persephone is a local-first, plugin-driven simulation platform. Version 4 turns the Studio into an interpretable analysis workbench: plugins can declare semantics for entities, states, metrics, and recommended views so the shared `/runs/{run_id}` page can adapt across domains without bespoke UI rewrites.
 
 See [Persephone.md](Persephone.md) for the architecture and [docs/tasks/v1_tasks.md](docs/tasks/v1_tasks.md) for the implementation checklist.
 Core scheduler, checkpoint, telemetry, and state-contract notes live in [docs/core-architecture.md](docs/core-architecture.md).
@@ -14,7 +14,7 @@ Requirements:
 
 For Docker-only local usage, skip to [Docker Quickstart](#docker-quickstart).
 
-Install the workspace packages, including the editable SIR and heat diffusion plugins:
+Install the workspace packages, including the editable first-party plugins:
 
 ```bash
 uv sync
@@ -42,6 +42,13 @@ Run the PDE example:
 
 ```bash
 uv run persephone run configs/examples/heat_diffusion.yaml --run-id heat-demo
+```
+
+Run the cross-domain v4 examples:
+
+```bash
+uv run persephone run configs/examples/market_stress.yaml --run-id market-demo
+uv run persephone run configs/examples/dependency_workflow.yaml --run-id workflow-demo
 ```
 
 Inspect the output:
@@ -116,6 +123,8 @@ Persephone is developed as a monorepo for Version 1, but each package has a clea
 - `sdk/src/persephone_sdk`: public plugin SDK contracts: `World`, `Solver`, `Observer`, `Renderer`, `PluginManifest`, and `PluginTestHarness`.
 - `plugins/persephone-plugin-sir-epidemic`: graph SIR plugin, discovered through the same `persephone.plugins` entry point used by future external plugins.
 - `plugins/persephone-plugin-heat-diffusion`: 2D PDE heat diffusion plugin with field artifacts.
+- `plugins/persephone-plugin-market-stress`: synthetic sector-correlation fixture proving dense graph semantics and matrix-first analysis.
+- `plugins/persephone-plugin-dependency-workflow`: synthetic codebase workflow fixture proving hierarchy/table inspection with the shared contracts.
 
 The engine should not directly import plugin modules. Plugins are installed packages and are discovered through entry points.
 
@@ -171,6 +180,17 @@ runs/<run_id>/
 - `final_state.json`: metadata for final-state arrays.
 - `checkpoints/`: optional checkpoint snapshots when `scheduler.checkpoint_every` is configured.
 - `exports/`: optional CSV, Parquet, or field downloads created by the CLI/API.
+
+## V4 Semantics And Interpretation
+
+Version 4 plugins can enrich the shared analysis surface through `PluginManifest.semantics` and `Observer.explain(...)`.
+
+- `entity_schemas`, `state_schema`, `metric_schema`, and `event_schema` give the UI human-facing labels instead of raw ids.
+- `view_capabilities` and `preferred_view` tell the run page whether a domain should open in a network, matrix, hierarchy, table, timeline, or heatmap flow.
+- `explanation_capabilities` plus deterministic fact packets let the same explanation panels work for replay and live runs.
+- `interpretation.mode: rules_only` is the default recommendation for shipping evidence-backed summaries without any LLM dependency.
+
+See [docs/plugin-authoring.md](docs/plugin-authoring.md) for migration guidance and [docs/tasks/v4_tasks.md](docs/tasks/v4_tasks.md) for the v4 delivery checklist.
 
 ## Reproducibility
 

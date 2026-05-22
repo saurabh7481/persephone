@@ -34,6 +34,8 @@
 
 Persephone is a **domain-agnostic, general-purpose simulation engine** designed for academic research, scientific computing, and AI agent workflows. It is not tied to any single domain — it is equally capable of running a fluid dynamics simulation, a disease spread model, a multi-agent reinforcement learning environment, or a custom user-defined system.
 
+Version 4 extends that engine into an **interpretable analysis platform**. Plugins still own the simulation logic, but they can now also describe what their entities, states, metrics, and events mean so the shared analysis Studio can adapt across domains like county epidemics, market stress, and dependency workflows without page-specific rewrites.
+
 ### Core design goals
 
 | Goal | What it means in practice |
@@ -43,6 +45,7 @@ Persephone is a **domain-agnostic, general-purpose simulation engine** designed 
 | Reproducible | Every run is versioned, seeded, and replayable. Results are never lost. |
 | AI-native | AI agents can launch, observe, and steer simulations programmatically via the same API humans use. |
 | Scalable | Runs on a laptop for prototyping; distributes across GPUs and MPI clusters for production. |
+| Interpretable | Deterministic semantics and explanation facts let the UI answer “what is happening and why?” before any optional AI paraphrase is involved. |
 
 ### What Persephone is NOT
 

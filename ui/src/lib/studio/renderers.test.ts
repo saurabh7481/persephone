@@ -144,11 +144,12 @@ describe('studio viewport render helpers', () => {
 		expect(layout.nodes.map((node) => node.id)).toEqual(['north', 'south']);
 		expect(layout.hiddenEdgeCount).toBe(1);
 		expect(layout.matrixCells).toHaveLength(4);
-		expect(layout.matrixCells.find((cell) => cell.source === 'north' && cell.target === 'south'))
-			.toMatchObject({
-				weight: 1.65,
-				edgeCount: 2
-			});
+		expect(
+			layout.matrixCells.find((cell) => cell.source === 'north' && cell.target === 'south')
+		).toMatchObject({
+			weight: 1.65,
+			edgeCount: 2
+		});
 	});
 
 	test('sizes nodes by metrics, highlights search matches, and hit tests edges', () => {
@@ -159,9 +160,7 @@ describe('studio viewport render helpers', () => {
 		});
 		const gamma = layout.nodes.find((node) => node.id === 'c');
 		const alpha = layout.nodes.find((node) => node.id === 'a');
-		const highlightedEdge = layout.edges.find(
-			(edge) => edge.source === 'b' && edge.target === 'c'
-		);
+		const highlightedEdge = layout.edges.find((edge) => edge.source === 'b' && edge.target === 'c');
 
 		expect(gamma?.highlighted).toBe(true);
 		expect(alpha?.dimmed).toBe(true);

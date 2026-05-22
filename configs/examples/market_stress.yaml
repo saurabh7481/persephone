@@ -1,0 +1,39 @@
+name: market_stress_rotation_demo
+description: "Synthetic cross-sector stress regime demo with dense correlation semantics"
+seed: 42
+
+scheduler:
+  t_end: 10
+  sync_interval: auto
+
+solvers:
+  - type: graph
+    plugin: market_stress
+    version: ">=0.1.0"
+    params:
+      stress_bias: 0.03
+      correlation_scale: 1.0
+
+observer:
+  metrics:
+    - portfolio_stress_index
+    - correlation_pressure
+    - active_shocks
+    - dispersion_index
+  emit_every: 1.0
+
+storage:
+  artifacts_dir: runs
+  metrics: true
+  events: true
+
+visualization:
+  emit_every: 1.0
+
+interpretation:
+  mode: rules_only
+  every_n_ticks: 1
+  on_milestone: true
+  on_complete: true
+  max_input_facts: 4
+  max_output_tokens: 96

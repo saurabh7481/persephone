@@ -85,6 +85,40 @@ describe('standard view selection', () => {
 		expect(recommendation.surface).toBe('table');
 	});
 
+	test('adapts shared defaults across market and workflow semantic domains', () => {
+		const marketRecommendation = chooseDefaultView({
+			frame: denseGraph,
+			pluginSemantics: [
+				{
+					name: 'market_stress',
+					version: '0.1.0',
+					semantics: {
+						view_capabilities: [{ kind: 'matrix', default: true }, { kind: 'timeline' }],
+						preferred_view: 'matrix'
+					}
+				}
+			]
+		});
+		const workflowRecommendation = chooseDefaultView({
+			frame: positionedGraph,
+			pluginSemantics: [
+				{
+					name: 'dependency_workflow',
+					version: '0.1.0',
+					semantics: {
+						view_capabilities: [{ kind: 'hierarchy', default: true }, { kind: 'table' }],
+						preferred_view: 'hierarchy'
+					}
+				}
+			]
+		});
+
+		expect(marketRecommendation.kind).toBe('matrix');
+		expect(marketRecommendation.surface).toBe('viewport');
+		expect(workflowRecommendation.kind).toBe('hierarchy');
+		expect(workflowRecommendation.surface).toBe('table');
+	});
+
 	test('prefers map and positioned views when coordinate data exists', () => {
 		expect(chooseDefaultView({ frame: geoGraph, pluginSemantics: [] }).kind).toBe('map_network');
 		expect(chooseDefaultView({ frame: positionedGraph, pluginSemantics: [] }).kind).toBe(

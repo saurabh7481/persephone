@@ -259,33 +259,41 @@ export function graphLayout(
 	const search = options.search?.trim().toLowerCase() ?? '';
 	const aggregatedFrame = options.aggregateGroups ? aggregateGraphFrame(frame) : frame;
 	const threshold = options.edgeThreshold;
-	const rawEdges = toRawEdges(aggregatedFrame.edges).filter((edge) => edge.weight >= (threshold ?? -Infinity));
+	const rawEdges = toRawEdges(aggregatedFrame.edges).filter(
+		(edge) => edge.weight >= (threshold ?? -Infinity)
+	);
 	const hiddenEdgeCount = aggregatedFrame.edges.length - rawEdges.length;
 	const graphMode = resolveGraphMode(aggregatedFrame, options.mode);
-	const padding = graphMode === 'matrix' ? 42 : Math.min(36, Math.max(20, Math.min(viewport.width, viewport.height) * 0.12));
+	const padding =
+		graphMode === 'matrix'
+			? 42
+			: Math.min(36, Math.max(20, Math.min(viewport.width, viewport.height) * 0.12));
 	const positionedNodes = positionedGraphNodes(aggregatedFrame, graphMode);
-	const radiusRange = nodeRadiusScale(positionedNodes.map(({ node }) => firstNumericMetricValue(node)));
-	const baseNodes = graphMode === 'matrix'
-		? positionedNodes
-				.map(({ node }) => node)
-				.sort((left, right) => nodeLabel(left).localeCompare(nodeLabel(right)))
-				.map((node, index, nodes) => {
-					const size = Math.max(1, Math.min(viewport.width, viewport.height) - padding * 2);
-					const step = size / Math.max(nodes.length, 1);
-					return {
-						id: node.id,
-						x: padding + step * index + step / 2,
-						y: padding + step * index + step / 2,
-						radius: radiusForMetric(firstNumericMetricValue(node), radiusRange),
-						color: graphNodeColor(node),
-						label: nodeLabel(node),
-						group: stringValue(node.group),
-						highlighted: nodeMatchesSearch(node, search),
-						dimmed: search.length > 0 && !nodeMatchesSearch(node, search),
-						source: node
-					} satisfies GraphLayoutNode;
-				})
-		: layoutSpatialNodes(positionedNodes, viewport, padding, radiusRange, options);
+	const radiusRange = nodeRadiusScale(
+		positionedNodes.map(({ node }) => firstNumericMetricValue(node))
+	);
+	const baseNodes =
+		graphMode === 'matrix'
+			? positionedNodes
+					.map(({ node }) => node)
+					.sort((left, right) => nodeLabel(left).localeCompare(nodeLabel(right)))
+					.map((node, index, nodes) => {
+						const size = Math.max(1, Math.min(viewport.width, viewport.height) - padding * 2);
+						const step = size / Math.max(nodes.length, 1);
+						return {
+							id: node.id,
+							x: padding + step * index + step / 2,
+							y: padding + step * index + step / 2,
+							radius: radiusForMetric(firstNumericMetricValue(node), radiusRange),
+							color: graphNodeColor(node),
+							label: nodeLabel(node),
+							group: stringValue(node.group),
+							highlighted: nodeMatchesSearch(node, search),
+							dimmed: search.length > 0 && !nodeMatchesSearch(node, search),
+							source: node
+						} satisfies GraphLayoutNode;
+					})
+			: layoutSpatialNodes(positionedNodes, viewport, padding, radiusRange, options);
 	const nodesById = new Map(baseNodes.map((node) => [node.id, node]));
 	const edges = rawEdges.flatMap((edge) => {
 		const source = nodesById.get(edge.source);
@@ -373,7 +381,9 @@ export function graphHitTest(
 
 	for (let index = layout.edges.length - 1; index >= 0; index -= 1) {
 		const edge = layout.edges[index];
-		if (distanceToSegment(x, y, edge.x1, edge.y1, edge.x2, edge.y2) <= Math.max(5, edge.width + 2)) {
+		if (
+			distanceToSegment(x, y, edge.x1, edge.y1, edge.x2, edge.y2) <= Math.max(5, edge.width + 2)
+		) {
 			return { kind: 'graph-edge', id: edge.id };
 		}
 	}
@@ -496,7 +506,10 @@ function positionedGraphNodes(
 		});
 }
 
-function resolveGraphMode(frame: SimulationGraphFrame, requested: GraphRenderMode | undefined): GraphRenderMode {
+function resolveGraphMode(
+	frame: SimulationGraphFrame,
+	requested: GraphRenderMode | undefined
+): GraphRenderMode {
 	if (requested) return requested;
 	if (hasGeographicCoordinates(frame)) return 'map_network';
 	if (hasPositionedCoordinates(frame)) return 'positioned_graph';
@@ -639,14 +652,19 @@ function renderGraphMatrix(
 	viewport: ViewportGeometry,
 	selectedObject: SelectedPlaybackObject | null
 ) {
-	const maxWeight =
-		Math.max(1, ...layout.matrixCells.map((cell) => cell.weight), ...layout.edges.map((edge) => edge.weight));
+	const maxWeight = Math.max(
+		1,
+		...layout.matrixCells.map((cell) => cell.weight),
+		...layout.edges.map((edge) => edge.weight)
+	);
 	context.fillStyle = '#0f172a';
 	context.fillRect(0, 0, viewport.width, viewport.height);
 	for (const cell of layout.matrixCells) {
 		const intensity = cell.weight / maxWeight;
 		context.fillStyle =
-			cell.weight === 0 ? 'rgba(51, 65, 85, 0.35)' : `rgba(47, 125, 211, ${0.25 + intensity * 0.7})`;
+			cell.weight === 0
+				? 'rgba(51, 65, 85, 0.35)'
+				: `rgba(47, 125, 211, ${0.25 + intensity * 0.7})`;
 		context.globalAlpha = cell.dimmed ? 0.18 : 1;
 		context.fillRect(cell.x, cell.y, cell.size - 1, cell.size - 1);
 		context.globalAlpha = 1;
@@ -716,7 +734,9 @@ function nodeRadiusScale(values: Array<number | null>): {
 	low: number;
 	high: number;
 } {
-	const finite = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+	const finite = values.filter(
+		(value): value is number => typeof value === 'number' && Number.isFinite(value)
+	);
 	return {
 		min: finite.length ? Math.min(...finite) : 0,
 		max: finite.length ? Math.max(...finite) : 1,
