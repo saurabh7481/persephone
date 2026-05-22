@@ -302,80 +302,80 @@ This delivers most of the user-facing value even if the optional AI layer ships 
 
 ### Checkpoint 0 — v3 baseline and branch hygiene
 
-- [ ] Confirm all intended v3 work is committed or explicitly parked.
-- [ ] Confirm `git status --short` is clean except known local scratch files.
-- [ ] Run `UV_CACHE_DIR=/private/tmp/uv-cache uv sync`.
-- [ ] Run `UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest`.
-- [ ] Run `cd ui && bun run check && bun run lint && bun run test:unit && bun run build`.
-- [ ] Create v4 branch: `feat/v4-interpretable-studio`.
-- [ ] Commit: `chore: start v4 planning baseline`.
+- [x] Confirm all intended v3 work is committed or explicitly parked.
+- [x] Confirm `git status --short` is clean except known local scratch files.
+- [x] Run `UV_CACHE_DIR=/private/tmp/uv-cache uv sync`.
+- [x] Run `UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest`.
+- [x] Run `cd ui && bun run check && bun run lint && bun run test:unit && bun run build`.
+- [x] Create v4 branch: `feat/v4-interpretable-studio`.
+- [x] Commit: `chore: start v4 planning baseline`.
 
 ### Checkpoint 1 — Define semantic contracts
 
-- [ ] Extend the SDK contract surface to add plugin-declared semantics:
-  - [ ] entity schema
-  - [ ] state schema
-  - [ ] metric schema
-  - [ ] event schema
-  - [ ] visualization capabilities
-  - [ ] explanation capabilities
-- [ ] Decide whether these belong directly on `PluginManifest` or in a nested `SemanticManifest`.
-- [ ] Add typed Python models for:
-  - [ ] `EntityField`
-  - [ ] `StateDefinition`
-  - [ ] `MetricDefinition`
-  - [ ] `EventDefinition`
-  - [ ] `ViewCapability`
-  - [ ] `ExplanationCapability`
+- [x] Extend the SDK contract surface to add plugin-declared semantics:
+  - [x] entity schema
+  - [x] state schema
+  - [x] metric schema
+  - [x] event schema
+  - [x] visualization capabilities
+  - [x] explanation capabilities
+- [x] Decide whether these belong directly on `PluginManifest` or in a nested `SemanticManifest`.
+- [x] Add typed Python models for:
+  - [x] `EntityField`
+  - [x] `StateDefinition`
+  - [x] `MetricDefinition`
+  - [x] `EventDefinition`
+  - [x] `ViewCapability`
+  - [x] `ExplanationCapability`
 - [ ] Document required vs optional fields for each contract.
-- [ ] Add SDK tests validating plugin semantic manifests.
-- [ ] Add examples showing how non-spatial plugins can use the same contracts.
+- [x] Add SDK tests validating plugin semantic manifests.
+- [x] Add examples showing how non-spatial plugins can use the same contracts.
 - [ ] Commit: `feat: add semantic plugin contracts`.
 
 ### Checkpoint 2 — Evolve normalized frame contracts
 
-- [ ] Expand `GraphNode` support to explicitly allow:
-  - [ ] `label`
-  - [ ] `group`
-  - [ ] `lat`
-  - [ ] `lon`
-  - [ ] `metrics`
-  - [ ] `attrs`
-- [ ] Expand `GraphEdge` support to explicitly allow:
-  - [ ] `kind`
-  - [ ] `directed`
-  - [ ] `attrs`
-- [ ] Add standardized `visualization` hints for graph frames:
-  - [ ] `layout_hint`
-  - [ ] `coordinate_system`
-  - [ ] `preferred_view`
-  - [ ] `legend`
-  - [ ] `selection_schema`
-  - [ ] `density_hint`
-- [ ] Keep backward compatibility for existing v3 plugins and frames.
-- [ ] Add validation tests for old and new graph frame shapes.
+- [x] Expand `GraphNode` support to explicitly allow:
+  - [x] `label`
+  - [x] `group`
+  - [x] `lat`
+  - [x] `lon`
+  - [x] `metrics`
+  - [x] `attrs`
+- [x] Expand `GraphEdge` support to explicitly allow:
+  - [x] `kind`
+  - [x] `directed`
+  - [x] `attrs`
+- [x] Add standardized `visualization` hints for graph frames:
+  - [x] `layout_hint`
+  - [x] `coordinate_system`
+  - [x] `preferred_view`
+  - [x] `legend`
+  - [x] `selection_schema`
+  - [x] `density_hint`
+- [x] Keep backward compatibility for existing v3 plugins and frames.
+- [x] Add validation tests for old and new graph frame shapes.
 - [ ] Commit: `feat: enrich normalized graph frame metadata`.
 
 ### Checkpoint 3 — Add deterministic explanation fact model
 
-- [ ] Add engine-level typed models for explanation facts:
-  - [ ] `TrendFact`
-  - [ ] `MilestoneFact`
-  - [ ] `AnomalyFact`
-  - [ ] `HotspotFact`
-  - [ ] `SelectionFact`
-- [ ] Standardize fields:
-  - [ ] `kind`
-  - [ ] `title`
-  - [ ] `summary`
-  - [ ] `severity`
-  - [ ] `evidence`
-  - [ ] `related_ids`
-  - [ ] `t`
-- [ ] Add plugin hooks for producing facts from state, metrics, and events.
-- [ ] Add a shared rules-only summarizer that can produce basic explanations without LLMs.
-- [ ] Add storage for fact packets alongside replay artifacts.
-- [ ] Add tests covering fact extraction and fact persistence.
+- [x] Add engine-level typed models for explanation facts:
+  - [x] `TrendFact`
+  - [x] `MilestoneFact`
+  - [x] `AnomalyFact`
+  - [x] `HotspotFact`
+  - [x] `SelectionFact`
+- [x] Standardize fields:
+  - [x] `kind`
+  - [x] `title`
+  - [x] `summary`
+  - [x] `severity`
+  - [x] `evidence`
+  - [x] `related_ids`
+  - [x] `t`
+- [x] Add plugin hooks for producing facts from state, metrics, and events.
+- [x] Add a shared rules-only summarizer that can produce basic explanations without LLMs.
+- [x] Add storage for fact packets alongside replay artifacts.
+- [x] Add tests covering fact extraction and fact persistence.
 - [ ] Commit: `feat: add deterministic explanation fact pipeline`.
 
 ### Checkpoint 4 — Add optional AI interpretation layer
